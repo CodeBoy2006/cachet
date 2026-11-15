@@ -1,0 +1,12 @@
+{
+  "name": "@cachet/verify-cli",
+  "version": "0.1.0",
+  "description": "Offline verifier for bch-nostr-bind/v1 bindings.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "cachet-verify": "./src/index.ts" },
+  "dependencies": {
+    "@cachet/core": "*",
+    "@cachet/discovery": "*"
+  }
+}

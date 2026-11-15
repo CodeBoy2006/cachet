@@ -1,0 +1,21 @@
+{
+  "name": "@cachet/core",
+  "version": "0.1.0",
+  "description": "Pure verifier for the bch-nostr-bind/v1 identity profile. No network, no keys, no DOM.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "src"],
+  "exports": {
+    ".": {
+      "@cachet/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@bitauth/libauth": "3.0.0",
+    "nostr-tools": "2.26.0"
+  }
+}

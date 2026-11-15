@@ -1,0 +1,21 @@
+{
+  "name": "@cachet/discovery",
+  "version": "0.1.0",
+  "description": "Relay discovery, publishing and snapshot resolution for bch-nostr-bind/v1.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "src"],
+  "exports": {
+    ".": {
+      "@cachet/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@cachet/core": "*",
+    "nostr-tools": "2.26.0"
+  }
+}

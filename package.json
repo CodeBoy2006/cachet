@@ -1,0 +1,35 @@
+{
+  "name": "cachet",
+  "private": true,
+  "version": "0.1.0",
+  "description": "BCH \u00d7 Nostr identity: bind a Bitcoin Cash address to a Nostr key, discover it on relays, verify it anywhere.",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "tools/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n web,rp-a,rp-b -c gray,green,blue \"npm run dev -w @cachet/web\" \"npm run dev:a -w @cachet/rp\" \"npm run dev:b -w @cachet/rp\"",
+    "build:packages": "tsc -b packages/core packages/discovery packages/pay packages/signers",
+    "build": "npm run build:packages && npm run build -w @cachet/web && npm run build -w @cachet/rp",
+    "start": "npm run start:gateway -w @cachet/rp",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "verify": "tsx --conditions=@cachet/source tools/verify-cli/src/index.ts",
+    "dev:relay": "tsx scripts/dev-relay.ts 7777",
+    "dev:local": "concurrently -k -n relay,web,rp-a,rp-b -c magenta,gray,green,blue \"npm run dev:relay\" \"VITE_RELAYS=ws://127.0.0.1:7777 npm run dev -w @cachet/web\" \"RELAYS=ws://127.0.0.1:7777 npm run dev:a -w @cachet/rp\" \"RELAYS=ws://127.0.0.1:7777 npm run dev:b -w @cachet/rp\"",
+    "dev:web-local": "concurrently -k -n relay,web -c magenta,gray \"npm run dev:relay\" \"VITE_RELAYS=ws://127.0.0.1:7777 npm run dev -w @cachet/web\""
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/ws": "^8.18.1",
+    "concurrently": "^10.0.7",
+    "fast-check": "^4.10.2",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "vitest": "^5.1.0",
+    "ws": "^8.23.0"
+  }
+}

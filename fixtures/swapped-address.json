@@ -1,0 +1,15 @@
+{
+  "kind": 10011,
+  "created_at": 1794600060,
+  "tags": [
+    [
+      "i",
+      "bch:bitcoincash:qz6yu9dyfm58ska3lvzszfj9fq3xk2e2dcl7fffp5m",
+      "{\"bch_signature\":\"IFXfeZ+0qUPIBzDsPJgYJis30P/uJNgOMQm1B2UrGNwqeyZKKcU7AYmsiISOEe2cpPlEhYJKAQ0GSGNbI+O1H04=\",\"statement\":{\"cashaddr\":\"bitcoincash:qz6yu9dyfm58ska3lvzszfj9fq3xk2e2dcl7fffp5m\",\"expires_at\":2109960000,\"issued_at\":1794600000,\"network\":\"mainnet\",\"nonce\":\"ba890b442220e5d7cd84382d312fd2376ae919db0ab4fdf991b91d7e020879a6\",\"nostr_pubkey\":\"c8d5b10421b5dc929c5c5491d32852b6be7d530d5bec88404fb8724ed178111a\",\"purpose\":\"bind\",\"version\":1},\"type\":\"bch-nostr-bind/v1\"}"
+    ]
+  ],
+  "content": "",
+  "pubkey": "c8d5b10421b5dc929c5c5491d32852b6be7d530d5bec88404fb8724ed178111a",
+  "id": "96c3eb2a1d3fbf4fd78f0bf2b6f0347cabe5d67edf33b223869b107bb12a087e",
+  "sig": "f4b3ee6455a4161e7aeb01c3cf8eb2c29e8013104b84754aae691e34b57a48a7caca0a903d246b042293da303a73975e24fa1bfcd94a0778f3d6b91a55ef49e5"
+}

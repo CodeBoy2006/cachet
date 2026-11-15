@@ -1,0 +1,6 @@
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  readonly VITE_RP?: string;
+  readonly VITE_CACHET_URL?: string;
+}

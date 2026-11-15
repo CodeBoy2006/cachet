@@ -1,0 +1,15 @@
+{
+  "kind": 10011,
+  "created_at": 1794600060,
+  "tags": [
+    [
+      "i",
+      "bch:bitcoincash:qzd2rgu5sv33txdmuygp2nkz5jmdsl8zcq0mdw4ly9",
+      "{\n \"type\": \"bch-nostr-bind/v1\",\n \"statement\": {\n  \"version\": 1,\n  \"purpose\": \"bind\",\n  \"network\": \"mainnet\",\n  \"cashaddr\": \"bitcoincash:qzd2rgu5sv33txdmuygp2nkz5jmdsl8zcq0mdw4ly9\",\n  \"nostr_pubkey\": \"c8d5b10421b5dc929c5c5491d32852b6be7d530d5bec88404fb8724ed178111a\",\n  \"issued_at\": 1794600000,\n  \"expires_at\": 2109960000,\n  \"nonce\": \"ba890b442220e5d7cd84382d312fd2376ae919db0ab4fdf991b91d7e020879a6\"\n },\n \"bch_signature\": \"IFXfeZ+0qUPIBzDsPJgYJis30P/uJNgOMQm1B2UrGNwqeyZKKcU7AYmsiISOEe2cpPlEhYJKAQ0GSGNbI+O1H04=\"\n}"
+    ]
+  ],
+  "content": "",
+  "pubkey": "c8d5b10421b5dc929c5c5491d32852b6be7d530d5bec88404fb8724ed178111a",
+  "id": "42df73c56673dca9f29816258d7154df8a3bab385613ac5811d8e4a2362c3d71",
+  "sig": "722492f381a6bea5350c855db52ea98039fcb33d585e8acb9efacc5910a57db2a3b8dae1d06fb7e53f3839b3915ee54f7432b9d6986f0a6b0cd2a0a470deb6ff"
+}

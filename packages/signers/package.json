@@ -1,0 +1,23 @@
+{
+  "name": "@cachet/signers",
+  "version": "0.1.0",
+  "description": "Signer adapters: NIP-07, local Nostr key, WalletConnect bch_signMessage, local BCH key.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "src"],
+  "exports": {
+    ".": {
+      "@cachet/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@bitauth/libauth": "3.0.0",
+    "@cachet/core": "*",
+    "@walletconnect/sign-client": "2.26.0",
+    "nostr-tools": "2.26.0"
+  }
+}

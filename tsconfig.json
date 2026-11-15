@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "packages/*/src",
+    "apps/web/src",
+    "apps/rp/server",
+    "apps/rp/shared",
+    "apps/rp/web/src",
+    "tools/*/src",
+    "scripts",
+    "apps/web/vite-env.d.ts",
+    "apps/rp/web/vite-env.d.ts"
+  ]
+}

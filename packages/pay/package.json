@@ -1,0 +1,21 @@
+{
+  "name": "@cachet/pay",
+  "version": "0.1.0",
+  "description": "Pay a verified identity: BIP21 requests, Electrum (Fulcrum) watcher, P2PKH transaction builder.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "src"],
+  "exports": {
+    ".": {
+      "@cachet/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@bitauth/libauth": "3.0.0",
+    "@cachet/core": "*"
+  }
+}

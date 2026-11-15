@@ -1,0 +1,14 @@
+{
+  "name": "@cachet/react",
+  "version": "0.1.0",
+  "description": "React identity components for bch-nostr-bind/v1.",
+  "license": "MIT",
+  "type": "module",
+  "exports": { ".": "./src/index.ts", "./styles.css": "./src/styles.css" },
+  "dependencies": {
+    "@cachet/core": "*",
+    "@cachet/discovery": "*",
+    "qrcode-generator": "^2.0.4"
+  },
+  "peerDependencies": { "react": ">=18" }
+}

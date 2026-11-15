@@ -1,0 +1,35 @@
+{
+  "name": "@cachet/rp",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Example relying party. Run twice (A and B) to show two independent apps verifying the same identity.",
+  "type": "module",
+  "scripts": {
+    "dev:a": "concurrently -k -n api,ui \"RP=a tsx --conditions=@cachet/source watch server/main.ts\" \"VITE_RP=a vite --config web/vite.config.ts --port 5174 --strictPort\"",
+    "dev:b": "concurrently -k -n api,ui \"RP=b tsx --conditions=@cachet/source watch server/main.ts\" \"VITE_RP=b vite --config web/vite.config.ts --port 5175 --strictPort\"",
+    "build": "VITE_RP=a vite build --config web/vite.config.ts --outDir ../dist/a && VITE_RP=b vite build --config web/vite.config.ts --outDir ../dist/b",
+    "start:a": "RP=a NODE_ENV=production tsx --conditions=@cachet/source server/main.ts",
+    "start:b": "RP=b NODE_ENV=production tsx --conditions=@cachet/source server/main.ts",
+    "start:gateway": "NODE_ENV=production tsx --conditions=@cachet/source server/gateway.ts"
+  },
+  "dependencies": {
+    "@cachet/core": "*",
+    "@cachet/discovery": "*",
+    "@cachet/pay": "*",
+    "@cachet/react": "*",
+    "@cachet/signers": "*",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@hono/node-server": "^2.1.8",
+    "hono": "^4.13.18",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "concurrently": "^10.0.7",
+    "vite": "^8.3.8"
+  }
+}
