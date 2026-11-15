@@ -131,3 +131,15 @@ export const IconLock = (p: P) => (
     <path d="M5.25 7V5.25a2.75 2.75 0 0 1 5.5 0V7" />
   </svg>
 );
+export const IconLink = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M6.75 9.25a2.75 2.75 0 0 0 3.9.1l1.95-1.95a2.75 2.75 0 0 0-3.9-3.9l-.7.7" />
+    <path d="M9.25 6.75a2.75 2.75 0 0 0-3.9-.1L3.4 8.6a2.75 2.75 0 0 0 3.9 3.9l.7-.7" />
+  </svg>
+);
+export const IconUndo = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M5.5 3.75 3 6.25l2.5 2.5" />
+    <path d="M3 6.25h6.25a3.5 3.5 0 0 1 0 7H6.5" />
+  </svg>
+);

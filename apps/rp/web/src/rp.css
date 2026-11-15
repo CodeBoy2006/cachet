@@ -1,10 +1,12 @@
 :root {
-  --brand: #9a3412;
+  --brand: var(--brand-light, #9a3412);
+  --on-brand: #fff;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --brand: var(--brand-dark);
+    --brand: var(--brand-dark, var(--brand-light, #f08a5d));
+    --on-brand: #140c08;
   }
 }
 
@@ -68,6 +70,7 @@
   border: 1px solid var(--line-2);
   border-radius: 999px;
   padding: 1px 8px;
+  white-space: nowrap;
 }
 
 .rp-cachet {
@@ -78,6 +81,18 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
+  transition: color 140ms;
+}
+
+.rp-cachet:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 480px) {
+  .rp-tag {
+    display: none;
+  }
 }
 
 .rp-main {
@@ -126,10 +141,11 @@
 
 .brand-btn {
   background: var(--brand);
+  color: var(--on-brand);
 }
 
 .brand-btn:hover {
-  background: color-mix(in srgb, var(--brand) 85%, #000);
+  background: color-mix(in srgb, var(--brand) 86%, var(--ink));
 }
 
 .signin {
@@ -207,17 +223,59 @@
 .flow li[data-state='fail'] .flow__mark {
   border: 0;
   background: var(--danger);
-  color: #fff;
+  color: var(--on-danger);
+}
+
+.flow li {
+  animation: c-rise 280ms var(--ease) both;
+}
+
+.flow li:nth-child(2) {
+  animation-delay: 40ms;
+}
+.flow li:nth-child(3) {
+  animation-delay: 80ms;
+}
+.flow li:nth-child(4) {
+  animation-delay: 120ms;
+}
+
+.flow li[data-state='done'] .flow__mark svg {
+  animation: c-stamp 340ms var(--ease-spring) both;
 }
 
 .flow__detail {
   font-size: 12px;
 }
 
+.signin--loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+}
+
 .session {
   padding: 20px;
   display: grid;
   gap: 16px;
+  animation: c-pop 280ms var(--ease) both;
+}
+
+.session__who {
+  min-width: 0;
+  flex: 1;
+}
+
+.session__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session__sub {
+  font-size: 12.5px;
 }
 
 .kv {
@@ -307,6 +365,15 @@
   border-radius: 14px;
   background: var(--surface);
   border: 1px solid var(--line);
+  animation: c-rise 360ms var(--ease) both;
+}
+
+.note:nth-child(2) {
+  animation-delay: 50ms;
+}
+
+.note:nth-child(3) {
+  animation-delay: 100ms;
 }
 
 .note h3 {
@@ -368,6 +435,18 @@
   background: var(--surface);
   border: 1px solid var(--line);
   overflow: hidden;
+  transition:
+    border-color 160ms,
+    box-shadow 160ms;
+}
+
+.listing-card:has(.stall__checkout) {
+  border-color: var(--line-2);
+  box-shadow: var(--shadow);
+}
+
+.stall__checkout {
+  animation: c-fade 220ms ease both;
 }
 
 .listing {

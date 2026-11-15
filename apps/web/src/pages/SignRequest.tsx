@@ -5,6 +5,7 @@ import { Avatar, IconCheck, Logo, Note, Spinner, StatePill, shortCashaddr, short
 import { useSession } from '../lib/session.tsx';
 import { savePendingSign } from '../lib/storage.ts';
 import { useLookup } from '../lib/useLookup.ts';
+import { usePageTitle } from '../lib/usePageTitle.ts';
 import { NostrConnect } from '../components/NostrConnect.tsx';
 
 /**
@@ -54,17 +55,18 @@ const parseRequest = (): Request | { error: string } => {
 };
 
 export const SignRequest = () => {
-  const { nostr, restoring } = useSession();
+  const { nostr, restoring, disconnectNostr } = useSession();
   const request = useMemo(parseRequest, []);
   const [phase, setPhase] = useState<'approve' | 'signing' | 'done'>('approve');
   const [error, setError] = useState<string>();
   const lookup = useLookup(nostr ? npubEncode(nostr.pubkey) : undefined);
+  usePageTitle('error' in request ? 'Sign in' : `Sign in to ${request.app}`);
 
   if ('error' in request) {
     return (
       <div className="signer">
         <div className="c-card signer__card">
-          <div className="row" style={{ gap: 8, fontWeight: 600 }}>
+          <div className="signer__brand">
             <Logo size={20} /> cachet
           </div>
           <h1>{request.error === 'missing' ? 'Sign-in page' : 'Cannot sign this request'}</h1>
@@ -102,11 +104,11 @@ export const SignRequest = () => {
   return (
     <div className="signer">
       <div className="c-card signer__card">
-        <div className="row" style={{ gap: 8, fontWeight: 600 }}>
+        <div className="signer__brand">
           <Logo size={20} /> cachet
         </div>
         <div className="signer__origin">
-          <span className="favicon" style={{ background: 'var(--ink)' }}>
+          <span className="favicon" aria-hidden>
             {request.app.slice(0, 1).toUpperCase()}
           </span>
           <div style={{ minWidth: 0 }}>
@@ -116,7 +118,7 @@ export const SignRequest = () => {
             </div>
           </div>
         </div>
-        <h1>{phase === 'done' ? 'Signed. Returning…' : `Sign in to ${request.app}?`}</h1>
+        <h1>{phase === 'done' ? `Returning to ${request.app}…` : `Sign in to ${request.app}?`}</h1>
 
         {restoring ? (
           <div className="row muted">
@@ -131,16 +133,19 @@ export const SignRequest = () => {
           </>
         ) : (
           <>
-            <div className="row" style={{ gap: 12 }}>
+            <div className="signer__who">
               <Avatar pubkey={nostr.pubkey} picture={result?.profile?.picture} size={36} />
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontWeight: 550 }}>{result?.profile?.displayName || result?.profile?.name || shortNpub(nostr.pubkey)}</div>
-                <div className="mono muted" style={{ fontSize: 12.5 }}>
-                  {claim ? shortCashaddr(claim.cashaddr) : shortNpub(nostr.pubkey)}
-                </div>
+              <div className="signer__who-text">
+                <div className="signer__name">{result?.profile?.displayName || result?.profile?.name || shortNpub(nostr.pubkey)}</div>
+                <div className="mono muted signer__addr">{claim ? shortCashaddr(claim.cashaddr) : shortNpub(nostr.pubkey)}</div>
               </div>
               <StatePill state={result ? result.resolution.state : 'loading'} />
             </div>
+            {phase === 'approve' && (
+              <button type="button" className="c-link signer__switch" onClick={disconnectNostr}>
+                Use a different key
+              </button>
+            )}
             {result && result.resolution.state !== 'active' && (
               <Note tone="warn">
                 {request.app} will refuse this key: it has no active BCH link.{' '}
@@ -150,8 +155,8 @@ export const SignRequest = () => {
                 first.
               </Note>
             )}
-            <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-              {request.app} receives your npub and one signed login request valid only at {new URL(request.origin).host}. It checks your BCH link on
+            <p className="muted signer__fine">
+              {request.app} receives your npub and one signed login request, valid only at {new URL(request.origin).host}. It checks your BCH link on
               the relays itself.
             </p>
             {error && <Note tone="danger">{error}</Note>}
@@ -160,11 +165,11 @@ export const SignRequest = () => {
                 <IconCheck /> Login request signed.
               </div>
             ) : (
-              <div className="row">
-                <button type="button" className="c-btn c-btn--lg" style={{ flex: 1 }} onClick={approve} disabled={phase === 'signing'}>
-                  {phase === 'signing' && <Spinner />} Sign in
+              <div className="signer__actions">
+                <button type="button" className="c-btn c-btn--lg" onClick={approve} disabled={phase === 'signing'}>
+                  {phase === 'signing' && <Spinner />} {phase === 'signing' ? 'Signing…' : 'Sign in'}
                 </button>
-                <button type="button" className="c-btn c-btn--lg c-btn--ghost" onClick={() => back('cachet-error=cancelled')}>
+                <button type="button" className="c-btn c-btn--lg c-btn--ghost" onClick={() => back('cachet-error=cancelled')} disabled={phase === 'signing'}>
                   Cancel
                 </button>
               </div>

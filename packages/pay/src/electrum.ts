@@ -40,7 +40,13 @@ export class ElectrumClient {
 
   connect(): Promise<void> {
     if (this.ws?.readyState === 1) return Promise.resolve();
-    return this.connecting ??= this.connectServers().finally(() => { this.connecting = undefined; });
+    if (!this.connecting) {
+      const attempt: Promise<void> = this.connectServers().finally(() => {
+        if (this.connecting === attempt) this.connecting = undefined;
+      });
+      this.connecting = attempt;
+    }
+    return this.connecting;
   }
 
   private async connectServers(): Promise<void> {
@@ -139,8 +145,11 @@ export class ElectrumClient {
     return () => this.subscribers.get(key)?.delete(cb);
   }
 
+  /** Drops the connection. The client stays usable: the next request connects again. */
   close() {
     this.epoch++;
+    // The handshake in flight will reject; a connect() after close() must not wait on it.
+    this.connecting = undefined;
     const ws = this.ws;
     this.ws = undefined;
     for (const s of this.inflight) s.close();

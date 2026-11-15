@@ -22,7 +22,7 @@ const ScrollTop = () => {
 };
 
 const PageLoader = () => (
-  <div className="wrap" style={{ padding: '72px 28px', display: 'flex', justifyContent: 'center' }}>
+  <div className="wrap page-loader">
     <Spinner />
   </div>
 );

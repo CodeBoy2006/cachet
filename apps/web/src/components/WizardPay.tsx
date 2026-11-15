@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useWizardConnect, WizardConnectQRDialog } from '@wizardconnect/react';
 import {
   ensureBroadcast,
@@ -7,24 +7,23 @@ import {
   planPayment,
   scanHdWallet,
   type ElectrumClient,
+  type HdScanResult,
   type PaymentPlan,
 } from '@cachet/pay';
 import { hashTransaction, hexToBin } from '@bitauth/libauth';
 import { IconArrowUpRight, IconCheck, IconWallet, Note, Spinner, shortMiddle } from '@cachet/react';
 import { config } from '../config.ts';
 
-type Phase =
-  | { kind: 'idle' }
-  | { kind: 'loading' }
-  | { kind: 'ready'; plan: PaymentPlan; balance: bigint }
-  | { kind: 'signing'; plan: PaymentPlan; balance: bigint }
-  | { kind: 'sent'; txid: string }
-  | { kind: 'error'; message: string };
+type Wallet = { kind: 'idle' } | { kind: 'scanning' } | { kind: 'ready'; scan: HdScanResult } | { kind: 'error'; message: string };
+type Send = { kind: 'idle' } | { kind: 'signing' } | { kind: 'sent'; txid: string } | { kind: 'error'; message: string };
+
+const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /**
  * WizardConnect gives xpubs and transaction signing. We derive the wallet's
- * addresses, read UTXOs from Fulcrum, build the payment, and ask the wallet to
- * sign and broadcast it. The wallet shows the outputs before signing.
+ * addresses, read UTXOs from Fulcrum once per connection, plan the payment
+ * locally for whatever amount is chosen, and ask the wallet to sign and
+ * broadcast it. The wallet shows the outputs before signing.
  */
 export const WizardPay = ({
   electrum,
@@ -41,33 +40,48 @@ export const WizardPay = ({
 }) => {
   const wc = useWizardConnect({ dappName: 'Cachet', sessionKey: 'cachet-wizardconnect' });
   const [dialog, setDialog] = useState(false);
-  const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
-  const [reload, setReload] = useState(0);
+  const [wallet, setWallet] = useState<Wallet>({ kind: 'idle' });
+  const [send, setSend] = useState<Send>({ kind: 'idle' });
+  const [rescan, setRescan] = useState(0);
 
   useEffect(() => {
     if (wc.state === 'connected') setDialog(false);
   }, [wc.state]);
 
-  // Load spendable coins whenever the wallet (re)connects or the amount changes.
+  // Scan the wallet's coins when it (re)connects, or after a payment.
   useEffect(() => {
     const manager = wc.manager;
-    if (wc.state !== 'connected' || !manager) return;
+    if (wc.state !== 'connected' || !manager) return setWallet({ kind: 'idle' });
     let live = true;
-    setPhase({ kind: 'loading' });
-    (async () => {
-      const { utxos, changeAddress, balance } = await scanHdWallet(electrum, (child, index) => manager.getPubkey(child, index));
-      const plan = planPayment({ utxos, to: lockingBytecodeOf(to), sats, changeTo: lockingBytecodeOf(changeAddress) });
-      if (live) setPhase({ kind: 'ready', plan, balance });
-    })().catch((e) => live && setPhase({ kind: 'error', message: e instanceof Error ? e.message : String(e) }));
+    setWallet({ kind: 'scanning' });
+    scanHdWallet(electrum, (child, index) => manager.getPubkey(child, index))
+      .then((scan) => live && setWallet({ kind: 'ready', scan }))
+      .catch((e) => live && setWallet({ kind: 'error', message: message(e) }));
     return () => {
       live = false;
     };
-  }, [wc.state, wc.manager, electrum, to, sats, reload]);
+  }, [wc.state, wc.manager, electrum, rescan]);
 
-  const send = async () => {
-    if (phase.kind !== 'ready' || !wc.manager) return;
-    const { plan, balance } = phase;
-    setPhase({ kind: 'signing', plan, balance });
+  // A new amount or recipient starts a new payment.
+  useEffect(() => {
+    setSend((s) => (s.kind === 'signing' ? s : { kind: 'idle' }));
+  }, [to, sats]);
+
+  const planned = useMemo((): { plan: PaymentPlan } | { error: string } | undefined => {
+    if (wallet.kind !== 'ready') return undefined;
+    try {
+      return {
+        plan: planPayment({ utxos: wallet.scan.utxos, to: lockingBytecodeOf(to), sats, changeTo: lockingBytecodeOf(wallet.scan.changeAddress) }),
+      };
+    } catch (e) {
+      return { error: message(e) };
+    }
+  }, [wallet, to, sats]);
+
+  const pay = async () => {
+    if (!planned || !('plan' in planned) || !wc.manager) return;
+    const { plan } = planned;
+    setSend({ kind: 'signing' });
     try {
       const res = await wc.manager.signTransaction({
         transaction: {
@@ -81,10 +95,10 @@ export const WizardPay = ({
       if (res.error || !res.signedTransaction) throw new Error(res.error ?? 'The wallet declined.');
       const txid = hashTransaction(hexToBin(res.signedTransaction));
       await ensureBroadcast(electrum, res.signedTransaction, txid);
-      setPhase({ kind: 'sent', txid });
+      setSend({ kind: 'sent', txid });
       onSent(txid);
     } catch (e) {
-      setPhase({ kind: 'error', message: e instanceof Error ? e.message : String(e) });
+      setSend({ kind: 'error', message: message(e) });
     }
   };
 
@@ -105,6 +119,7 @@ export const WizardPay = ({
   };
 
   if (wc.state !== 'connected') {
+    const connecting = wc.state === 'connecting' || wc.state === 'reconnecting';
     return (
       <>
         <button
@@ -115,7 +130,7 @@ export const WizardPay = ({
             setDialog(true);
           }}
         >
-          <IconWallet /> Pay with WizardConnect
+          {connecting && dialog ? <Spinner /> : <IconWallet />} Pay with WizardConnect
         </button>
         {wc.uri && wc.qrUri && (
           <WizardConnectQRDialog
@@ -136,47 +151,69 @@ export const WizardPay = ({
     );
   }
 
+  const balance = wallet.kind === 'ready' ? wallet.scan.balance : undefined;
+
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
-      <div className="row row--between" style={{ fontSize: 13.5 }}>
-        <span className="soft">Connected to {wc.walletName ?? 'wallet'}</span>
-        <button type="button" className="c-btn c-btn--ghost c-btn--sm" onClick={() => void wc.disconnect()}>
+    <div className="wizard">
+      <div className="wizard__head">
+        <span className="soft">
+          {wc.walletName ?? 'Wallet'} connected
+          {balance !== undefined && <span className="muted"> · {formatBch(balance)} BCH available</span>}
+        </span>
+        <button type="button" className="c-btn c-btn--ghost c-btn--sm" onClick={() => void wc.disconnect()} disabled={send.kind === 'signing'}>
           Disconnect
         </button>
       </div>
-      {phase.kind === 'loading' && (
-        <div className="row muted" style={{ fontSize: 13.5 }}>
+
+      {wallet.kind === 'scanning' && (
+        <div className="row muted wizard__line">
           <Spinner /> Reading balance from Fulcrum…
         </div>
       )}
-      {phase.kind === 'ready' && (
-        <button type="button" className="c-btn c-btn--accent c-btn--block c-btn--lg" onClick={send}>
-          Send {formatBch(sats)} BCH · fee {phase.plan.fee.toString()} sats
+
+      {wallet.kind === 'error' && (
+        <div className="wizard__stack">
+          <Note tone="danger">{wallet.message}</Note>
+          <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={() => setRescan((n) => n + 1)}>
+            Retry
+          </button>
+        </div>
+      )}
+
+      {wallet.kind === 'ready' && planned && 'error' in planned && send.kind !== 'sent' && <Note tone="warn">{planned.error}</Note>}
+
+      {wallet.kind === 'ready' && planned && 'plan' in planned && (send.kind === 'idle' || send.kind === 'error') && (
+        <button type="button" className="c-btn c-btn--accent c-btn--block c-btn--lg" onClick={pay}>
+          Send {formatBch(sats)} BCH
+          <span className="wizard__fee">fee {planned.plan.fee.toString()} sats</span>
         </button>
       )}
-      {phase.kind === 'signing' && (
+
+      {send.kind === 'signing' && (
         <button type="button" className="c-btn c-btn--block c-btn--lg" disabled>
           <Spinner /> Confirm in {wc.walletName ?? 'your wallet'}…
         </button>
       )}
-      {phase.kind === 'sent' && (
-        <div className="row row--between" style={{ fontSize: 13.5 }}>
+
+      {send.kind === 'error' && <Note tone="danger">{send.message}</Note>}
+
+      {send.kind === 'sent' && (
+        <div className="wizard__sent">
           <span className="signed-line">
             <IconCheck size={15} /> Broadcast{' '}
-            <a className="mono" href={config.explorerTx(phase.txid)} target="_blank" rel="noreferrer">
-              {shortMiddle(phase.txid, 10, 6)} <IconArrowUpRight size={12} />
+            <a className="mono" href={config.explorerTx(send.txid)} target="_blank" rel="noreferrer">
+              {shortMiddle(send.txid, 10, 6)} <IconArrowUpRight size={12} />
             </a>
           </span>
-          <button type="button" className="c-btn c-btn--ghost c-btn--sm" onClick={() => setReload((n) => n + 1)}>
+          <button
+            type="button"
+            className="c-btn c-btn--ghost c-btn--sm"
+            onClick={() => {
+              setSend({ kind: 'idle' });
+              setRescan((n) => n + 1);
+            }}
+          >
             Send another
-          </button>
-        </div>
-      )}
-      {phase.kind === 'error' && (
-        <div style={{ display: 'grid', gap: 8 }}>
-          <Note tone="danger">{phase.message}</Note>
-          <button type="button" className="c-btn c-btn--secondary c-btn--sm" style={{ justifySelf: 'start' }} onClick={() => setReload((n) => n + 1)}>
-            Retry
           </button>
         </div>
       )}

@@ -22,8 +22,8 @@ interface SessionValue {
   hasSandboxKeys: boolean;
   persisted: boolean;
   connectExtension(): Promise<NostrConnection>;
-  useSandboxNostr(): NostrConnection;
-  useQuickSandbox(): { nostr: NostrConnection; bch: BchConnection };
+  connectSandboxNostr(): NostrConnection;
+  startSandbox(): { nostr: NostrConnection; bch: BchConnection };
   disconnectNostr(): void;
   setBch(conn: BchConnection | undefined): void;
   sandboxBch(): LocalBchSigner;
@@ -94,7 +94,7 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     return conn;
   }, [syncStorageMeta]);
 
-  const useSandboxNostr = useCallback(() => {
+  const connectSandboxNostr = useCallback(() => {
     let s = loadSandboxNostr();
     if (!s) {
       s = LocalNostrSigner.generate();
@@ -134,13 +134,13 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     return s;
   }, [syncStorageMeta]);
 
-  const useQuickSandbox = useCallback(() => {
-    const n = useSandboxNostr();
+  const startSandbox = useCallback(() => {
+    const n = connectSandboxNostr();
     const s = sandboxBch();
     const b: BchConnection = { kind: 'local', label: 'Sandbox key', signer: s, addresses: [s.address()] };
     setBch(b);
     return { nostr: n, bch: b };
-  }, [useSandboxNostr, sandboxBch, setBch]);
+  }, [connectSandboxNostr, sandboxBch, setBch]);
 
   const forgetSandbox = useCallback(() => {
     store.remove(KEYS.sandboxBch);
@@ -159,15 +159,15 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
       hasSandboxKeys,
       persisted,
       connectExtension,
-      useSandboxNostr,
-      useQuickSandbox,
+      connectSandboxNostr,
+      startSandbox,
       disconnectNostr,
       setBch,
       sandboxBch,
       sandboxNostr: loadSandboxNostr,
       forgetSandbox,
     }),
-    [nostr, bch, restoring, hasSandboxKeys, persisted, connectExtension, useSandboxNostr, useQuickSandbox, disconnectNostr, setBch, sandboxBch, forgetSandbox],
+    [nostr, bch, restoring, hasSandboxKeys, persisted, connectExtension, connectSandboxNostr, startSandbox, disconnectNostr, setBch, sandboxBch, forgetSandbox],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

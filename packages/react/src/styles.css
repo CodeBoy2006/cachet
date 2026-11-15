@@ -24,6 +24,8 @@
   --warn: #9a5a06;
   --warn-soft: #f9efdf;
   --info: #3d5a80;
+  --on-accent: #ffffff;
+  --on-danger: #ffffff;
 
   --dot-bch: #0ac18e;
   --dot-nostr: #8a4ce6;
@@ -34,6 +36,7 @@
   --shadow: 0 1px 2px rgb(20 20 18 / 0.04), 0 4px 16px -6px rgb(20 20 18 / 0.06);
   --shadow-l: 0 2px 4px rgb(20 20 18 / 0.04), 0 18px 48px -18px rgb(20 20 18 / 0.18);
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 
   color-scheme: light;
 }
@@ -58,6 +61,8 @@
     --warn: #e2a64c;
     --warn-soft: #2a2010;
     --info: #9bb3d6;
+    --on-accent: #04170f;
+    --on-danger: #2a0905;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
     --shadow-l: 0 2px 4px rgb(0 0 0 / 0.3), 0 24px 60px -20px rgb(0 0 0 / 0.6);
     color-scheme: dark;
@@ -83,6 +88,8 @@
   --warn: #e2a64c;
   --warn-soft: #2a2010;
   --info: #9bb3d6;
+  --on-accent: #04170f;
+  --on-danger: #2a0905;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
   --shadow-l: 0 2px 4px rgb(0 0 0 / 0.3), 0 24px 60px -20px rgb(0 0 0 / 0.6);
   color-scheme: dark;
@@ -96,6 +103,7 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  scrollbar-gutter: stable;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -150,6 +158,18 @@ select {
 
 .soft {
   color: var(--ink-2);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* ---------- Buttons ---------- */
@@ -218,7 +238,7 @@ select {
 
 .c-btn--accent {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .c-btn--accent:hover {
@@ -233,6 +253,15 @@ select {
 
 .c-btn--danger:hover {
   background: var(--danger-soft);
+}
+
+.c-btn--danger-solid {
+  background: var(--danger);
+  color: var(--on-danger);
+}
+
+.c-btn--danger-solid:hover {
+  background: color-mix(in srgb, var(--danger) 88%, var(--ink));
 }
 
 .c-btn--sm {
@@ -331,31 +360,61 @@ textarea.c-input {
 /* ---------- Segmented ---------- */
 
 .c-seg {
+  position: relative;
   display: inline-flex;
+  max-width: 100%;
   padding: 3px;
   gap: 2px;
   border-radius: 10px;
   background: var(--sunken);
   border: 1px solid var(--line);
+  isolation: isolate;
+}
+
+.c-seg__thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.08),
+    0 0 0 1px color-mix(in srgb, var(--line) 60%, transparent);
+  transition:
+    translate 260ms var(--ease),
+    width 260ms var(--ease);
+  z-index: -1;
 }
 
 .c-seg button {
+  position: relative;
   border: 0;
   background: transparent;
   padding: 6px 12px;
   border-radius: 7px;
   font-size: 13.5px;
+  white-space: nowrap;
   color: var(--ink-2);
   cursor: pointer;
-  transition:
-    background 140ms,
-    color 140ms;
+  transition: color 160ms;
 }
 
-.c-seg button[aria-pressed='true'] {
-  background: var(--surface);
+.c-seg button:hover:not([disabled]) {
   color: var(--ink);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.c-seg button[aria-checked='true'] {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.c-seg button[disabled] {
+  cursor: not-allowed;
+}
+
+.c-seg[aria-disabled='true'] {
+  opacity: 0.6;
 }
 
 /* ---------- Pills ---------- */
@@ -510,7 +569,7 @@ textarea.c-input {
   display: none;
 }
 
-@container (max-width: 500px) {
+@container (max-width: 560px) {
   .fit-long {
     display: none;
   }
@@ -573,15 +632,22 @@ textarea.c-input {
 .c-idcard[data-state='active'] .c-idcard__seal {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   box-shadow: 0 0 0 5px var(--surface);
+  animation: c-stamp 520ms var(--ease-spring) both;
 }
 
 .c-idcard[data-state='invalid'] .c-idcard__seal {
   background: var(--danger);
   border-color: var(--danger);
-  color: #fff;
+  color: var(--on-danger);
   box-shadow: 0 0 0 5px var(--surface);
+  animation: c-stamp 420ms var(--ease) both;
+}
+
+.c-idcard__who,
+.c-idcard__addr {
+  animation: c-fade 280ms var(--ease) both;
 }
 
 .c-idcard[data-state='expired'] .c-idcard__seal,
@@ -698,7 +764,7 @@ textarea.c-input {
 
 .c-check[data-status='fail'] .c-check__mark {
   background: var(--danger);
-  color: #fff;
+  color: var(--on-danger);
 }
 
 .c-check[data-status='skip'] .c-check__mark {
@@ -833,19 +899,26 @@ textarea.c-input {
   background: var(--surface);
 }
 
-.c-copy span {
+.c-copy > span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.c-copy svg {
+.c-copy__icon {
+  display: inline-grid;
   flex: none;
   color: var(--ink-3);
 }
 
-.c-copy[data-copied='true'] svg {
+.c-copy[data-copied='true'] .c-copy__icon,
+.c-copy-icon[data-copied='true'] {
   color: var(--accent);
+}
+
+.c-copy[data-copied='true'] .c-copy__icon svg,
+.c-copy-icon[data-copied='true'] svg {
+  animation: c-stamp 320ms var(--ease-spring) both;
 }
 
 /* ---------- Dialog ---------- */
@@ -892,6 +965,47 @@ textarea.c-input {
   padding: 14px 22px 22px;
 }
 
+.c-dialog-backdrop[data-closing] {
+  animation: c-fade-out 150ms ease both;
+  pointer-events: none;
+}
+
+.c-dialog-backdrop[data-closing] .c-dialog {
+  animation: c-sink 150ms ease both;
+}
+
+@media (max-width: 520px) {
+  .c-dialog-backdrop {
+    place-items: end center;
+    padding: 12px;
+  }
+  .c-dialog {
+    max-height: calc(100dvh - 24px);
+  }
+}
+
+/* ---------- Inline confirm ---------- */
+
+.c-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 10px 10px 14px;
+  border-radius: 11px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 13.5px;
+  animation: c-fade 160ms ease both;
+}
+
+.c-confirm__actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
 /* ---------- Notices ---------- */
 
 .c-note {
@@ -924,6 +1038,28 @@ textarea.c-input {
 .c-note--ok {
   background: var(--accent-soft);
   color: var(--accent-ink);
+}
+
+.c-note a,
+.c-note button.c-link {
+  color: inherit;
+  font-weight: 550;
+}
+
+.c-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.c-link:hover {
+  text-decoration-color: currentColor;
 }
 
 /* ---------- Misc ---------- */
@@ -998,6 +1134,33 @@ textarea.c-input {
     opacity: 0;
     scale: 0.97;
     translate: 0 6px;
+  }
+}
+
+@keyframes c-sink {
+  to {
+    opacity: 0;
+    scale: 0.98;
+    translate: 0 4px;
+  }
+}
+
+@keyframes c-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes c-stamp {
+  0% {
+    scale: 0.55;
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    scale: 1;
   }
 }
 

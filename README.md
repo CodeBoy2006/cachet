@@ -42,7 +42,7 @@ npm run dev
 Cachet: http://localhost:5173 · Fieldnote: http://localhost:5174 · Stall: http://localhost:5175
 
 ```bash
-npm test                         # 127 tests: vectors, verifier, resolver, relays + legacy 30078, RP login/gating/gateway, payments
+npm test                         # 128 tests: vectors, verifier, resolver, relays + legacy 30078, RP login/gating/gateway, payments
 npm run typecheck
 npm run verify -- fixtures/valid.json          # offline verifier
 npm run verify -- --npub npub1…                # resolve from relays

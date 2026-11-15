@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { npubEncode } from '@cachet/core';
+import { npubEncode, type BindingState } from '@cachet/core';
 import { CheckList, Dialog, IconArrowRight, IconArrowUpRight, IconBeaker, IconKey, IconLock, IconWallet, IdentityCard, Spinner, shortNpub } from '@cachet/react';
 import { config } from '../config.ts';
 import { SearchBox } from '../components/SearchBox.tsx';
@@ -10,20 +10,44 @@ import { useSession } from '../lib/session.tsx';
 
 const PayPanel = lazy(() => import('../components/PayPanel.tsx').then((m) => ({ default: m.PayPanel })));
 
-const Featured = ({ id }: { id: string }) => {
+const CAPTIONS: Record<Exclude<BindingState, 'active'>, string> = {
+  withdrawn: 'The owner withdrew this link.',
+  expired: 'This link has expired.',
+  invalid: 'The published proof does not verify.',
+  not_found: 'No link on the relays checked.',
+  unavailable: 'Relays did not answer.',
+};
+
+const Featured = ({ id, own }: { id: string; own: boolean }) => {
   const { state } = useLookup(id);
   const [payOpen, setPayOpen] = useState(false);
   const result = state.status === 'done' ? state.result : undefined;
-  const claim = result?.resolution.primary;
+  const resolution = result?.resolution;
+  const claim = resolution?.primary;
   const binding = claim?.result?.binding;
-  const canPay = result?.resolution.state === 'active' && !!claim && binding?.network === 'mainnet';
+  const canPay = !own && resolution?.state === 'active' && !!claim && binding?.network === 'mainnet';
   const payee = result?.profile?.displayName || result?.profile?.name || (result ? shortNpub(result.pubkey) : '');
-  const asked = state.status === 'loading' ? state.relays.length + state.pending.length : result?.relays.length ?? 0;
-  const seen = result?.resolution.snapshots[0]?.relays.filter((r) => r !== 'cache').length ?? 0;
+  const asked = state.status === 'loading' ? state.relays.length + state.pending.length : (result?.relays.length ?? 0);
+  const seen = resolution?.snapshots[0]?.relays.filter((r) => r !== 'cache').length ?? 0;
+
+  // Your own key without a link yet: show what one looks like instead of an empty card.
+  if (own && resolution?.state === 'not_found') return <LocalExample />;
+
+  const caption =
+    state.status === 'loading' || state.status === 'idle'
+      ? `Asking ${asked || config.relays.length} relays…`
+      : state.status === 'error'
+        ? state.message
+        : resolution!.state === 'active'
+          ? `On ${seen} of ${asked} relays · verified in this browser`
+          : own && resolution!.state === 'withdrawn'
+            ? 'You withdrew this link.'
+            : CAPTIONS[resolution!.state];
+
   return (
     <>
       <IdentityCard
-        state={state.status === 'loading' ? 'loading' : state.status === 'error' ? 'unavailable' : result?.resolution.state ?? 'loading'}
+        state={state.status === 'error' ? 'unavailable' : (resolution?.state ?? 'loading')}
         pubkey={result?.pubkey ?? (state.status === 'loading' ? state.pubkey : undefined)}
         name={result?.profile?.displayName || result?.profile?.name}
         picture={result?.profile?.picture}
@@ -32,25 +56,25 @@ const Featured = ({ id }: { id: string }) => {
         expiresAt={binding?.expiresAt}
       />
       <div className="hero__caption">
-        <span>{state.status === 'loading' ? `Asking ${asked} relays…` : result ? `Found on ${seen} of ${asked} relays, verified in your browser` : 'Relays did not answer'}</span>
+        <span>{caption}</span>
         {result && (
-          <span className="row" style={{ gap: 10 }}>
+          <span className="hero__caption-actions">
             {canPay && (
               <button type="button" className="c-btn c-btn--accent c-btn--sm" onClick={() => setPayOpen(true)}>
                 <IconWallet size={14} /> Tip 1,000 sats
               </button>
             )}
-            <Link href={`/p/${result.npub}`}>
-              Profile <IconArrowRight size={14} />
+            <Link href={`/p/${result.npub}`} className="hero__link">
+              {own ? 'Your profile' : 'Profile'} <IconArrowRight size={14} />
             </Link>
           </span>
         )}
       </div>
       {canPay && claim && (
-        <Dialog open={payOpen} onClose={() => setPayOpen(false)} title={`Pay ${payee}`}>
+        <Dialog open={payOpen} onClose={() => setPayOpen(false)} title={`Pay ${payee}`} width={520}>
           <Suspense
             fallback={
-              <div className="row muted" style={{ padding: '20px 0', justifyContent: 'center' }}>
+              <div className="row muted" style={{ padding: '24px 0', justifyContent: 'center' }}>
                 <Spinner /> Loading checkout…
               </div>
             }
@@ -63,10 +87,16 @@ const Featured = ({ id }: { id: string }) => {
   );
 };
 
+const EXAMPLE_CHECKS = ['event', 'identity', 'time', 'bch_signature', 'key_separation'];
+
 const LocalExample = () => {
   const [ex, setEx] = useState<Example>();
   useEffect(() => {
-    void makeExample().then(setEx);
+    let live = true;
+    void makeExample().then((e) => live && setEx(e));
+    return () => {
+      live = false;
+    };
   }, []);
   const b = ex?.result.binding;
   return (
@@ -78,14 +108,20 @@ const LocalExample = () => {
         cashaddr={b?.cashaddr}
         expiresAt={b?.expiresAt}
       />
-      {ex && (
-        <div className="c-card hero__checks">
-          <CheckList checks={ex.result.checks.filter((c) => ['event', 'identity', 'time', 'bch_signature', 'key_separation'].includes(c.id))} />
-        </div>
-      )}
+      <div className="c-card hero__checks">
+        {ex ? (
+          <CheckList checks={ex.result.checks.filter((c) => EXAMPLE_CHECKS.includes(c.id))} stagger={70} />
+        ) : (
+          <div className="hero__checks-skel" aria-hidden>
+            {EXAMPLE_CHECKS.map((c) => (
+              <span key={c} className="c-skel" />
+            ))}
+          </div>
+        )}
+      </div>
       <div className="hero__caption">
         <span>Throwaway keys, signed and verified in this tab. Nothing published.</span>
-        <Link href="/lab">
+        <Link href="/lab" className="hero__link">
           Break it <IconArrowRight size={14} />
         </Link>
       </div>
@@ -94,39 +130,36 @@ const LocalExample = () => {
 };
 
 export const Home = () => {
-  const { nostr, useQuickSandbox } = useSession();
+  const { nostr, startSandbox } = useSession();
   const [, navigate] = useLocation();
   const myNpub = nostr ? npubEncode(nostr.pubkey) : undefined;
   const payableTarget = config.featured ?? myNpub;
+  const own = !config.featured && !!myNpub;
 
   const startQuickTest = () => {
-    useQuickSandbox();
+    startSandbox();
     navigate('/new');
   };
 
   return (
-    <div className="wrap">
+    <div className="wrap page">
       <section className="hero">
-        <div>
+        <div className="hero__copy">
           <h1>Link your Bitcoin Cash address to your Nostr key.</h1>
           <p className="lede">
-            Both keys sign one statement. It lives on Nostr relays, so any wallet or app can check who an address belongs to, without asking
-            us.
+            Both keys sign one statement. It lives on Nostr relays, so any wallet or app can check who an address belongs to without asking us.
           </p>
           <div className="hero__actions">
             <Link href="/new" className="c-btn c-btn--lg">
               Create your link
             </Link>
-            <button type="button" className="c-btn c-btn--lg c-btn--secondary" onClick={startQuickTest} title="No browser extension required">
-              <IconKey size={16} /> Quick sandbox test
+            <button type="button" className="c-btn c-btn--lg c-btn--secondary" onClick={startQuickTest}>
+              <IconKey size={16} /> Try with sandbox keys
             </button>
-            <Link href="/lab" className="c-btn c-btn--lg c-btn--ghost">
-              See the checks
-            </Link>
           </div>
           <SearchBox />
         </div>
-        <div className="hero__card">{payableTarget ? <Featured id={payableTarget} /> : <LocalExample />}</div>
+        <div className="hero__card">{payableTarget ? <Featured key={payableTarget} id={payableTarget} own={own} /> : <LocalExample />}</div>
       </section>
 
       <section className="steps" aria-label="How it works">
@@ -154,20 +187,20 @@ export const Home = () => {
               <IconWallet />
             </span>
             <h3>Pay a person, not a string</h3>
-            <p>Look up an npub, verify the BCH signature in your browser, and send 1,000 sats from Selene via WizardConnect or any wallet QR.</p>
+            <p>Look up an npub, check the BCH signature in your browser, then pay by QR or from Selene over WizardConnect.</p>
             <span className="tile__go">
-              {config.featured ? 'Tip 1,000 sats on mainnet' : 'Open your payable profile'} <IconArrowRight size={14} />
+              {config.featured ? 'Tip 1,000 sats on mainnet' : 'Open your profile'} <IconArrowRight size={14} />
             </span>
           </Link>
         ) : (
-          <button type="button" className="tile" onClick={startQuickTest} style={{ textAlign: 'left', cursor: 'pointer' }}>
+          <button type="button" className="tile" onClick={startQuickTest}>
             <span className="tile__icon">
               <IconWallet />
             </span>
             <h3>Pay a person, not a string</h3>
-            <p>Spin up a live payable profile in two clicks — no extension needed — then pay it from Selene over WizardConnect or QR.</p>
+            <p>Make a payable profile with sandbox keys, then pay it by QR or from Selene over WizardConnect.</p>
             <span className="tile__go">
-              Launch payable profile <IconArrowRight size={14} />
+              Make a profile <IconArrowRight size={14} />
             </span>
           </button>
         )}
@@ -175,8 +208,8 @@ export const Home = () => {
           <span className="tile__icon">
             <IconLock />
           </span>
-          <h3>Sign in &amp; sell without passwords</h3>
-          <p>Fieldnote gates member articles; Stall locks seller payouts to your verified BCH address. Withdraw once and both revoke.</p>
+          <h3>Sign in without passwords</h3>
+          <p>Fieldnote unlocks member notes. Stall pays sellers at their verified address. Withdraw the link once and both stop accepting it.</p>
           <span className="tile__links">
             {config.apps.map((a) => (
               <a key={a.id} className="c-btn c-btn--sm c-btn--secondary" href={a.url} target="_blank" rel="noreferrer">

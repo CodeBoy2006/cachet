@@ -162,6 +162,29 @@ describe('ElectrumClient', () => {
     client.close();
   });
 
+  it('connects afresh when close() lands mid-handshake and connect() is called again right away', async () => {
+    // React StrictMode unmounts and remounts effects synchronously: close() then connect() in one tick.
+    mockSockets();
+    const client = new ElectrumClient(['wss://test']);
+    const first = client.connect();
+    const firstRejected = expect(first).rejects.toThrow('Electrum connection closed');
+    client.close();
+    const second = client.connect();
+    expect(second).not.toBe(first);
+    const ws = Socket.instances.at(-1)!;
+    expect(Socket.instances).toHaveLength(2);
+    ws.open();
+    ws.reply(JSON.stringify({ id: 0, result: ['Fulcrum', '1.4'] }));
+    await firstRejected;
+    await expect(second).resolves.toBeUndefined();
+    expect(client.server).toBe('wss://test');
+    // The first attempt settling late must not clear the second one's state.
+    const third = client.connect();
+    await expect(third).resolves.toBeUndefined();
+    expect(Socket.instances).toHaveLength(2);
+    client.close();
+  });
+
   it('closes in-flight sockets and rejects if close() is called before handshake finishes', async () => {
     mockSockets();
     const client = new ElectrumClient(['wss://test']);

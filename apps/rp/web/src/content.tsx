@@ -54,7 +54,7 @@ export const FieldnoteContent = ({ session }: { session: SessionInfo | null }) =
   return (
     <div className="notes">
       {data.notes.map((n) => (
-        <article key={n.id} className="note" data-locked={data.locked}>
+        <article key={`${n.id}-${data.locked}`} className="note" data-locked={data.locked}>
           <div className="note__meta">
             <span>{n.date}</span>
             {data.locked && (
@@ -208,7 +208,7 @@ export const StallContent = ({ session }: { session: SessionInfo | null }) => {
                     </div>
                     <div className="muted" style={{ fontSize: 12.5 }}>
                       Verified for <span className="mono">{shortNpub(seller.pubkey)}</span>
-                      {!isMainnet ? ' · chipnet address' : ' · non-custodial, 0% platform hold'}
+                      {!isMainnet ? ' · chipnet address' : ' · paid straight to the seller'}
                     </div>
                     <div className="row">
                       <a className="c-btn c-btn--sm brand-btn" href={uri}>
@@ -229,11 +229,9 @@ export const StallContent = ({ session }: { session: SessionInfo | null }) => {
                     {isMainnet &&
                       (latest ? (
                         <div className="stall__received">
-                          <strong>
-                            Payment to seller seen · {formatBch(latest.sats)} BCH
-                          </strong>
+                          <strong>Payment seen · {formatBch(latest.sats)} BCH</strong>
                           <span>
-                            {latest.confirmed ? 'Confirmed on-chain' : 'Broadcast · 0-conf seen'} ·{' '}
+                            {latest.confirmed ? 'Confirmed' : 'Seen in mempool'} ·{' '}
                             <a href={`https://blockchair.com/bitcoin-cash/transaction/${latest.txid}`} target="_blank" rel="noreferrer">
                               {shortMiddle(latest.txid, 10, 6)}
                             </a>

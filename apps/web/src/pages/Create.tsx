@@ -9,11 +9,11 @@ import {
   toggleTokenForm,
   type BindProof,
   type BindStatement,
-  type NostrEvent,
 } from '@cachet/core';
-import { lookupIdentity, uniqueRelays, type LookupResult, type PublishResult } from '@cachet/discovery';
+import { lookupIdentity, normalizeRelayUrl, uniqueRelays, type LookupResult, type PublishResult } from '@cachet/discovery';
 import {
   CheckList,
+  CopyIcon,
   IconArrowRight,
   IconArrowUpRight,
   IconCheck,
@@ -36,6 +36,7 @@ import { config } from '../config.ts';
 import { useSession } from '../lib/session.tsx';
 import { browserCache, clearPendingSign, readPendingSign } from '../lib/storage.ts';
 import { publishBinding } from '../lib/publish.ts';
+import { usePageTitle } from '../lib/usePageTitle.ts';
 import { NostrConnect } from '../components/NostrConnect.tsx';
 import { BchConnect } from '../components/BchConnect.tsx';
 import { ManualSign } from '../components/ManualSign.tsx';
@@ -57,6 +58,7 @@ const Step = ({
   state,
   summary,
   onChange,
+  locked,
   children,
 }: {
   n: number;
@@ -64,9 +66,10 @@ const Step = ({
   state: StepState;
   summary?: React.ReactNode;
   onChange?: () => void;
+  locked?: boolean;
   children?: React.ReactNode;
 }) => (
-  <section className="step" data-state={state}>
+  <section className="step" data-state={state} aria-current={state === 'current' ? 'step' : undefined}>
     <header className="step__head">
       <span className="step__num">{state === 'done' ? <IconCheck size={13} strokeWidth={2.2} /> : n}</span>
       <span className="step__title">{title}</span>
@@ -74,7 +77,7 @@ const Step = ({
         <span className="step__summary">
           {summary}
           {onChange && (
-            <button type="button" className="c-btn c-btn--ghost c-btn--sm" onClick={onChange}>
+            <button type="button" className="c-btn c-btn--ghost c-btn--sm" onClick={onChange} disabled={locked}>
               Change
             </button>
           )}
@@ -85,21 +88,38 @@ const Step = ({
   </section>
 );
 
-const RelayEditor = ({ relays, onChange }: { relays: string[]; onChange: (r: string[]) => void }) => {
+const RelayEditor = ({ relays, onChange, disabled }: { relays: string[]; onChange: (r: string[]) => void; disabled?: boolean }) => {
   const [value, setValue] = useState('');
+  const [error, setError] = useState<string>();
   const add = (e: React.FormEvent) => {
     e.preventDefault();
-    const next = uniqueRelays(relays, [value.startsWith('ws') ? value : `wss://${value}`]);
-    if (next.length > relays.length) onChange(next);
+    const raw = value.trim();
+    // Without a scheme, local dev relays get ws:// (they rarely have TLS); everything else wss://.
+    const local = /^(localhost|127\.|10\.|192\.168\.|\[::1\])/i.test(raw);
+    const url = normalizeRelayUrl(/^wss?:\/\//i.test(raw) ? raw : `${local ? 'ws' : 'wss'}://${raw}`);
+    const host = url ? new URL(url).hostname : '';
+    // URL() percent-encodes junk into a "hostname"; accept only real DNS names, IPs and localhost.
+    const validHost = /^(\[[0-9a-f:.]+\]|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i.test(host) && (host.includes('.') || host.startsWith('[') || host === 'localhost');
+    if (!url || !validHost) return setError('Enter a relay address like wss://relay.example');
+    // Chips show the host only, so ws:// and wss:// of one host would look like a duplicate.
+    if (relays.some((r) => relayHost(r) === relayHost(url))) return setError(`${relayHost(url)} is already in the list.`);
+    onChange(uniqueRelays(relays, [url]));
     setValue('');
   };
   return (
-    <div style={{ display: 'grid', gap: 8 }}>
+    <div className="relay-editor">
       <div className="relay-chips">
         {relays.map((r) => (
           <span key={r} className="relay-chip">
             {relayHost(r)}
-            <button type="button" className="c-icon-btn" aria-label={`Remove ${r}`} onClick={() => onChange(relays.filter((x) => x !== r))} disabled={relays.length <= 1}>
+            <button
+              type="button"
+              className="c-icon-btn"
+              aria-label={`Remove ${relayHost(r)}`}
+              title={relays.length <= 1 ? 'At least one relay is needed' : `Remove ${relayHost(r)}`}
+              onClick={() => onChange(relays.filter((x) => x !== r))}
+              disabled={disabled || relays.length <= 1}
+            >
               <IconX size={12} />
             </button>
           </span>
@@ -109,23 +129,28 @@ const RelayEditor = ({ relays, onChange }: { relays: string[]; onChange: (r: str
         <input
           className="c-input"
           aria-label="Add relay URL"
+          aria-invalid={!!error || undefined}
           placeholder="wss://relay.example"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => (setValue(e.target.value), setError(undefined))}
           spellCheck={false}
+          autoComplete="off"
+          disabled={disabled}
         />
-        <button className="c-btn c-btn--secondary c-btn--sm" type="submit" disabled={!value.trim()}>
+        <button className="c-btn c-btn--secondary c-btn--sm" type="submit" disabled={disabled || !value.trim()}>
           Add
         </button>
       </form>
+      {error && <span className="field-error">{error}</span>}
     </div>
   );
 };
 
+type Published = Awaited<ReturnType<typeof publishBinding>>;
+
 export const Create = () => {
-  const { nostr, bch, setBch, disconnectNostr, useQuickSandbox } = useSession();
+  const { nostr, bch, setBch, disconnectNostr, startSandbox } = useSession();
   const [, navigate] = useLocation();
-  const [editNostr, setEditNostr] = useState(false);
   const [profile, setProfile] = useState<LookupResult>();
   const [chosen, setChosen] = useState<string>();
   const [tokenAware, setTokenAware] = useState(false);
@@ -136,9 +161,9 @@ export const Create = () => {
   const [busy, setBusy] = useState<'bch' | 'publish'>();
   const [error, setError] = useState<string>();
   const [results, setResults] = useState<PublishResult[]>([]);
-  const [published, setPublished] = useState<{ event: NostrEvent; check: Awaited<ReturnType<typeof publishBinding>>['check']; kept: string[] }>();
+  const [published, setPublished] = useState<Published>();
 
-  const nostrDone = !!nostr && !editNostr;
+  usePageTitle(published ? 'Link published' : 'New link');
 
   // Read the current profile: name, NIP-65 write relays, existing claims to keep.
   useEffect(() => {
@@ -172,13 +197,17 @@ export const Create = () => {
   useEffect(() => {
     setSignature(undefined);
     setError(undefined);
+    setResults([]);
     if (!nostr || !effective) return setStatement(undefined);
     setStatement(createStatement({ cashaddr: effective, nostrPubkey: nostr.pubkey, ttlSeconds: ttl }));
   }, [nostr, effective, ttl]);
 
   const message = statement ? bindMessage(statement) : undefined;
-  const step: 1 | 2 | 3 = !nostrDone ? 1 : !bch || !effective ? 2 : 3;
+  const step: 1 | 2 | 3 = !nostr ? 1 : !bch || !effective ? 2 : 3;
   const bothLocal = nostr?.signer.type === 'local' && bch?.kind === 'local';
+  const locked = !!busy;
+
+  const fail = (e: unknown, fallback: string) => setError(e instanceof Error ? e.message : fallback);
 
   const signBch = async () => {
     if (!bch?.signer || !message || !effective) return;
@@ -187,50 +216,40 @@ export const Create = () => {
     try {
       setSignature(await bch.signer.signMessage(message, effective));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'The wallet did not sign.');
+      fail(e, 'The wallet did not sign.');
     } finally {
       setBusy(undefined);
     }
   };
 
-  const publish = async () => {
-    if (!nostr || !statement || !signature) return;
-    const proof: BindProof = { type: 'bch-nostr-bind/v1', statement, bch_signature: signature };
+  /** Publishes with `sig`, or first asks the (local) BCH signer for one. */
+  const publish = async (sig = signature) => {
+    if (!nostr || !statement) return;
     setBusy('publish');
     setError(undefined);
     setResults([]);
     try {
+      let bchSig = sig;
+      if (!bchSig) {
+        if (!bch?.signer || !message || !effective) return;
+        bchSig = await bch.signer.signMessage(message, effective);
+        setSignature(bchSig);
+      }
+      const proof: BindProof = { type: 'bch-nostr-bind/v1', statement, bch_signature: bchSig };
       const out = await publishBinding({ nostr, proof, relays, onResult: (r) => setResults((prev) => [...prev, r]) });
       if (!out.results.some((r) => r.ok)) throw new Error('No relay accepted the event. Try other relays.');
       setPublished(out);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Publishing failed.');
-    } finally {
-      setBusy(undefined);
-    }
-  };
-
-  const signAndPublish = async () => {
-    if (!nostr || !bch?.signer || !statement || !message || !effective) return;
-    setBusy('publish');
-    setError(undefined);
-    setResults([]);
-    try {
-      const sig = await bch.signer.signMessage(message, effective);
-      setSignature(sig);
-      const proof: BindProof = { type: 'bch-nostr-bind/v1', statement, bch_signature: sig };
-      const out = await publishBinding({ nostr, proof, relays, onResult: (r) => setResults((prev) => [...prev, r]) });
-      if (!out.results.some((r) => r.ok)) throw new Error('No relay accepted the event. Try other relays.');
-      setPublished(out);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Publishing failed.');
+      fail(e, 'Publishing failed.');
     } finally {
       setBusy(undefined);
     }
   };
 
   const existingClaims = profile?.resolution.latest?.tags.filter((t) => t[0] === 'i').map((t) => t[1]!) ?? [];
-  const replacing = effective && existingClaims.includes(`bch:${effective}`);
+  const replacing = !!effective && existingClaims.includes(`bch:${effective}`);
+  const otherClaims = existingClaims.filter((c) => c !== `bch:${effective}`);
   const publishRows: RelayRow[] = relays.map((url) => {
     const r = results.find((x) => x.url === url);
     if (!r) return { url, tone: busy === 'publish' ? 'wait' : 'idle', note: busy === 'publish' ? 'Sending…' : '' };
@@ -240,40 +259,47 @@ export const Create = () => {
   const npub = nostr ? npubEncode(nostr.pubkey) : undefined;
   const accepted = results.filter((r) => r.ok).length;
   const pendingSign = published ? readPendingSign() : null;
+  const showRelayProgress = busy === 'publish' || results.length > 0;
 
   return (
-    <div className="wrap">
-      <div className="page-head row row--between">
+    <div className="wrap page">
+      <div className="page-head page-head--split">
         <div>
           <h1>{published ? 'Your link is live' : 'New link'}</h1>
-          <p>{published ? `Published to ${accepted} of ${relays.length} relays. Anyone can verify it now.` : 'Connect a Nostr key and a BCH wallet, then sign once with each.'}</p>
+          <p>
+            {published
+              ? `Accepted by ${accepted} of ${relays.length} ${relays.length === 1 ? 'relay' : 'relays'}. Anyone can verify it now.`
+              : 'Connect a Nostr key and a BCH wallet, then sign once with each.'}
+          </p>
         </div>
-        {!published && !nostrDone && !bch && (
-          <button
-            type="button"
-            className="c-btn c-btn--secondary c-btn--sm"
-            onClick={() => {
-              useQuickSandbox();
-              setEditNostr(false);
-            }}
-          >
+        {!published && !nostr && !bch && (
+          <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={startSandbox}>
             <IconKey size={14} /> Use sandbox keys
           </button>
         )}
       </div>
       <div className="create">
-        <div>
+        <div className="create__main">
           {published ? (
             <div className="c-card done-card">
-              <RelayList rows={publishRows} />
-              <CheckList checks={published.check.checks} />
-              {published.kept.length > 0 && (
-                <p className="muted" style={{ margin: 0, fontSize: 13.5 }}>
-                  Kept in the same snapshot: {published.kept.join(', ')}
-                </p>
+              {pendingSign && (
+                <Note tone="ok">
+                  {pendingSign.app} is waiting for you to finish signing in.
+                </Note>
               )}
-              <div className="row">
-                {pendingSign && (
+              <div>
+                <h3 className="c-section-title">Relays</h3>
+                <RelayList rows={publishRows} />
+              </div>
+              <div>
+                <h3 className="c-section-title">Checked before publishing</h3>
+                <CheckList checks={published.check.checks} />
+              </div>
+              {published.kept.length > 0 && (
+                <p className="muted done-card__kept">Kept in the same snapshot: {published.kept.join(', ')}</p>
+              )}
+              <div className="done-card__actions">
+                {pendingSign ? (
                   <button
                     type="button"
                     className="c-btn c-btn--accent"
@@ -282,19 +308,24 @@ export const Create = () => {
                       navigate(`/sign${pendingSign.search}`);
                     }}
                   >
-                    Continue sign-in to {pendingSign.app} <IconArrowRight size={14} />
+                    Continue to {pendingSign.app} <IconArrowRight size={14} />
                   </button>
+                ) : (
+                  <Link className="c-btn" href={`/p/${npub}`}>
+                    View your profile <IconArrowRight size={14} />
+                  </Link>
                 )}
-                <Link className={pendingSign ? 'c-btn c-btn--secondary' : 'c-btn'} href={`/p/${npub}`}>
-                  View &amp; pay profile
-                </Link>
                 {config.apps.map((app) => (
                   <a key={app.id} className="c-btn c-btn--secondary" href={app.url} target="_blank" rel="noreferrer">
                     Sign in to {app.name} <IconArrowUpRight size={14} />
                   </a>
                 ))}
-                <button type="button" className="c-btn c-btn--ghost" onClick={() => downloadJson(`cachet-${shortNpub(nostr!.pubkey)}.json`, published.event)}>
-                  <IconDownload /> Proof
+                <button
+                  type="button"
+                  className="c-btn c-btn--ghost done-card__proof"
+                  onClick={() => downloadJson(`cachet-${shortNpub(nostr!.pubkey)}.json`, published.event)}
+                >
+                  <IconDownload size={15} /> Proof
                 </button>
               </div>
             </div>
@@ -305,12 +336,10 @@ export const Create = () => {
                 title="Nostr key"
                 state={step === 1 ? 'current' : 'done'}
                 summary={nostr && <span className="mono">{shortNpub(nostr.pubkey)}</span>}
-                onChange={() => {
-                  disconnectNostr();
-                  setEditNostr(false);
-                }}
+                onChange={disconnectNostr}
+                locked={locked}
               >
-                <NostrConnect onDone={() => setEditNostr(false)} />
+                <NostrConnect />
               </Step>
 
               <Step
@@ -319,6 +348,7 @@ export const Create = () => {
                 state={step < 2 ? 'todo' : step === 2 ? 'current' : 'done'}
                 summary={effective && <span className="mono">{shortCashaddr(effective)}</span>}
                 onChange={() => setBch(undefined)}
+                locked={locked}
               >
                 {!bch ? (
                   <BchConnect />
@@ -330,7 +360,7 @@ export const Create = () => {
                     </span>
                   </div>
                 ) : (
-                  <div className="addr-list">
+                  <div className="addr-list" role="radiogroup" aria-label="Address to link">
                     {bch.addresses.map((a) => (
                       <label key={a} className="addr-choice">
                         <input type="radio" name="addr" checked={chosen === a} onChange={() => setChosen(a)} />
@@ -343,30 +373,26 @@ export const Create = () => {
 
               <Step n={3} title="Sign and publish" state={step < 3 ? 'todo' : 'current'}>
                 {parsedChosen && !isAddressError(parsedChosen) && !parsedChosen.tokenAware && (
-                  <label className="check-row">
-                    <input type="checkbox" checked={tokenAware} onChange={(e) => setTokenAware(e.target.checked)} />
+                  <label className="check-row" data-disabled={locked || undefined}>
+                    <input type="checkbox" checked={tokenAware} onChange={(e) => setTokenAware(e.target.checked)} disabled={locked} />
                     <span>
                       My wallet accepts CashTokens at this address
-                      <span className="muted" style={{ display: 'block', fontSize: 13 }}>
-                        Publishes the z… form of the same key. Leave off if unsure.
-                      </span>
+                      <span className="muted check-row__hint">Publishes the z… form of the same key. Leave off if unsure.</span>
                     </span>
                   </label>
                 )}
-                <div className="row row--between">
-                  <span className="c-label" style={{ margin: 0 }}>
-                    Valid for
-                  </span>
-                  <Segmented value={ttl} options={TTL_OPTIONS} onChange={setTtl} label="Validity" />
+                <div className="field-row">
+                  <span className="c-label">Valid for</span>
+                  <Segmented value={ttl} options={TTL_OPTIONS} onChange={setTtl} label="Validity" disabled={locked} />
                 </div>
                 <div>
                   <span className="c-label">Relays</span>
-                  <RelayEditor relays={relays} onChange={setRelays} />
+                  <RelayEditor relays={relays} onChange={setRelays} disabled={locked} />
                 </div>
                 {existingClaims.length > 0 && (
                   <Note>
                     {replacing ? 'Replaces your current link for this address. ' : ''}
-                    Your other claims stay: {existingClaims.filter((c) => c !== `bch:${effective}`).join(', ') || 'none'}.
+                    {otherClaims.length ? `Your other claims stay: ${otherClaims.join(', ')}.` : 'No other claims in your profile.'}
                   </Note>
                 )}
 
@@ -374,28 +400,25 @@ export const Create = () => {
                   <ManualSign message={message} address={effective} onSigned={setSignature} />
                 ) : !signature && bothLocal ? (
                   <>
-                    {(busy === 'publish' || results.length > 0) && <RelayList rows={publishRows} />}
-                    <button type="button" className="c-btn c-btn--lg" onClick={signAndPublish} disabled={!!busy || !message}>
-                      {busy === 'publish' ? <Spinner /> : null}
-                      {busy === 'publish' ? 'Signing & publishing…' : 'Sign with sandbox keys & publish'}
+                    {showRelayProgress && <RelayList rows={publishRows} />}
+                    <button type="button" className="c-btn c-btn--lg" onClick={() => publish()} disabled={locked || !message}>
+                      {busy === 'publish' && <Spinner />}
+                      {busy === 'publish' ? 'Signing and publishing…' : 'Sign with sandbox keys and publish'}
                     </button>
                   </>
                 ) : !signature ? (
-                  <button type="button" className="c-btn c-btn--lg" onClick={signBch} disabled={busy === 'bch' || !message}>
-                    {busy === 'bch' ? <Spinner /> : null}
-                    {busy === 'bch' ? `Confirm in ${bch?.label ?? 'wallet'}…` : `Sign with ${bch?.label ?? 'BCH wallet'}`}
+                  <button type="button" className="c-btn c-btn--lg" onClick={signBch} disabled={locked || !message}>
+                    {busy === 'bch' && <Spinner />}
+                    {busy === 'bch' ? `Confirm in ${bch?.label ?? 'your wallet'}…` : `Sign with ${bch?.label ?? 'BCH wallet'}`}
                   </button>
                 ) : (
-                  <div className="signed-line">
-                    <IconCheck /> BCH signature checks out for {shortCashaddr(effective!)}
-                  </div>
-                )}
-
-                {signature && (
                   <>
-                    {(busy === 'publish' || results.length > 0) && <RelayList rows={publishRows} />}
-                    <button type="button" className="c-btn c-btn--lg" onClick={publish} disabled={busy === 'publish'}>
-                      {busy === 'publish' ? <Spinner /> : null}
+                    <div className="signed-line">
+                      <IconCheck /> BCH signature checks out for {shortCashaddr(effective!)}
+                    </div>
+                    {showRelayProgress && <RelayList rows={publishRows} />}
+                    <button type="button" className="c-btn c-btn--lg" onClick={() => publish()} disabled={locked}>
+                      {busy === 'publish' && <Spinner />}
                       {busy === 'publish' ? 'Publishing…' : `Sign with ${nostr?.signer.label ?? 'Nostr'} and publish`}
                     </button>
                   </>
@@ -431,11 +454,14 @@ export const Create = () => {
               <summary>
                 What your wallet signs <IconChevron size={14} />
               </summary>
-              <pre className="c-code">{message}</pre>
+              <div className="message-box">
+                <pre className="c-code">{message}</pre>
+                <CopyIcon value={message} title="Copy message" />
+              </div>
             </details>
           )}
           {!published && profile === undefined && nostr && (
-            <div className="row muted" style={{ fontSize: 13 }}>
+            <div className="row muted aside-status">
               <Spinner /> Reading your current Nostr profile…
             </div>
           )}

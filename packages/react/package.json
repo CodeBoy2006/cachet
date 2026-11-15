@@ -10,5 +10,5 @@
     "@cachet/discovery": "*",
     "qrcode-generator": "^2.0.4"
   },
-  "peerDependencies": { "react": ">=18" }
+  "peerDependencies": { "react": ">=18", "react-dom": ">=18" }
 }

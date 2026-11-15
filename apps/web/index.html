@@ -2,12 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Link a Bitcoin Cash address to a Nostr key. Both keys sign; any app can verify." />
     <meta name="theme-color" content="#f4f3ef" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0e0e0d" media="(prefers-color-scheme: dark)" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Cachet — BCH × Nostr identity</title>
+    <script>
+      // Apply a saved theme before first paint so a dark choice never flashes light.
+      try {
+        var t = localStorage.getItem('cachet.theme');
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

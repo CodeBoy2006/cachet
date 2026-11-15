@@ -34,8 +34,12 @@ type Flow = { step: LoginStep; details: Partial<Record<LoginStep, string>>; erro
 const redirect = takeRedirectResult();
 const redirectLogin = redirect.kind === 'signed' ? completeRedirect(redirect.body, redirect.event) : null;
 const redirectPubkey = redirect.kind === 'signed' ? String((redirect.event as { pubkey?: unknown })?.pubkey ?? '') : '';
+// The result is shown and applied once. Signing out later remounts the form; it must start clean.
+let redirectShown = false;
+let redirectSettled = !redirectLogin;
 
 const initialFlow = (): Flow | undefined => {
+  if (redirectShown) return undefined;
   if (redirect.kind === 'signed') return { step: 'verify', details: { identity: redirectPubkey } };
   if (redirect.kind === 'cancelled') return { step: 'sign', details: {}, error: { code: 'cancelled', message: 'You cancelled the sign-in.' } };
   if (redirect.kind === 'error') return { step: 'sign', details: {}, error: { code: 'auth_malformed', message: redirect.message } };
@@ -46,19 +50,34 @@ const SignIn = ({ onSession }: { onSession: (s: SessionInfo) => void }) => {
   const [flow, setFlow] = useState<Flow | undefined>(initialFlow);
   const [hasExt, setHasExt] = useState(false);
   useEffect(() => {
-    void Nip07Signer.waitForExtension(1200).then(setHasExt);
+    let live = true;
+    void Nip07Signer.waitForExtension(1200).then((found) => live && setHasExt(found));
+    return () => {
+      live = false;
+    };
   }, []);
 
   const fail = (e: unknown) => {
-    const code = e instanceof LoginError ? e.code : 'cancelled';
+    // Extensions reject with plain Errors (treated as a cancel); fetch failures are TypeErrors.
+    const code = e instanceof LoginError ? e.code : e instanceof TypeError ? 'network' : 'cancelled';
     const message = e instanceof Error ? e.message : String(e);
     setFlow((f) => ({ step: f?.step ?? 'identity', details: f?.details ?? {}, error: { code, message } }));
   };
 
   useEffect(() => {
-    if (!redirectLogin) return;
+    redirectShown = true;
+    if (!redirectLogin || redirectSettled) return;
     let live = true;
-    redirectLogin.then((s) => live && onSession(s)).catch((e) => live && fail(e));
+    redirectLogin.then(
+      (s) => {
+        redirectSettled = true;
+        if (live) onSession(s);
+      },
+      (e: unknown) => {
+        redirectSettled = true;
+        if (live) fail(e);
+      },
+    );
     return () => {
       live = false;
     };
@@ -116,8 +135,8 @@ const SignIn = ({ onSession }: { onSession: (s: SessionInfo) => void }) => {
         </ol>
       )}
       {flow?.error && (
-        <Note tone={flow.error.code === 'cancelled' ? 'info' : 'danger'}>
-          {flow.error.code !== 'cancelled' && (
+        <Note tone={flow.error.code === 'cancelled' ? 'info' : flow.error.code === 'network' ? 'warn' : 'danger'}>
+          {flow.error.code !== 'cancelled' && flow.error.code !== 'network' && (
             <>
               <span className="mono" style={{ fontSize: 12.5 }}>
                 {flow.error.code}
@@ -125,7 +144,9 @@ const SignIn = ({ onSession }: { onSession: (s: SessionInfo) => void }) => {
               ·{' '}
             </>
           )}
-          {flow.error.message || AUTH_CODES[flow.error.code as keyof typeof AUTH_CODES]}
+          {flow.error.code === 'network'
+            ? `Could not reach ${brand.name}. Check your connection and try again.`
+            : flow.error.message || AUTH_CODES[flow.error.code as keyof typeof AUTH_CODES]}
           {flow.error.code === 'binding_inactive' && (
             <>
               {' '}
@@ -175,17 +196,24 @@ const SessionCard = ({ session, onChange }: { session: SessionInfo; onChange: (s
     <div className="c-card session">
       <div className="row" style={{ gap: 12 }}>
         <Avatar pubkey={session.pubkey} size={38} />
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontWeight: 600 }}>{session.name ?? shortNpub(session.pubkey)}</div>
-          <div className="mono muted" style={{ fontSize: 12.5 }}>
-            {shortNpub(session.pubkey)}
-          </div>
+        <div className="session__who">
+          {session.name ? (
+            <>
+              <div className="session__name">{session.name}</div>
+              <div className="mono muted session__sub">{shortNpub(session.pubkey)}</div>
+            </>
+          ) : (
+            <>
+              <div className="session__name mono">{shortNpub(session.pubkey)}</div>
+              <div className="muted session__sub">Signed in with Nostr</div>
+            </>
+          )}
         </div>
         <span className="c-pill c-pill--active">Verified</span>
       </div>
       <dl className="kv">
         <dt>BCH</dt>
-        <dd>{shortCashaddr(session.cashaddr, 10, 8)}</dd>
+        <dd title={session.cashaddr}>{shortCashaddr(session.cashaddr, 10, 8)}</dd>
         <dt>Checked</dt>
         <dd>{formatDateTime(session.checkedAt)}</dd>
         <dt>Relays</dt>
@@ -193,7 +221,7 @@ const SessionCard = ({ session, onChange }: { session: SessionInfo; onChange: (s
           {session.relays.filter((r) => r.status === 'ok').length} of {session.relays.length} answered
         </dd>
         <dt>Snapshot</dt>
-        <dd>{session.snapshotId.slice(0, 16)}…</dd>
+        <dd title={session.snapshotId}>{session.snapshotId.slice(0, 16)}…</dd>
       </dl>
       <div className="row">
         <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={check} disabled={busy}>
@@ -242,14 +270,29 @@ const ServerLog = ({ tick }: { tick: number }) => {
   );
 };
 
+const FAVICONS: Record<'a' | 'b', string> = {
+  a: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22"><rect x="3.5" y="2.5" width="15" height="17" rx="2.5" fill="${brand.accent}"/><path d="M7 7.5h8M7 11h8M7 14.5h5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  b: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22"><rect width="22" height="22" rx="5" fill="${brand.accent}"/><path d="M5 9 6.5 5h9L17 9M5 9c0 1.1.9 2 2 2s2-.9 2-2c0 1.1.9 2 2 2s2-.9 2-2c0 1.1.9 2 2 2s2-.9 2-2M6 11.5V17h10v-5.5" stroke="#fff" stroke-width="1.4" fill="none" stroke-linejoin="round"/></svg>`,
+};
+
 export const App = () => {
   const [session, setSession] = useState<SessionInfo | null | undefined>(undefined);
   const [notice, setNotice] = useState<string>();
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    document.documentElement.style.setProperty('--brand', brand.accent);
+    // Light and dark accents are both set; CSS picks one, so dark mode is not stuck on the light colour.
+    document.documentElement.style.setProperty('--brand-light', brand.accent);
     document.documentElement.style.setProperty('--brand-dark', brand.accentDark);
-    void getSession().then(setSession);
+    const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (icon) icon.href = `data:image/svg+xml,${encodeURIComponent(FAVICONS[brand.id])}`;
+    let live = true;
+    // A sign-in that finishes first wins; a slower "no session yet" answer must not sign the user back out.
+    void getSession()
+      .catch(() => null)
+      .then((s) => live && setSession((cur) => (cur === undefined ? s : cur)));
+    return () => {
+      live = false;
+    };
   }, []);
   const update = useCallback((s: SessionInfo | null, message?: string) => {
     setSession(s);
@@ -283,8 +326,8 @@ export const App = () => {
           <div>{brand.id === 'a' ? <FieldnoteContent session={session ?? null} /> : <StallContent session={session ?? null} />}</div>
           <div className="rp-side">
             {notice && <Note tone="warn">{notice}</Note>}
-            {session === undefined ? (
-              <div className="c-card signin row muted">
+            {session === undefined && redirectSettled ? (
+              <div className="c-card signin signin--loading muted">
                 <Spinner /> Checking session…
               </div>
             ) : session ? (

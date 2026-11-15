@@ -1,9 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { isAddressError, normalizeCashAddrInput } from '@cachet/core';
-import { IconKey, IconPen, IconWallet, Note } from '@cachet/react';
+import { IconChevron, IconKey, IconPen, IconWallet, Note } from '@cachet/react';
 import { config } from '../config.ts';
 import { useSession } from '../lib/session.tsx';
 import { WalletConnectDialog } from './WalletConnectDialog.tsx';
+
+type WcSigner = Parameters<React.ComponentProps<typeof WalletConnectDialog>['onConnected']>[0];
 
 export const BchConnect = () => {
   const { setBch, sandboxBch } = useSession();
@@ -11,16 +13,23 @@ export const BchConnect = () => {
   const [manual, setManual] = useState(false);
   const [input, setInput] = useState('');
   const [error, setError] = useState<string>();
+  const unsubscribe = useRef<(() => void)[]>([]);
 
   const onConnected = useCallback(
-    (signer: Parameters<React.ComponentProps<typeof WalletConnectDialog>['onConnected']>[0], addresses: string[]) => {
+    (signer: WcSigner, addresses: string[]) => {
       setWcOpen(false);
+      // The signer is shared across connections; drop listeners from an earlier one.
+      unsubscribe.current.forEach((u) => u());
       setBch({ kind: 'walletconnect', label: signer.label, signer, addresses });
-      signer.onAddressesChanged((next) => setBch({ kind: 'walletconnect', label: signer.label, signer, addresses: next }));
-      signer.onDisconnect(() => setBch(undefined));
+      unsubscribe.current = [
+        signer.onAddressesChanged((next) => setBch({ kind: 'walletconnect', label: signer.label, signer, addresses: next })),
+        signer.onDisconnect(() => setBch(undefined)),
+      ];
     },
     [setBch],
   );
+
+  useEffect(() => () => unsubscribe.current.forEach((u) => u()), []);
 
   const useManual = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,36 +55,41 @@ export const BchConnect = () => {
           </span>
           <span>
             <strong>WalletConnect</strong>
-            <small>Paytaca, Cashonize, Zapit — signs with bch_signMessage</small>
+            <small>Paytaca, Cashonize, Zapit</small>
           </span>
           <span className="option__meta">{config.wcProjectId ? 'QR' : 'Not configured'}</span>
         </button>
-        <button type="button" className="option" onClick={() => setManual(!manual)} aria-expanded={manual}>
-          <span className="option__icon">
-            <IconPen />
-          </span>
-          <span>
-            <strong>Sign manually</strong>
-            <small>Electron Cash or any wallet with “Sign message”</small>
-          </span>
-          <span className="option__meta">Copy · paste</span>
-        </button>
-        {manual && (
-          <form onSubmit={useManual} className="row" style={{ padding: '4px 0 6px' }}>
-            <input
-              className="c-input mono"
-              style={{ flex: 1, minWidth: 220 }}
-              placeholder="bitcoincash:q…"
-              value={input}
-              onChange={(e) => (setInput(e.target.value), setError(undefined))}
-              spellCheck={false}
-              autoFocus
-            />
-            <button className="c-btn" type="submit">
-              Use address
-            </button>
-          </form>
-        )}
+        <div className="option-group" data-open={manual}>
+          <button type="button" className="option" onClick={() => setManual(!manual)} aria-expanded={manual}>
+            <span className="option__icon">
+              <IconPen />
+            </span>
+            <span>
+              <strong>Sign manually</strong>
+              <small>Electron Cash or any wallet with “Sign message”</small>
+            </span>
+            <span className="option__meta">
+              Copy · paste <IconChevron size={14} className="option__chev" />
+            </span>
+          </button>
+          {manual && (
+            <form onSubmit={useManual} className="option__form">
+              <input
+                className="c-input mono"
+                placeholder="bitcoincash:q…"
+                aria-label="BCH address you will sign with"
+                value={input}
+                onChange={(e) => (setInput(e.target.value), setError(undefined))}
+                spellCheck={false}
+                autoComplete="off"
+                autoFocus
+              />
+              <button className="c-btn" type="submit" disabled={!input.trim()}>
+                Use address
+              </button>
+            </form>
+          )}
+        </div>
         <button
           type="button"
           className="option"
@@ -89,7 +103,7 @@ export const BchConnect = () => {
           </span>
           <span>
             <strong>Sandbox key</strong>
-            <small>A real mainnet key held in this browser. Export it before sending funds.</small>
+            <small>A real mainnet key kept in this browser. Back it up before receiving funds.</small>
           </span>
           <span className="option__meta">Instant</span>
         </button>

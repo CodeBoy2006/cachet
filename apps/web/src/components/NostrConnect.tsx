@@ -1,17 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Nip07Signer } from '@cachet/signers';
 import { IconKey, IconPuzzle, Note, Spinner } from '@cachet/react';
 import { useSession } from '../lib/session.tsx';
 
 export const NostrConnect = ({ onDone }: { onDone?: () => void }) => {
-  const { connectExtension, useSandboxNostr, sandboxNostr } = useSession();
+  const { connectExtension, connectSandboxNostr, sandboxNostr } = useSession();
   const [hasExt, setHasExt] = useState<boolean>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const existingSandbox = sandboxNostr();
+  const existingSandbox = useMemo(() => sandboxNostr(), [sandboxNostr]);
 
   useEffect(() => {
-    void Nip07Signer.waitForExtension(1200).then(setHasExt);
+    let live = true;
+    void Nip07Signer.waitForExtension(1200).then((found) => live && setHasExt(found));
+    return () => {
+      live = false;
+    };
   }, []);
 
   const ext = async () => {
@@ -46,7 +50,7 @@ export const NostrConnect = ({ onDone }: { onDone?: () => void }) => {
           type="button"
           className="option"
           onClick={() => {
-            useSandboxNostr();
+            connectSandboxNostr();
             onDone?.();
           }}
         >
