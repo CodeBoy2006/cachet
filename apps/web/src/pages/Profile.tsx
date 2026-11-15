@@ -12,12 +12,10 @@ import {
   IconDownload,
   IconRefresh,
   IconX,
-  IdentityCard,
   Note,
   RelayList,
   Spinner,
   StatePill,
-  formatDate,
   formatDateTime,
   relativeTime,
   relayRowsFromLookup,
@@ -31,8 +29,15 @@ import { useSession } from '../lib/session.tsx';
 import { withdrawBinding } from '../lib/publish.ts';
 import { downloadJson } from '../lib/download.ts';
 import { usePageTitle } from '../lib/usePageTitle.ts';
+import { Cachet, CachetBack, CachetBackCard, type CachetStage, type CachetVerdict } from '../components/Cachet.tsx';
 import { PayPanel } from '../components/PayPanel.tsx';
 import { ShareButton } from '../components/ShareButton.tsx';
+
+const OVERPRINT: Partial<Record<BindingState, string>> = {
+  invalid: 'VOID',
+  withdrawn: 'WITHDRAWN',
+  expired: 'EXPIRED',
+};
 
 const NOT_PAYABLE: Partial<Record<BindingState, string>> = {
   withdrawn: 'The owner removed this address from their profile. Do not pay it on the strength of this identity.',
@@ -134,12 +139,16 @@ const OwnerBar = ({
   result,
   claim,
   binding,
+  profileUrl,
+  shareTitle,
   onChanged,
   onWithdrawn,
 }: {
   result: LookupResult;
   claim?: ClaimStatus;
   binding?: BindingDetails;
+  profileUrl: string;
+  shareTitle: string;
   onChanged: () => void;
   onWithdrawn: (receipt: WithdrawnReceipt) => void;
 }) => {
@@ -197,6 +206,7 @@ const OwnerBar = ({
         )}
       </span>
       <span className="row owner-bar__actions">
+        <ShareButton url={profileUrl} title={shareTitle} />
         <Link className={needsRenewal ? 'c-btn c-btn--sm' : 'c-btn c-btn--secondary c-btn--sm'} href="/new">
           {needsRenewal ? 'Renew' : claim && claim.state !== 'withdrawn' ? 'Renew or add address' : 'Link an address'}
         </Link>
@@ -270,15 +280,63 @@ export const Profile = ({ id }: { id: string }) => {
   const claim = resolution?.primary;
   const binding = claim?.result?.binding;
   const legacy = result?.legacy;
-  const cardState = state.status !== 'done' ? 'loading' : resolution!.state;
+  const pubkey = result?.pubkey ?? (state.status === 'loading' ? state.pubkey : undefined);
   const isMe = !!result && nostr?.pubkey === result.pubkey;
   const extraClaims = resolution?.claims.filter((c) => c !== claim) ?? [];
   const profileUrl = result ? `${window.location.origin}/p/${result.npub}` : '';
+  const shareTitle = `${name} on Cachet`;
+
+  const cardStage: CachetStage =
+    state.status !== 'done'
+      ? pubkey
+        ? 'keys'
+        : 'empty'
+      : claim
+        ? 'sealed'
+        : 'keys';
+  const cardVerdict: CachetVerdict =
+    resolution?.state === 'active'
+      ? 'valid'
+      : resolution?.state === 'invalid'
+        ? 'void'
+        : 'muted';
+  const emptyBch =
+    resolution?.state === 'not_found'
+      ? legacy
+        ? 'Unverified 30078 announcement'
+        : 'No BCH address linked'
+      : resolution?.state === 'unavailable' && !claim
+        ? 'Relays unavailable'
+        : resolution?.state === 'invalid' && !claim?.cashaddr
+          ? 'Invalid BCH claim'
+          : undefined;
+  const emptyStatementNote =
+    claim?.state === 'withdrawn'
+      ? 'Withdrawn in a newer snapshot — previous statement removed from active profile.'
+      : resolution?.state === 'not_found'
+        ? legacy
+          ? 'Kind 30078 announcement only — no dual-signed NIP-39 statement.'
+          : 'No signed statement published on the relays checked.'
+        : resolution?.state === 'unavailable'
+          ? 'Relays unavailable — signed statement could not be fetched.'
+          : resolution?.state === 'invalid'
+            ? 'Published proof failed statement parsing — inspect Raw event below.'
+            : undefined;
 
   return (
     <div className="wrap page">
       <div className="profile">
-        {result && <OwnerBar result={result} claim={claim} binding={binding} onChanged={refresh} onWithdrawn={setWithdrawnReceipt} />}
+        {result && (
+          <OwnerBar
+            result={result}
+            claim={claim}
+            binding={binding}
+            profileUrl={profileUrl}
+            shareTitle={shareTitle}
+            onChanged={refresh}
+            onWithdrawn={setWithdrawnReceipt}
+          />
+        )}
 
         {withdrawnReceipt && resolution?.state === 'withdrawn' && result && (
           <div className="revoked-banner" role="status" aria-live="polite">
@@ -310,40 +368,43 @@ export const Profile = ({ id }: { id: string }) => {
           </div>
         )}
 
-        <IdentityCard
-          state={cardState}
-          pubkey={result?.pubkey ?? (state.status === 'loading' ? state.pubkey : undefined)}
-          name={result?.profile?.displayName || result?.profile?.name}
-          picture={result?.profile?.picture}
-          cashaddr={claim?.cashaddr}
-          tokenAware={binding?.tokenAware}
-          expiresAt={binding?.expiresAt}
-          emptyBch={
-            resolution?.state === 'not_found'
-              ? legacy
-                ? 'Unverified 30078 announcement'
-                : 'No BCH address linked'
-              : resolution?.state === 'unavailable'
-                ? 'Relays unavailable'
-                : undefined
-          }
-          foot={
-            result ? (
-              <>
-                <StatePill state={resolution!.state} label={legacy && resolution!.state === 'not_found' ? 'Announced · unverified' : undefined} />
-                {binding && resolution!.state === 'active' && <span>Valid until {formatDate(binding.expiresAt)}</span>}
-                {binding && resolution!.state === 'expired' && <span>Expired {formatDate(binding.expiresAt)}</span>}
-                {resolution!.state === 'unavailable' && resolution!.latest && <span>Cached snapshot · relays offline</span>}
-                {binding && binding.network !== 'mainnet' && <span>{binding.network}</span>}
-                {claim?.state === 'withdrawn' && <span>Removed in a newer snapshot</span>}
-                {resolution!.otherIdentities.length > 0 && <span className="hide-sm">Also: {resolution!.otherIdentities.slice(0, 3).join(', ')}</span>}
-                <span className="c-idcard__foot-end">
-                  <ShareButton url={profileUrl} title={`${name} on Cachet`} />
-                </span>
-              </>
-            ) : undefined
-          }
-        />
+        <div className="profile__cards">
+          <Cachet
+            flat
+            stage={cardStage}
+            verdict={cardVerdict}
+            pubkey={pubkey}
+            name={result?.profile?.displayName || result?.profile?.name}
+            picture={result?.profile?.picture}
+            cashaddr={claim?.cashaddr}
+            emptyBch={emptyBch}
+            tokenAware={binding?.tokenAware}
+            serial={binding?.bindingId}
+            bchKey={binding?.bchPublicKey}
+            expiresAt={binding?.expiresAt}
+            overprint={resolution ? OVERPRINT[resolution.state] : undefined}
+            status={
+              result ? (
+                <StatePill
+                  state={resolution!.state}
+                  label={legacy && resolution!.state === 'not_found' ? 'Announced · unverified' : undefined}
+                />
+              ) : (
+                <StatePill state="loading" />
+              )
+            }
+          />
+          <CachetBackCard sealed={!!result && !!claim} verdict={cardVerdict}>
+            <CachetBack
+              message={binding?.message}
+              bchSig={binding?.bchSignature}
+              eventId={binding?.eventId ?? claim?.eventId ?? resolution?.latest?.id}
+              nostrSig={claim?.result?.event?.sig ?? resolution?.latest?.sig}
+              loading={state.status !== 'done'}
+              emptyNote={emptyStatementNote}
+            />
+          </CachetBackCard>
+        </div>
 
         {others.length > 0 && (
           <Note>
@@ -401,6 +462,7 @@ export const Profile = ({ id }: { id: string }) => {
             <div className="c-card panel">
               <div className="panel__head">
                 <h2>Pay {name}</h2>
+                {!isMe && <ShareButton url={profileUrl} title={shareTitle} />}
               </div>
               {resolution!.state === 'active' && claim ? (
                 binding?.network && binding.network !== 'mainnet' ? (

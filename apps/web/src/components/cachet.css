@@ -1,75 +1,197 @@
-/* ---------- Cachet: Constructivist Bank-Card Credential ---------- */
+/* ---------- Cachet: 3D Machined Metal Bank-Card Credential ---------- */
 
 .cachet {
   --mx: 50%;
   --my: 42%;
-  --px: 0;
-  --py: 0;
-  --card-bg: linear-gradient(142deg, #fdfcfa 0%, #f6f4ee 54%, #ece9e0 100%);
-  --card-border: color-mix(in srgb, var(--ink) 15%, var(--line-2));
-  --card-rule: color-mix(in srgb, var(--ink) 11%, transparent);
-  --card-bevel: rgb(255 255 255 / 0.96);
-  --card-shade: rgb(20 20 18 / 0.22);
+  --flip-deg: 0deg;
+  --lift-z: 0px;
+  --bank-z: 0deg;
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --sh-sx: 1;
+  --sh-sy: 1;
+  --sh-blur: 22px;
+  --sh-alpha: 1;
+  --sheen-f: 20%;
+  --sheen-b: 20%;
+  --turn-glow: 0;
+
+  /* Porcelain-Titanium Palette (Light) */
+  --card-bg:
+    radial-gradient(125% 95% at 14% 0%, rgb(255 255 255 / 0.92), transparent 58%),
+    linear-gradient(142deg, #fdfcfa 0%, #f5f3ec 52%, #e8e4da 100%);
+  --card-border: color-mix(in srgb, var(--ink) 18%, var(--line-2));
+  --card-rule: color-mix(in srgb, var(--ink) 11.5%, transparent);
+  --card-bevel-top: rgb(255 255 255 / 0.98);
+  --card-bevel-bot: rgb(20 20 18 / 0.09);
+  --card-shade: rgb(20 20 18 / 0.24);
+  --edge-metal: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    #cbc7be 22%,
+    #f7f5ef 46%,
+    #a5a197 72%,
+    #ece9e0 100%
+  );
+  --grain-ink: rgb(20 20 18 / 0.016);
+  --chamfer-light: rgb(255 255 255 / 0.95);
+  --glare-light: rgb(255 255 255 / 0.42);
+  --turn-sheen-color: rgb(255 255 255 / 0.56);
+  --etch-shadow: 0 1px 0 rgb(255 255 255 / 0.72);
+
   --ring-ink: #151513;
-  --lens-fill: #0b7a55;
+  --lens-top: #109468;
+  --lens-mid: #0b7a55;
+  --lens-bot: #075c3f;
   --draft-ink: color-mix(in srgb, var(--ink) 22%, transparent);
   --nostr-ink: #7c3aed;
   --bch-ink: #087a55;
-  --stripe-bg: #181816;
+  --stripe-bg: linear-gradient(90deg, #151513 0%, #232320 52%, #141412 100%);
   --stripe-ink: #f2f0ea;
+
   container-type: inline-size;
   position: relative;
-  perspective: 1400px;
+  perspective: 1350px;
+  touch-action: pan-y;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .cachet {
-    --card-bg: linear-gradient(142deg, #1e1f1d 0%, #151614 55%, #0f100e 100%);
-    --card-border: color-mix(in srgb, #ffffff 14%, var(--line));
-    --card-rule: color-mix(in srgb, #ffffff 10%, transparent);
-    --card-bevel: rgb(255 255 255 / 0.11);
-    --card-shade: rgb(0 0 0 / 0.65);
+    --card-bg:
+      radial-gradient(125% 95% at 14% 0%, rgb(255 255 255 / 0.075), transparent 58%),
+      linear-gradient(142deg, #212220 0%, #151614 54%, #0d0e0c 100%);
+    --card-border: color-mix(in srgb, #ffffff 16%, var(--line));
+    --card-rule: color-mix(in srgb, #ffffff 10.5%, transparent);
+    --card-bevel-top: rgb(255 255 255 / 0.16);
+    --card-bevel-bot: rgb(0 0 0 / 0.55);
+    --card-shade: rgb(0 0 0 / 0.68);
+    --edge-metal: linear-gradient(
+      135deg,
+      #6a6c66 0%,
+      #292a27 24%,
+      #858780 48%,
+      #1b1c1a 74%,
+      #52544f 100%
+    );
+    --grain-ink: rgb(255 255 255 / 0.015);
+    --chamfer-light: rgb(255 255 255 / 0.45);
+    --glare-light: rgb(255 255 255 / 0.12);
+    --turn-sheen-color: rgb(255 255 255 / 0.18);
+    --etch-shadow: 0 1px 1px rgb(0 0 0 / 0.65);
+
     --ring-ink: #edece7;
-    --lens-fill: #15996b;
+    --lens-top: #1fb882;
+    --lens-mid: #149668;
+    --lens-bot: #0b6e4b;
     --draft-ink: color-mix(in srgb, #edece7 22%, transparent);
     --nostr-ink: #a78bfa;
     --bch-ink: #34d399;
-    --stripe-bg: #0b0b0a;
+    --stripe-bg: linear-gradient(90deg, #070706 0%, #121210 52%, #060605 100%);
     --stripe-ink: #edece7;
   }
 }
 
 :root[data-theme='dark'] .cachet {
-  --card-bg: linear-gradient(142deg, #1e1f1d 0%, #151614 55%, #0f100e 100%);
-  --card-border: color-mix(in srgb, #ffffff 14%, var(--line));
-  --card-rule: color-mix(in srgb, #ffffff 10%, transparent);
-  --card-bevel: rgb(255 255 255 / 0.11);
-  --card-shade: rgb(0 0 0 / 0.65);
+  --card-bg:
+    radial-gradient(125% 95% at 14% 0%, rgb(255 255 255 / 0.075), transparent 58%),
+    linear-gradient(142deg, #212220 0%, #151614 54%, #0d0e0c 100%);
+  --card-border: color-mix(in srgb, #ffffff 16%, var(--line));
+  --card-rule: color-mix(in srgb, #ffffff 10.5%, transparent);
+  --card-bevel-top: rgb(255 255 255 / 0.16);
+  --card-bevel-bot: rgb(0 0 0 / 0.55);
+  --card-shade: rgb(0 0 0 / 0.68);
+  --edge-metal: linear-gradient(
+    135deg,
+    #6a6c66 0%,
+    #292a27 24%,
+    #858780 48%,
+    #1b1c1a 74%,
+    #52544f 100%
+  );
+  --grain-ink: rgb(255 255 255 / 0.015);
+  --chamfer-light: rgb(255 255 255 / 0.45);
+  --glare-light: rgb(255 255 255 / 0.12);
+  --turn-sheen-color: rgb(255 255 255 / 0.18);
+  --etch-shadow: 0 1px 1px rgb(0 0 0 / 0.65);
+
   --ring-ink: #edece7;
-  --lens-fill: #15996b;
+  --lens-top: #1fb882;
+  --lens-mid: #149668;
+  --lens-bot: #0b6e4b;
   --draft-ink: color-mix(in srgb, #edece7 22%, transparent);
   --nostr-ink: #a78bfa;
   --bch-ink: #34d399;
-  --stripe-bg: #0b0b0a;
+  --stripe-bg: linear-gradient(90deg, #070706 0%, #121210 52%, #060605 100%);
   --stripe-ink: #edece7;
 }
 
-.cachet__flip {
-  --flip: 0deg;
+/* ---------- Stationary Ground Shadow (Decoupled from Rotating Card) ---------- */
+
+.cachet__ground-shadow {
+  position: absolute;
+  inset: 14px 16px -10px;
+  border-radius: 22px;
+  background: var(--card-shade);
+  filter: blur(var(--sh-blur));
+  opacity: var(--sh-alpha);
+  pointer-events: none;
+  z-index: 0;
+  transform: translate3d(calc(var(--tilt-y) * -1.3px), calc(8px + var(--tilt-x) * 1.1px), 0)
+    scale(var(--sh-sx), var(--sh-sy));
+  will-change: transform, opacity, filter;
+}
+
+.cachet[data-verdict='valid'] .cachet__ground-shadow {
+  background: color-mix(in srgb, var(--accent) 22%, var(--card-shade));
+}
+
+.cachet[data-verdict='void'] .cachet__ground-shadow {
+  background: color-mix(in srgb, var(--danger) 26%, var(--card-shade));
+}
+
+/* ---------- Nested 3D Physics Rigs (No overflow:hidden to preserve true 3D) ---------- */
+
+.cachet__tilt {
+  position: relative;
+  z-index: 2;
+  transform-style: preserve-3d;
+  transform: translateZ(var(--lift-z)) rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) rotateZ(var(--bank-z));
+  will-change: transform;
+}
+
+.cachet__rotor {
   display: grid;
   position: relative;
   transform-style: preserve-3d;
-  transform: rotateX(calc(var(--py) * -4.2deg)) rotateY(calc(var(--px) * 5.8deg + var(--flip)));
-  transition: transform 720ms cubic-bezier(0.24, 1.12, 0.36, 1);
+  transform: rotateY(var(--flip-deg));
+  will-change: transform;
 }
 
-.cachet[data-live] .cachet__flip {
-  transition: transform 150ms ease-out;
+/* ---------- CNC Machined Metal Edge Core Slices (-1.1px, 0px, +1.1px) ---------- */
+
+.cachet__edge {
+  grid-area: 1 / 1;
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: var(--edge-metal);
+  border: 1px solid color-mix(in srgb, var(--card-border) 85%, #ffffff);
+  pointer-events: none;
 }
 
-.cachet[data-flipped] .cachet__flip {
-  --flip: 180deg;
+.cachet__edge--a {
+  transform: translateZ(-1.1px);
 }
+
+.cachet__edge--b {
+  transform: translateZ(0px);
+}
+
+.cachet__edge--c {
+  transform: translateZ(1.1px);
+}
+
+/* ---------- Front & Back Machined Plates (+2.2px / -2.2px) ---------- */
 
 .cachet__face {
   grid-area: 1 / 1;
@@ -81,12 +203,10 @@
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   box-shadow:
-    inset 0 1px 0 var(--card-bevel),
-    0 2px 5px rgb(20 20 18 / 0.06),
-    calc(var(--px) * -14px) calc(18px - var(--py) * 10px) 46px -20px var(--card-shade);
-  transition:
-    border-color 320ms var(--ease),
-    box-shadow 320ms var(--ease);
+    inset 0 1px 0.5px var(--card-bevel-top),
+    inset 0 -1px 0.5px var(--card-bevel-bot),
+    0 1px 2px rgb(20 20 18 / 0.06);
+  transition: border-color 320ms var(--ease);
 }
 
 .cachet__face--front {
@@ -94,12 +214,69 @@
   min-height: 252px;
   display: grid;
   grid-template-rows: 14.021% 1fr 14.021%;
+  transform: translateZ(2.2px);
 }
 
 .cachet__face--back {
   position: absolute;
   inset: 0;
-  transform: rotateY(180deg);
+  transform: rotateY(180deg) translateZ(2.2px);
+}
+
+.cachet__face--back-flat {
+  aspect-ratio: 600 / 378;
+  min-height: 252px;
+}
+
+/* Flat static mode: pure front/back card faces with zero 3D, lighting, or motion effects */
+.cachet[data-flat] {
+  display: grid;
+  perspective: none;
+  touch-action: auto;
+}
+
+.cachet[data-flat] .cachet__face {
+  height: 100%;
+  transform: none;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+  box-shadow: var(--shadow);
+  animation: none;
+  transition: none;
+}
+
+.cachet[data-flat] .vesica__ring,
+.cachet[data-flat] .vesica__lens,
+.cachet[data-flat] .vesica__center,
+.cachet[data-flat] .vesica__pt,
+.cachet[data-flat] .vesica__pt-halo,
+.cachet[data-flat] .vesica__pt-dot,
+.cachet[data-flat] .cachet__mark,
+.cachet[data-flat] .cachet__serial-v,
+.cachet[data-flat] .cachet__addr {
+  transition: none;
+  animation: none;
+}
+
+.cachet[data-flat] .vesica__curve path,
+.cachet[data-flat] .vesica__chord {
+  animation: none;
+  stroke-dashoffset: 0;
+}
+
+.cachet[data-flat] .cachet__holder,
+.cachet[data-flat] .cachet__stamp,
+.cachet[data-flat] .cachet__diff {
+  animation: none;
+}
+
+.cachet[data-flippable] .cachet__face {
+  cursor: pointer;
+}
+
+.cachet[data-dragging='true'] .cachet__face {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .cachet[data-verdict='valid'] .cachet__face {
@@ -114,14 +291,56 @@
   animation: c-shake 360ms 70ms var(--ease) both;
 }
 
-/* Specular metallic glare & sealing sweep */
+/* ---------- Brushed Metal Micro-Grain, Chamfer Rim & Studio Specular Sheen ---------- */
+
+.cachet__grain {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    114deg,
+    transparent 0px,
+    transparent 1.5px,
+    var(--grain-ink) 1.5px,
+    var(--grain-ink) 2.5px
+  );
+}
+
+.cachet__chamfer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  z-index: 7;
+  pointer-events: none;
+  opacity: calc(0.28 + var(--turn-glow) * 0.72);
+  background: radial-gradient(
+    320px circle at var(--mx) var(--my),
+    var(--chamfer-light),
+    transparent 66%
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  transition: opacity 240ms var(--ease);
+}
+
+.cachet[data-live] .cachet__chamfer {
+  opacity: 0.92;
+}
+
 .cachet__glare {
   position: absolute;
   inset: 0;
   z-index: 6;
   pointer-events: none;
-  background: radial-gradient(380px circle at var(--mx) var(--my), rgb(255 255 255 / 0.34), transparent 56%);
-  mix-blend-mode: soft-light;
+  background: radial-gradient(360px circle at var(--mx) var(--my), var(--glare-light), transparent 58%);
   opacity: 0;
   transition: opacity 280ms var(--ease);
 }
@@ -130,13 +349,39 @@
   opacity: 1;
 }
 
+/* Dynamic studio reflection band sweeping across the plate as 3D angle changes */
+.cachet__turn-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: var(--turn-glow);
+}
+
+.cachet__turn-sheen--front {
+  background: linear-gradient(
+    105deg,
+    transparent calc(var(--sheen-f) - 24%),
+    var(--turn-sheen-color) var(--sheen-f),
+    transparent calc(var(--sheen-f) + 24%)
+  );
+}
+
+.cachet__turn-sheen--back {
+  background: linear-gradient(
+    105deg,
+    transparent calc(var(--sheen-b) - 24%),
+    var(--turn-sheen-color) var(--sheen-b),
+    transparent calc(var(--sheen-b) + 24%)
+  );
+}
+
 .cachet__sweep {
   position: absolute;
   inset: 0;
   z-index: 6;
   pointer-events: none;
-  background: linear-gradient(106deg, transparent 36%, rgb(255 255 255 / 0.42) 50%, transparent 64%);
-  mix-blend-mode: soft-light;
+  background: linear-gradient(106deg, transparent 36%, var(--turn-sheen-color) 50%, transparent 64%);
   translate: -115% 0;
   animation: c-sheen-sweep 1000ms 180ms var(--ease) forwards;
 }
@@ -176,7 +421,7 @@
 }
 
 .cachet:not([data-stage='empty']) .vesica__ring {
-  opacity: 0.88;
+  opacity: 0.9;
 }
 
 .cachet[data-stage='sealed'][data-verdict='valid'] .vesica__ring {
@@ -194,7 +439,6 @@
 }
 
 .vesica__lens {
-  fill: var(--lens-fill);
   opacity: 0;
   transform-origin: 456px 189px;
   transition:
@@ -257,7 +501,9 @@
   stroke-width: 0.85;
   stroke-dasharray: 2.2 2.2;
   opacity: 0.65;
-  transition: opacity 240ms var(--ease), stroke-width 240ms var(--ease);
+  transition:
+    opacity 240ms var(--ease),
+    stroke-width 240ms var(--ease);
 }
 
 .cachet[data-focus='seal'] .vesica__proj {
@@ -296,7 +542,6 @@
   stroke-dashoffset: 0;
 }
 
-/* Inverted intaglio layer strictly inside the solid emerald lens */
 .vesica__math--inv .vesica__axis {
   stroke: rgb(255 255 255 / 0.34);
 }
@@ -312,7 +557,7 @@
 }
 
 .vesica__math--inv .vesica__curve path {
-  stroke: rgb(255 255 255 / 0.85);
+  stroke: rgb(255 255 255 / 0.86);
   stroke-width: 1.45px;
 }
 
@@ -325,7 +570,6 @@
   stroke-width: 1.6;
 }
 
-/* Key coordinate nodes P (circle) & Q (45° Constructivist square) */
 .vesica__pt {
   transition: transform 680ms cubic-bezier(0.24, 1.12, 0.36, 1);
 }
@@ -382,7 +626,6 @@
   fill: var(--danger);
 }
 
-/* Counter-change node contrast inside emerald lens */
 .vesica__pt--inv .vesica__pt-halo,
 .vesica__pt--inv .vesica__pt-dot {
   stroke: #ffffff !important;
@@ -410,17 +653,6 @@
   opacity: 1;
 }
 
-.cachet__domain {
-  margin-top: 2px;
-  font-size: 9px;
-  letter-spacing: 0.04em;
-  color: var(--ink-3);
-  opacity: 0.76;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* ---------- Top Header Bar (Exact 14.021% = y:53 datum) ---------- */
 
 .cachet__head {
@@ -446,6 +678,7 @@
   font-weight: 650;
   letter-spacing: 0.2em;
   color: var(--ink);
+  text-shadow: var(--etch-shadow);
 }
 
 .cachet__spec {
@@ -478,6 +711,7 @@
   letter-spacing: 0.11em;
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
+  text-shadow: var(--etch-shadow);
   transition: color 240ms var(--ease);
 }
 
@@ -499,7 +733,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 14px;
+  gap: 13px;
   width: 58%;
   min-width: 0;
   padding: 12px 12px 12px 24px;
@@ -525,6 +759,7 @@
   font-weight: 600;
   letter-spacing: -0.015em;
   color: var(--ink);
+  text-shadow: var(--etch-shadow);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -620,10 +855,20 @@
   font-weight: 500;
   letter-spacing: -0.01em;
   color: var(--ink);
+  text-shadow: var(--etch-shadow);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   transition: color 240ms var(--ease);
+}
+
+.cachet__addr--empty {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 450;
+  letter-spacing: 0;
+  color: var(--ink-3);
+  text-shadow: none;
 }
 
 .cachet__diff {
@@ -637,6 +882,17 @@
 
 .cachet[data-verdict='void'] .cachet__reg[data-zone='bch'] .cachet__addr {
   color: var(--danger);
+}
+
+.cachet__domain {
+  margin-top: 2px;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  opacity: 0.78;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---------- Bottom Architectural Datum Bar (Exact 14.021% = y:325) ---------- */
@@ -661,7 +917,6 @@
   gap: 8px;
 }
 
-/* Refine generic pills inside the bank card into crisp architectural status stamps */
 .cachet__status .c-pill {
   height: 21px;
   padding: 0 8px 0 7px;
@@ -691,41 +946,6 @@
 .cachet[data-verdict='muted'] .cachet__stamp {
   border-color: var(--line-2);
   color: var(--ink-3);
-}
-
-.cachet[data-flippable] .cachet__face {
-  cursor: pointer;
-}
-
-.cachet__foot-end {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.cachet__flip-cue {
-  display: inline-grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border-radius: 4px;
-  border: 1px solid var(--card-rule);
-  background: transparent;
-  color: var(--ink-3);
-  font-size: 11px;
-  line-height: 1;
-  cursor: pointer;
-  transition:
-    color 160ms var(--ease),
-    border-color 160ms var(--ease),
-    background-color 160ms var(--ease);
-}
-
-.cachet__flip-cue:hover {
-  color: var(--ink);
-  border-color: var(--card-border);
-  background: color-mix(in srgb, var(--ink) 6%, transparent);
 }
 
 .cachet__expiry {
@@ -796,15 +1016,16 @@
   color: var(--accent-ink);
 }
 
-/* ---------- Back Face: Bank-Card Magnetic Stripe & Signed Statement ---------- */
+/* ---------- Back Face: Brushed Obsidian Stripe & Recessed Signature Window ---------- */
 
 .cachet-back {
   position: relative;
+  z-index: 2;
   height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 10px;
-  padding: 14px 0 14px;
+  padding: 15px 0 14px;
 }
 
 .cachet-back__stripe {
@@ -812,10 +1033,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 32px;
+  min-height: 34px;
   padding: 0 22px;
   background: var(--stripe-bg);
   color: var(--stripe-ink);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    inset 0 -1px 0 rgb(0 0 0 / 0.45);
 }
 
 .cachet-back__title {
@@ -824,7 +1048,7 @@
   font-weight: 500;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  opacity: 0.88;
+  opacity: 0.9;
 }
 
 .cachet-back__size {
@@ -832,7 +1056,7 @@
   align-items: center;
   gap: 4px;
   font-size: 10px;
-  opacity: 0.88;
+  opacity: 0.9;
 }
 
 .cachet-back__size .c-copy-icon {
@@ -841,20 +1065,48 @@
   color: inherit;
 }
 
-.cachet-back__msg {
+.cachet-back__panel {
   margin: 0 22px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cachet-back__msg {
+  margin: 0;
   padding: 9px 12px;
+  flex: 1;
   min-height: 0;
   overflow: auto;
   border-radius: 7px;
-  background: color-mix(in srgb, var(--sunken) 80%, transparent);
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 17px,
+      color-mix(in srgb, var(--ink) 3%, transparent) 17px,
+      color-mix(in srgb, var(--ink) 3%, transparent) 18px
+    ),
+    color-mix(in srgb, var(--sunken) 84%, transparent);
   border: 1px solid var(--card-rule);
+  box-shadow: inset 0 1.5px 3px rgb(0 0 0 / 0.06);
   font-family: var(--font-mono);
   font-size: 10.5px;
   line-height: 1.55;
   color: var(--ink-2);
   white-space: pre-wrap;
   word-break: break-all;
+  cursor: text;
+}
+
+.cachet-back__msg--empty {
+  display: flex;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--ink-3);
+  word-break: normal;
+  cursor: default;
 }
 
 .cachet-back__h {
@@ -877,8 +1129,18 @@
   font-weight: 600;
 }
 
-.cachet-back__rows {
+.cachet-back__foot {
   margin: 0 22px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.cachet-back__rows {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
   display: grid;
   gap: 2px;
   font-size: 11px;
@@ -886,32 +1148,39 @@
 
 .cachet-back__rows > div {
   display: grid;
-  grid-template-columns: 98px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 94px minmax(0, 1fr);
+  gap: 8px;
   align-items: baseline;
 }
 
 .cachet-back__rows dt {
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 9px;
   letter-spacing: 0.06em;
   color: var(--ink-3);
 }
 
 .cachet-back__rows dd {
   margin: 0;
-  font-size: 10.5px;
+  font-size: 10px;
   color: var(--ink-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.cachet-back__hallmark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink-2);
+}
+
 /* ---------- Frameless Swiss Verification Index (Ledger) ---------- */
 
 .ledger {
   position: relative;
-  margin-top: 18px;
+  margin-top: 20px;
   padding: 0 2px;
 }
 
@@ -1113,16 +1382,19 @@
   .cachet-back__stripe {
     padding-inline: 18px;
   }
-  .cachet-back__msg,
-  .cachet-back__rows {
+  .cachet-back__panel,
+  .cachet-back__foot {
     margin-inline: 18px;
   }
 }
 
 @container (max-width: 400px) {
-  .cachet__face--front {
+  .cachet__face--front,
+  .cachet__face--back-flat {
     aspect-ratio: auto;
     min-height: 236px;
+  }
+  .cachet__face--front {
     grid-template-rows: 40px 1fr 40px;
   }
   .cachet__head,
@@ -1144,6 +1416,9 @@
     font-size: 8.5px;
   }
   .cachet__domain {
+    display: none;
+  }
+  .cachet-back__hallmark {
     display: none;
   }
 }
