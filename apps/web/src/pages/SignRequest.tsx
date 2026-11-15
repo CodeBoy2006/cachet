@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'wouter';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useLocation } from 'wouter';
 import { KIND_HTTP_AUTH, fromBase64Url, isLowerHex, npubEncode, nowSeconds, toBase64Url, type EventTemplate } from '@cachet/core';
-import { Avatar, IconCheck, Logo, Note, Spinner, StatePill, shortCashaddr, shortNpub } from '@cachet/react';
+import { Avatar, IconArrowRight, IconCheck, IconZap, Logo, Note, Spinner, StatePill, shortCashaddr, shortNpub } from '@cachet/react';
 import { useSession } from '../lib/session.tsx';
 import { savePendingSign } from '../lib/storage.ts';
 import { useLookup } from '../lib/useLookup.ts';
@@ -18,6 +18,16 @@ import { NostrConnect } from '../components/NostrConnect.tsx';
  * only holds the key.
  */
 type Request = { app: string; returnUrl: string; origin: string; template: EventTemplate };
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const appAccent = (name: string): string | undefined => {
+  const lower = name.toLowerCase();
+  if (lower === 'fieldnote') return '#9a3412';
+  if (lower === 'stall') return '#1d4ed8';
+  return undefined;
+};
 
 const parseRequest = (): Request | { error: string } => {
   const q = new URLSearchParams(location.search);
@@ -43,8 +53,8 @@ const parseRequest = (): Request | { error: string } => {
   const u = tag('u');
   if (u.length !== 1) return { error: 'The sign-in request has no single URL.' };
   try {
-    // The signature must only be usable at the app that receives it.
-    if (new URL(String(u[0]![1])).origin !== returnUrl.origin) return { error: `The request is for ${new URL(String(u[0]![1])).origin}, but would be sent to ${returnUrl.origin}.` };
+    if (new URL(String(u[0]![1])).origin !== returnUrl.origin)
+      return { error: `The request is for ${new URL(String(u[0]![1])).origin}, but would be sent to ${returnUrl.origin}.` };
   } catch {
     return { error: 'The sign-in request URL is invalid.' };
   }
@@ -55,12 +65,52 @@ const parseRequest = (): Request | { error: string } => {
 };
 
 export const SignRequest = () => {
-  const { nostr, restoring, disconnectNostr } = useSession();
+  const { nostr, restoring, disconnectNostr, startSandbox } = useSession();
+  const [, navigate] = useLocation();
   const request = useMemo(parseRequest, []);
   const [phase, setPhase] = useState<'approve' | 'signing' | 'done'>('approve');
   const [error, setError] = useState<string>();
   const lookup = useLookup(nostr ? npubEncode(nostr.pubkey) : undefined);
   usePageTitle('error' in request ? 'Sign in' : `Sign in to ${request.app}`);
+
+  const back = useCallback(
+    (fragment: string) => {
+      if ('error' in request) return;
+      location.replace(`${request.returnUrl.split('#')[0]}#${fragment}`);
+    },
+    [request],
+  );
+
+  const approve = useCallback(async () => {
+    if ('error' in request || !nostr || phase !== 'approve') return;
+    setPhase('signing');
+    setError(undefined);
+    try {
+      // Only the timestamp is refreshed, so a slow approval does not fall outside the app's window.
+      const event = await nostr.signer.signEvent({ ...request.template, created_at: nowSeconds() });
+      setPhase('done');
+      const delay = prefersReducedMotion() ? 0 : 340;
+      setTimeout(() => back(`cachet=${toBase64Url(JSON.stringify(event))}`), delay);
+    } catch (e) {
+      setPhase('approve');
+      setError(e instanceof Error ? e.message : 'Signing failed');
+    }
+  }, [request, nostr, phase, back]);
+
+  const result = lookup.state.status === 'done' ? lookup.state.result : undefined;
+  const isActiveLink = result?.resolution.state === 'active';
+
+  useEffect(() => {
+    if ('error' in request || !nostr || phase !== 'approve' || !isActiveLink) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        void approve();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [request, nostr, phase, isActiveLink, approve]);
 
   if ('error' in request) {
     return (
@@ -81,44 +131,43 @@ export const SignRequest = () => {
     );
   }
 
-  const back = (fragment: string) => location.replace(`${request.returnUrl.split('#')[0]}#${fragment}`);
-
-  const approve = async () => {
-    if (!nostr) return;
-    setPhase('signing');
-    setError(undefined);
-    try {
-      // Only the timestamp is refreshed, so a slow approval does not fall outside the app's window.
-      const event = await nostr.signer.signEvent({ ...request.template, created_at: nowSeconds() });
-      setPhase('done');
-      back(`cachet=${toBase64Url(JSON.stringify(event))}`);
-    } catch (e) {
-      setPhase('approve');
-      setError(e instanceof Error ? e.message : 'Signing failed');
-    }
-  };
-
-  const result = lookup.state.status === 'done' ? lookup.state.result : undefined;
   const claim = result?.resolution.primary;
+  const accent = appAccent(request.app);
+
+  const quickMintSandbox = () => {
+    savePendingSign({ app: request.app, search: location.search });
+    startSandbox();
+    navigate('/new?sandbox=1');
+  };
 
   return (
     <div className="signer">
-      <div className="c-card signer__card">
-        <div className="signer__brand">
-          <Logo size={20} /> cachet
-        </div>
-        <div className="signer__origin">
-          <span className="favicon" aria-hidden>
+      <div className="c-card signer__card" data-phase={phase}>
+        <div className="signer__bridge" aria-hidden>
+          <span className="signer__node signer__node--cachet">
+            <Logo size={20} />
+          </span>
+          <span className="signer__beam" data-phase={phase}>
+            <span className="signer__beam-tag mono">NIP-98</span>
+          </span>
+          <span className="signer__node signer__node--app" style={accent ? { background: accent, color: '#fff', borderColor: accent } : undefined}>
             {request.app.slice(0, 1).toUpperCase()}
           </span>
+        </div>
+
+        <div className="signer__origin">
           <div style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 600 }}>{request.app}</div>
             <div className="mono muted" style={{ fontSize: 12.5 }}>
               {request.origin}
             </div>
           </div>
+          <span className="c-tag" style={{ marginLeft: 'auto' }}>
+            One-time login
+          </span>
         </div>
-        <h1>{phase === 'done' ? `Returning to ${request.app}…` : `Sign in to ${request.app}?`}</h1>
+
+        <h1>{phase === 'done' ? `Signed · returning to ${request.app}…` : `Sign in to ${request.app}?`}</h1>
 
         {restoring ? (
           <div className="row muted">
@@ -127,9 +176,12 @@ export const SignRequest = () => {
         ) : !nostr ? (
           <>
             <p className="soft" style={{ margin: 0, fontSize: 14 }}>
-              Choose the Nostr key to sign in with.
+              Choose the Nostr key to sign in with, or spin up an instant sandbox identity.
             </p>
             <NostrConnect />
+            <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={quickMintSandbox}>
+              <IconZap size={14} /> Mint instant sandbox link & continue
+            </button>
           </>
         ) : (
           <>
@@ -149,10 +201,15 @@ export const SignRequest = () => {
             {result && result.resolution.state !== 'active' && (
               <Note tone="warn">
                 {request.app} will refuse this key: it has no active BCH link.{' '}
-                <Link href="/new" onClick={() => savePendingSign({ app: request.app, search: location.search })}>
-                  Create one
-                </Link>{' '}
-                first.
+                {nostr.signer.type === 'local' ? (
+                  <button type="button" className="c-link" onClick={quickMintSandbox}>
+                    Mint sandbox link now <IconArrowRight size={12} />
+                  </button>
+                ) : (
+                  <Link href="/new" onClick={() => savePendingSign({ app: request.app, search: location.search })}>
+                    Create one first
+                  </Link>
+                )}
               </Note>
             )}
             <p className="muted signer__fine">
@@ -162,12 +219,12 @@ export const SignRequest = () => {
             {error && <Note tone="danger">{error}</Note>}
             {phase === 'done' ? (
               <div className="signed-line">
-                <IconCheck /> Login request signed.
+                <IconCheck /> Login proof sealed · redirecting…
               </div>
             ) : (
               <div className="signer__actions">
-                <button type="button" className="c-btn c-btn--lg" onClick={approve} disabled={phase === 'signing'}>
-                  {phase === 'signing' && <Spinner />} {phase === 'signing' ? 'Signing…' : 'Sign in'}
+                <button type="button" className="c-btn c-btn--accent c-btn--lg" onClick={() => void approve()} disabled={phase === 'signing'}>
+                  {phase === 'signing' && <Spinner />} {phase === 'signing' ? 'Signing…' : 'Approve & sign in'}
                 </button>
                 <button type="button" className="c-btn c-btn--lg c-btn--ghost" onClick={() => back('cachet-error=cancelled')} disabled={phase === 'signing'}>
                   Cancel

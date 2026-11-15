@@ -23,6 +23,35 @@ const initialChoice = (raw?: string): { preset: string; custom: string } => {
   return PRESETS.some((p) => p.value === normalized) ? { preset: normalized, custom: '' } : { preset: 'custom', custom: normalized };
 };
 
+/** Smooth ease-out counter roll when a 0-conf payment receipt lands. */
+const useCountUpSats = (target?: bigint) => {
+  const [shown, setShown] = useState<bigint>(target ?? 0n);
+  useEffect(() => {
+    if (target === undefined) return;
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setShown(target);
+      return;
+    }
+    const total = Number(target);
+    if (!Number.isSafeInteger(total) || total <= 0) {
+      setShown(target);
+      return;
+    }
+    let frame = 0;
+    const start = performance.now();
+    const duration = 420;
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      const eased = 1 - (1 - p) ** 3;
+      setShown(BigInt(Math.round(total * eased)));
+      if (p < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target]);
+  return shown;
+};
+
 export const PayPanel = ({ cashaddr, payee, initialAmount }: { cashaddr: string; payee: string; initialAmount?: string }) => {
   const init = useMemo(() => initialChoice(initialAmount), [initialAmount]);
   const [preset, setPreset] = useState(init.preset);
@@ -68,6 +97,7 @@ export const PayPanel = ({ cashaddr, payee, initialAmount }: { cashaddr: string;
 
   const latest = received[0];
   const activeReceipt = latest && latest.txid !== dismissedTxid ? latest : undefined;
+  const animatedSats = useCountUpSats(activeReceipt?.sats);
   const server = electrum.server?.replace(/^wss?:\/\//, '').split(':')[0];
 
   return (
@@ -106,20 +136,21 @@ export const PayPanel = ({ cashaddr, payee, initialAmount }: { cashaddr: string;
 
       {activeReceipt ? (
         <div className="pay-receipt" key={activeReceipt.txid} role="status" aria-live="polite">
+          <span className="pay-receipt__sweep" aria-hidden />
           <div className="pay-receipt__top">
             <span className="received__mark">
               <IconCheck size={17} strokeWidth={2.3} />
             </span>
             <div className="pay-receipt__body">
               <div className="pay-receipt__amount">
-                {formatBch(activeReceipt.sats)}
+                {formatBch(animatedSats)}
                 <small>BCH received</small>
               </div>
               <div className="pay-receipt__meta">
                 <span className="pay-receipt__pill" data-confirmed={activeReceipt.confirmed || undefined}>
                   {activeReceipt.confirmed ? 'Confirmed' : '0-conf · in mempool'}
                 </span>
-                <span>{activeReceipt.sats.toLocaleString()} sats</span>
+                <span>{animatedSats.toLocaleString()} sats</span>
                 <a href={config.explorerTx(activeReceipt.txid)} target="_blank" rel="noreferrer">
                   {shortMiddle(activeReceipt.txid, 10, 6)} <IconArrowUpRight size={12} />
                 </a>
@@ -133,13 +164,20 @@ export const PayPanel = ({ cashaddr, payee, initialAmount }: { cashaddr: string;
       ) : (
         <>
           <div className="pay__qr">
-            <a href={uri} className="pay__qr-code" aria-label="Open in a BCH wallet" data-dim={!payable || undefined}>
+            <a
+              href={uri}
+              className="pay__qr-code"
+              aria-label="Open in a BCH wallet"
+              data-dim={!payable || undefined}
+              data-live={(watching === 'live' && payable) || undefined}
+            >
               <span className="pay__qr-frame">
+                <span className="pay__qr-corners" aria-hidden />
                 <Qr value={uri} size={168} label="Payment request" />
               </span>
             </a>
             <div className="pay__summary">
-              <div className="amount">
+              <div className="amount" key={payable ? String(sats) : 'empty'}>
                 {payable ? formatBch(sats) : '—'}
                 <small>BCH</small>
               </div>
@@ -197,7 +235,7 @@ export const PayPanel = ({ cashaddr, payee, initialAmount }: { cashaddr: string;
           />
         </Suspense>
       ) : (
-        <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+        <p className="muted" style={{ fontSize: 13 }}>
           Choose an amount first.
         </p>
       )}

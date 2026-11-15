@@ -73,8 +73,15 @@
   white-space: nowrap;
 }
 
-.rp-cachet {
+.rp-nav {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.rp-link,
+.rp-cachet {
   font-size: 13px;
   color: var(--ink-2);
   text-decoration: none;
@@ -85,13 +92,21 @@
   transition: color 140ms;
 }
 
+.rp-link {
+  color: var(--ink-3);
+}
+
+.rp-link:hover,
 .rp-cachet:hover {
   color: var(--ink);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 520px) {
   .rp-tag {
     display: none;
+  }
+  .rp-nav {
+    gap: 12px;
   }
 }
 
@@ -282,6 +297,14 @@
   font-size: 12.5px;
 }
 
+.session__actions {
+  gap: 6px;
+}
+
+.session__signout {
+  margin-left: auto;
+}
+
 .kv {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -408,7 +431,10 @@
 }
 
 .note[data-locked='false'] {
-  border-color: color-mix(in srgb, var(--accent) 26%, var(--line));
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--line));
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--accent) 8%, transparent),
+    0 8px 24px -18px color-mix(in srgb, var(--accent) 32%, transparent);
 }
 
 .note__meta {
@@ -519,6 +545,29 @@
   padding: 14px 18px;
   border-top: 1px solid var(--line);
   background: var(--surface-2);
+}
+
+.stall__qr {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.stall__qr-corners {
+  position: absolute;
+  inset: -3px;
+  pointer-events: none;
+  border-radius: 14px;
+  opacity: 0.78;
+  background:
+    linear-gradient(var(--accent), var(--accent)) left 0 top 0 / 12px 2px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) left 0 top 0 / 2px 12px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) right 0 top 0 / 12px 2px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) right 0 top 0 / 2px 12px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) left 0 bottom 0 / 12px 2px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) left 0 bottom 0 / 2px 12px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) right 0 bottom 0 / 12px 2px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) right 0 bottom 0 / 2px 12px no-repeat;
 }
 
 @media (max-width: 560px) {

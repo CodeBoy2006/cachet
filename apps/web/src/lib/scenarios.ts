@@ -20,6 +20,9 @@ export interface Built {
   now: number;
   /** Extra line shown under the verdict, e.g. what a naive verifier said. */
   aside?: string;
+  /** Ephemeral Nostr secret for the valid baseline so Lab tamper presets can re-sign outer events. */
+  secret?: Uint8Array;
+  proof?: BindProof;
 }
 
 export interface Scenario {
@@ -66,7 +69,7 @@ export const SCENARIOS: Scenario[] = [
     expect: 'ok',
     async build() {
       const h = honest();
-      return { event: h.event, now: h.now };
+      return { event: h.event, now: h.now, secret: h.n.secret, proof: h.proof };
     },
   },
   {

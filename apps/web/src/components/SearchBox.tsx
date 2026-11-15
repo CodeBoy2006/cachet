@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { parseIdentityInput } from '@cachet/discovery';
-import { IconCheck, IconSearch } from '@cachet/react';
+import { IconCheck, IconPaste, IconSearch } from '@cachet/react';
 
 const KIND_LABELS = {
   pubkey: 'npub',
@@ -40,17 +40,21 @@ export const SearchBox = ({ autoFocus }: { autoFocus?: boolean }) => {
         : KIND_LABELS[parsed.kind]
       : undefined;
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitValue = (raw: string) => {
     clearTimeout(jumpTimer.current);
-    const check = parseIdentityInput(value);
+    const check = parseIdentityInput(raw);
     if (check.kind === 'invalid') {
       const reason = check.reason === 'empty' ? 'Paste an npub, a NIP-05 name or a BCH address' : check.reason;
       setError(`${reason.charAt(0).toUpperCase()}${reason.slice(1)}.`);
       setShake((s) => s + 1);
       return;
     }
-    navigate(`/p/${encodeURIComponent(value.trim())}`);
+    navigate(`/p/${encodeURIComponent(raw.trim())}`);
+  };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitValue(value);
   };
 
   const onPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -62,6 +66,25 @@ export const SearchBox = ({ autoFocus }: { autoFocus?: boolean }) => {
     if (check.kind === 'pubkey' || check.kind === 'address') {
       clearTimeout(jumpTimer.current);
       jumpTimer.current = setTimeout(() => navigate(`/p/${encodeURIComponent(text)}`), 170);
+    }
+  };
+
+  const pasteClipboard = async () => {
+    try {
+      const text = (await navigator.clipboard.readText()).trim();
+      if (!text) {
+        inputRef.current?.focus();
+        return;
+      }
+      setValue(text);
+      setError(undefined);
+      const check = parseIdentityInput(text);
+      if (check.kind === 'pubkey' || check.kind === 'address' || check.kind === 'nip05') {
+        clearTimeout(jumpTimer.current);
+        jumpTimer.current = setTimeout(() => navigate(`/p/${encodeURIComponent(text)}`), 190);
+      }
+    } catch {
+      inputRef.current?.focus();
     }
   };
 
@@ -96,9 +119,14 @@ export const SearchBox = ({ autoFocus }: { autoFocus?: boolean }) => {
         autoFocus={autoFocus}
       />
       {!value && (
-        <kbd className="c-kbd search__kbd hide-sm" aria-hidden>
-          /
-        </kbd>
+        <span className="search__tools">
+          <button type="button" className="c-icon-btn search__paste" onClick={() => void pasteClipboard()} title="Paste and look up" aria-label="Paste from clipboard">
+            <IconPaste size={14} />
+          </button>
+          <kbd className="c-kbd search__kbd hide-sm" aria-hidden>
+            /
+          </kbd>
+        </span>
       )}
       {validBadge && (
         <span className="search__badge mono" aria-hidden>

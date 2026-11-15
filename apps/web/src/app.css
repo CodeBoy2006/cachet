@@ -488,7 +488,7 @@ main {
 .search .c-input {
   height: 46px;
   padding-left: 40px;
-  padding-right: 102px;
+  padding-right: 144px;
   border-radius: 12px;
   -webkit-appearance: none;
   appearance: none;
@@ -515,10 +515,21 @@ main {
   color: var(--ink);
 }
 
-.search__kbd {
+.search__tools {
   position: absolute;
-  right: 98px;
-  top: 12px;
+  right: 94px;
+  top: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.search__paste {
+  width: 28px;
+  height: 28px;
+}
+
+.search__kbd {
   color: var(--ink-3);
   pointer-events: none;
   transition: opacity 120ms;
@@ -2726,6 +2737,533 @@ button.tile:hover .tile__go svg {
   display: block;
   margin-top: 6px;
   font-size: 12.5px;
+}
+
+/* ---------- Refined ecosystem, ceremonies & slides ---------- */
+
+.nav {
+  align-items: center;
+}
+
+.nav__sep {
+  width: 1px;
+  height: 15px;
+  background: var(--line-2);
+  margin: 0 4px;
+}
+
+.nav a.nav__ext {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 13.5px;
+  color: var(--ink-3);
+}
+
+.nav a.nav__ext:hover {
+  color: var(--ink);
+}
+
+.ember__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.ember__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e06d3b;
+  box-shadow: 0 0 0 3px rgb(224 109 59 / 0.16);
+}
+
+.ember__qr-btn {
+  padding: 2px 7px !important;
+  border-radius: 6px;
+  border: 1px solid var(--line) !important;
+  background: var(--surface) !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+}
+
+.ember__qr-btn:hover {
+  border-color: var(--line-2) !important;
+}
+
+/* Hero live choreography & inline tamper */
+.hero__sandbox-btn svg {
+  color: var(--accent);
+}
+
+.hero__stage-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-2);
+  animation: c-fade 200ms ease both;
+}
+
+.hero__tamper-note {
+  color: var(--danger);
+  font-weight: 500;
+  animation: c-fade 200ms ease both;
+}
+
+.hero__tamper {
+  --h: 26px;
+  padding: 0 8px;
+  font-size: 12.5px;
+}
+
+.hero__checks {
+  transition:
+    border-color 240ms var(--ease),
+    box-shadow 240ms var(--ease);
+}
+
+.hero__checks[data-tampered='true'] {
+  border-color: color-mix(in srgb, var(--danger) 36%, var(--line));
+}
+
+/* Create done launchpad */
+.done-pending {
+  display: grid;
+  gap: 12px;
+}
+
+.done-launch {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.done-apps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .done-apps {
+    grid-template-columns: 1fr;
+  }
+}
+
+.done-app {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  text-decoration: none;
+  color: var(--ink);
+  transition:
+    border-color 160ms var(--ease),
+    background 160ms var(--ease),
+    transform 180ms var(--ease);
+}
+
+.done-app:hover {
+  border-color: var(--line-2);
+  background: var(--surface);
+  transform: translateY(-1px);
+}
+
+.done-app__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+}
+
+.done-app__icon[data-app='a'] {
+  color: #9a3412;
+  background: color-mix(in srgb, #9a3412 10%, var(--surface));
+  border-color: color-mix(in srgb, #9a3412 20%, var(--line));
+}
+
+.done-app__icon[data-app='b'] {
+  color: #1d4ed8;
+  background: color-mix(in srgb, #1d4ed8 10%, var(--surface));
+  border-color: color-mix(in srgb, #1d4ed8 20%, var(--line));
+}
+
+:root[data-theme='dark'] .done-app__icon[data-app='a'] {
+  color: #f08a5d;
+}
+
+:root[data-theme='dark'] .done-app__icon[data-app='b'] {
+  color: #7aa2ff;
+}
+
+.done-app__body {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.done-app__body strong {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.done-app__body small {
+  font-size: 12px;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.done-app__arrow {
+  color: var(--ink-3);
+  transition: translate 160ms var(--ease);
+}
+
+.done-app:hover .done-app__arrow {
+  color: var(--ink);
+  translate: 2px -2px;
+}
+
+/* Profile revocation receipt */
+.revoked-banner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 13px;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--shadow);
+  font-size: 13.5px;
+  animation: c-pop 260ms var(--ease) both;
+}
+
+.revoked-banner__mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  animation: c-stamp 340ms var(--ease-spring) both;
+}
+
+.revoked-banner__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  color: var(--ink-2);
+}
+
+.revoked-banner__body strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.revoked-banner__apps {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* PayPanel live QR viewfinder & receipt sweep */
+.pay__summary .amount {
+  animation: c-rise 200ms var(--ease) both;
+}
+
+.pay__qr-corners {
+  pointer-events: none;
+  position: absolute;
+  inset: -3px;
+  border-radius: 18px;
+  opacity: 0;
+  transition: opacity 280ms var(--ease);
+  background:
+    linear-gradient(var(--accent), var(--accent)) left 0 top 0 / 14px 2px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) left 0 top 0 / 2px 14px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) right 0 top 0 / 14px 2px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) right 0 top 0 / 2px 14px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) left 0 bottom 0 / 14px 2px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) left 0 bottom 0 / 2px 14px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) right 0 bottom 0 / 14px 2px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) right 0 bottom 0 / 2px 14px no-repeat;
+}
+
+.pay__qr-code[data-live] .pay__qr-corners {
+  opacity: 0.72;
+}
+
+.pay__qr-code[data-live]:hover .pay__qr-corners {
+  opacity: 1;
+}
+
+.pay-receipt {
+  position: relative;
+  overflow: hidden;
+}
+
+.pay-receipt__sweep {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(108deg, transparent 30%, color-mix(in srgb, var(--accent) 18%, transparent) 50%, transparent 70%);
+  translate: -120% 0;
+  animation: c-sheen-sweep 760ms 80ms var(--ease) forwards;
+}
+
+.pay-receipt__top {
+  position: relative;
+}
+
+/* Lab gauntlet audit */
+.lab-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lab-audit-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line));
+  animation: c-pop 240ms var(--ease) both;
+}
+
+.scenario__audit-dot {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: var(--danger-soft);
+  color: var(--danger);
+  animation: c-stamp 280ms var(--ease-spring) both;
+}
+
+.scenario__audit-dot[data-ok='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+/* SignRequest cryptographic handshake bridge */
+.signer__bridge {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 10px;
+}
+
+.signer__node {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 650;
+  font-size: 15px;
+  border: 1px solid var(--line-2);
+  background: var(--surface-2);
+  color: var(--ink);
+  transition:
+    transform 260ms var(--ease-spring),
+    border-color 240ms,
+    box-shadow 240ms;
+}
+
+.signer__card[data-phase='done'] .signer__node {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.signer__beam {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+}
+
+.signer__beam::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1.5px;
+  background: var(--line-2);
+}
+
+.signer__beam::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 280ms var(--ease);
+}
+
+.signer__beam[data-phase='signing']::after {
+  transform: scaleX(0.55);
+}
+
+.signer__beam[data-phase='done']::after {
+  transform: scaleX(1);
+}
+
+.signer__beam-tag {
+  position: relative;
+  z-index: 1;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  transition:
+    color 200ms,
+    border-color 200ms,
+    background 200ms;
+}
+
+.signer__beam[data-phase='done'] .signer__beam-tag {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  color: var(--accent-ink);
+}
+
+/* Interactive Pitch Deck Modal */
+.slide-deck {
+  display: grid;
+  gap: 16px;
+}
+
+.slide-deck__dots {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.slide-deck__dot {
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition:
+    background 140ms,
+    color 140ms,
+    border-color 140ms;
+}
+
+.slide-deck__dot:hover {
+  color: var(--ink);
+  border-color: var(--line-2);
+}
+
+.slide-deck__dot[aria-selected='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+  font-weight: 500;
+}
+
+.slide-card {
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  min-height: 210px;
+  align-content: start;
+  animation: c-rise 220ms var(--ease) both;
+}
+
+.slide-card__kicker {
+  font-size: 11.5px;
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+
+.slide-card__title {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.slide-card__body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.slide-card__code {
+  padding: 10px 12px;
+  font-size: 11.5px;
+  background: var(--surface);
+}
+
+.slide-card__callout {
+  margin-top: 2px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+
+.deck-wrap {
+  display: grid;
+  gap: 12px;
+}
+
+.deck-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.slide-deck__nav {
+  display: inline-flex;
+  gap: 6px;
 }
 
 /* Last, so it beats the per-component sizes above: below 16px iOS Safari zooms the page on focus. */

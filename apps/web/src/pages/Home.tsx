@@ -1,7 +1,24 @@
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { npubEncode, type BindingState } from '@cachet/core';
-import { CheckList, Dialog, IconArrowRight, IconArrowUpRight, IconBeaker, IconKey, IconLock, IconRefresh, IconWallet, IdentityCard, Spinner, shortNpub } from '@cachet/react';
+import {
+  CheckList,
+  Dialog,
+  IconAlert,
+  IconArrowRight,
+  IconArrowUpRight,
+  IconBeaker,
+  IconCheck,
+  IconLock,
+  IconRefresh,
+  IconUndo,
+  IconWallet,
+  IconZap,
+  IdentityCard,
+  Spinner,
+  formatDate,
+  shortNpub,
+} from '@cachet/react';
 import { config } from '../config.ts';
 import { SearchBox } from '../components/SearchBox.tsx';
 import { useLookup } from '../lib/useLookup.ts';
@@ -17,6 +34,9 @@ const CAPTIONS: Record<Exclude<BindingState, 'active'>, string> = {
   not_found: 'No link on the relays checked.',
   unavailable: 'Relays did not answer.',
 };
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const Featured = ({ id, own }: { id: string; own: boolean }) => {
   const { state } = useLookup(id);
@@ -88,34 +108,93 @@ const Featured = ({ id, own }: { id: string; own: boolean }) => {
 };
 
 const EXAMPLE_CHECKS = ['event', 'identity', 'time', 'bch_signature', 'key_separation'];
+type MintStage = 'nostr' | 'bch' | 'sealed';
 
 const LocalExample = () => {
   const [ex, setEx] = useState<Example>();
+  const [stage, setStage] = useState<MintStage>('nostr');
+  const [tampered, setTampered] = useState(false);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearTimers = useCallback(() => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+  }, []);
+
+  const runMintSequence = useCallback(
+    (next: Example) => {
+      clearTimers();
+      setTampered(false);
+      setEx(next);
+      if (prefersReducedMotion()) {
+        setStage('sealed');
+        return;
+      }
+      setStage('nostr');
+      timers.current.push(
+        setTimeout(() => setStage('bch'), 290),
+        setTimeout(() => setStage('sealed'), 660),
+      );
+    },
+    [clearTimers],
+  );
+
   useEffect(() => {
     let live = true;
-    void makeExample().then((e) => live && setEx(e));
+    void makeExample().then((e) => live && runMintSequence(e));
     return () => {
       live = false;
+      clearTimers();
     };
-  }, []);
+  }, [runMintSequence, clearTimers]);
+
   const remint = () => {
-    void makeExample().then(setEx);
+    void makeExample().then(runMintSequence);
   };
+
   const b = ex?.result.binding;
-  const stampKey = ex?.event.id ?? 'init';
+  const activeResult = tampered ? ex?.forged.result : ex?.result;
+  const cardState = !ex ? 'loading' : tampered ? 'invalid' : stage === 'sealed' ? (ex.result.ok ? 'active' : 'invalid') : 'draft';
+  const shownAddr = !ex || stage === 'nostr' ? undefined : tampered ? ex.forged.cashaddr : b?.cashaddr;
+  const checkKey = !ex ? 'init' : `${ex.event.id}-${tampered ? 'tampered' : stage}`;
+
+  const foot =
+    !ex ? undefined : tampered ? (
+      <>
+        <span className="c-pill c-pill--invalid">Invalid</span>
+        <span className="hero__tamper-note">Fake BCH address rejected · missing wallet signature</span>
+      </>
+    ) : stage === 'nostr' ? (
+      <span className="hero__stage-line">
+        <span className="c-dot" style={{ background: 'var(--dot-nostr)' }} /> 1/2 Nostr key ready · signing BCH statement…
+      </span>
+    ) : stage === 'bch' ? (
+      <span className="idcard-foot-signed">
+        <IconCheck size={13} strokeWidth={2.2} /> 2/2 BCH statement signed · sealing proof…
+      </span>
+    ) : (
+      <>
+        <span className="c-pill c-pill--active">Verified</span>
+        {b?.expiresAt && <span>Valid until {formatDate(b.expiresAt)}</span>}
+      </>
+    );
+
   return (
     <>
       <IdentityCard
-        key={stampKey}
-        state={ex ? (ex.result.ok ? 'active' : 'invalid') : 'loading'}
+        key={ex?.event.id ?? 'init'}
+        state={cardState}
+        bchSigned={!tampered && stage === 'bch'}
         pubkey={ex?.nostr.pubkey}
         name="Example identity"
-        cashaddr={b?.cashaddr}
+        cashaddr={shownAddr}
         expiresAt={b?.expiresAt}
+        emptyBch="Signing statement…"
+        foot={foot}
       />
-      <div className="c-card hero__checks">
-        {ex ? (
-          <CheckList key={stampKey} checks={ex.result.checks.filter((c) => EXAMPLE_CHECKS.includes(c.id))} stagger={60} />
+      <div className="c-card hero__checks" data-tampered={tampered || undefined}>
+        {ex && (stage === 'sealed' || tampered) && activeResult ? (
+          <CheckList key={checkKey} checks={activeResult.checks.filter((c) => EXAMPLE_CHECKS.includes(c.id))} stagger={tampered ? 35 : 55} />
         ) : (
           <div className="hero__checks-skel" aria-hidden>
             {EXAMPLE_CHECKS.map((c) => (
@@ -125,13 +204,31 @@ const LocalExample = () => {
         )}
       </div>
       <div className="hero__caption">
-        <span>Throwaway keys, signed and verified in this tab.</span>
+        <span>{tampered ? 'Nostr event is valid, but BCH check catches the swapped address.' : 'Live dual-key proof, signed and verified in this tab.'}</span>
         <span className="hero__caption-actions">
+          {ex && stage === 'sealed' && (
+            <button
+              type="button"
+              className={`c-btn c-btn--sm hero__tamper${tampered ? ' c-btn--secondary' : ' c-btn--ghost'}`}
+              onClick={() => setTampered((t) => !t)}
+              title={tampered ? 'Restore honest proof' : 'Simulate swapping in an unowned BCH address'}
+            >
+              {tampered ? (
+                <>
+                  <IconUndo size={13} /> Restore
+                </>
+              ) : (
+                <>
+                  <IconAlert size={13} /> Tamper address
+                </>
+              )}
+            </button>
+          )}
           <button type="button" className="c-btn c-btn--ghost c-btn--sm hero__remint" onClick={remint} title="Generate fresh keys and re-verify">
             <IconRefresh size={13} /> New keys
           </button>
           <Link href="/lab" className="hero__link">
-            Break it <IconArrowRight size={14} />
+            12 attacks <IconArrowRight size={14} />
           </Link>
         </span>
       </div>
@@ -148,7 +245,7 @@ export const Home = () => {
 
   const startQuickTest = () => {
     startSandbox();
-    navigate('/new');
+    navigate('/new?sandbox=1');
   };
 
   return (
@@ -170,8 +267,8 @@ export const Home = () => {
             <Link href="/new" className="c-btn c-btn--lg">
               Create your link
             </Link>
-            <button type="button" className="c-btn c-btn--lg c-btn--secondary" onClick={startQuickTest}>
-              <IconKey size={16} /> Try with sandbox keys
+            <button type="button" className="c-btn c-btn--lg c-btn--secondary hero__sandbox-btn" onClick={startQuickTest}>
+              <IconZap size={16} /> Instant sandbox demo
             </button>
           </div>
           <SearchBox />
@@ -217,7 +314,7 @@ export const Home = () => {
             <h3>Pay a person, not a string</h3>
             <p>Make a payable profile with sandbox keys, then pay it by QR or from Selene over WizardConnect.</p>
             <span className="tile__go">
-              Make a profile <IconArrowRight size={14} />
+              Make a profile in one click <IconArrowRight size={14} />
             </span>
           </button>
         )}

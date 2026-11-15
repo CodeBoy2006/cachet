@@ -8,8 +8,10 @@ import {
   CopyIcon,
   Dialog,
   IconArrowUpRight,
+  IconCheck,
   IconDownload,
   IconRefresh,
+  IconX,
   IdentityCard,
   Note,
   RelayList,
@@ -39,6 +41,12 @@ const NOT_PAYABLE: Partial<Record<BindingState, string>> = {
 };
 
 const RENEW_WINDOW = 7 * 86400;
+
+interface WithdrawnReceipt {
+  accepted: number;
+  total: number;
+  cashaddr: string;
+}
 
 const Evidence = ({ result, claim, onRefresh, refreshing }: { result: LookupResult; claim?: ClaimStatus; onRefresh: () => void; refreshing: boolean }) => {
   const [raw, setRaw] = useState(false);
@@ -127,11 +135,13 @@ const OwnerBar = ({
   claim,
   binding,
   onChanged,
+  onWithdrawn,
 }: {
   result: LookupResult;
   claim?: ClaimStatus;
   binding?: BindingDetails;
   onChanged: () => void;
+  onWithdrawn: (receipt: WithdrawnReceipt) => void;
 }) => {
   const { nostr } = useSession();
   const [confirm, setConfirm] = useState(false);
@@ -150,9 +160,12 @@ const OwnerBar = ({
     try {
       const allowPrivate = config.relays.some((u) => !isPublicRelayUrl(u));
       const writeRelays = result.relayList.write.filter((u) => allowPrivate || isPublicRelayUrl(u)).slice(0, 3);
-      const out = await withdrawBinding({ nostr, cashaddr: claim.cashaddr, relays: uniqueRelays(config.relays, writeRelays) });
-      if (!out.results.some((r) => r.ok)) throw new Error('No relay accepted the update.');
+      const targetRelays = uniqueRelays(config.relays, writeRelays);
+      const out = await withdrawBinding({ nostr, cashaddr: claim.cashaddr, relays: targetRelays });
+      const accepted = out.results.filter((r) => r.ok).length;
+      if (!accepted) throw new Error('No relay accepted the update.');
       setConfirm(false);
+      onWithdrawn({ accepted, total: targetRelays.length, cashaddr: claim.cashaddr });
       onChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -197,7 +210,7 @@ const OwnerBar = ({
         <div style={{ display: 'grid', gap: 16 }}>
           <p className="soft" style={{ margin: 0 }}>
             Publishes a new snapshot without <span className="mono">{shortCashaddr(claim?.cashaddr ?? '')}</span>. Apps that check relays will stop
-            accepting it. Copies of the old proof still exist, but they are no longer your current profile.
+            accepting it immediately. Copies of the old proof still exist, but they are no longer your current profile.
           </p>
           {error && <Note tone="danger">{error}</Note>}
           <div className="row" style={{ justifyContent: 'flex-end' }}>
@@ -227,6 +240,7 @@ const LoadingPanels = ({ state }: { state: Extract<ReturnType<typeof useLookup>[
 export const Profile = ({ id }: { id: string }) => {
   const { state, refresh, refreshing } = useLookup(id);
   const { nostr } = useSession();
+  const [withdrawnReceipt, setWithdrawnReceipt] = useState<WithdrawnReceipt>();
   const query = new URLSearchParams(window.location.search);
   const requestedAmount = query.get('amount') ?? undefined;
   const rawExpected = query.get('address') ?? undefined;
@@ -264,7 +278,38 @@ export const Profile = ({ id }: { id: string }) => {
   return (
     <div className="wrap page">
       <div className="profile">
-        {result && <OwnerBar result={result} claim={claim} binding={binding} onChanged={refresh} />}
+        {result && <OwnerBar result={result} claim={claim} binding={binding} onChanged={refresh} onWithdrawn={setWithdrawnReceipt} />}
+
+        {withdrawnReceipt && resolution?.state === 'withdrawn' && result && (
+          <div className="revoked-banner" role="status" aria-live="polite">
+            <span className="revoked-banner__mark">
+              <IconCheck size={14} strokeWidth={2.2} />
+            </span>
+            <div className="revoked-banner__body">
+              <strong>
+                Link withdrawn on {withdrawnReceipt.accepted} of {withdrawnReceipt.total} {withdrawnReceipt.total === 1 ? 'relay' : 'relays'}.
+              </strong>{' '}
+              <span>Switch to any signed-in app tab to see it revoke live:</span>
+              <span className="revoked-banner__apps">
+                {config.apps.map((app) => (
+                  <a
+                    key={app.id}
+                    href={app.id === 'b' ? `${app.url}/?seller=${encodeURIComponent(result.npub)}` : app.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="owner-bar__app"
+                  >
+                    {app.name} <IconArrowUpRight size={12} />
+                  </a>
+                ))}
+              </span>
+            </div>
+            <button type="button" className="c-icon-btn" onClick={() => setWithdrawnReceipt(undefined)} aria-label="Dismiss">
+              <IconX size={14} />
+            </button>
+          </div>
+        )}
+
         <IdentityCard
           state={cardState}
           pubkey={result?.pubkey ?? (state.status === 'loading' ? state.pubkey : undefined)}

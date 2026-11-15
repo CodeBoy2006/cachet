@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useRoute } from 'wouter';
 import { npubEncode } from '@cachet/core';
-import { Avatar, IconDownload, IconKey, IconMoon, IconSun, IconX, Wordmark, shortNpub, useCopy } from '@cachet/react';
+import { Avatar, IconArrowUpRight, IconDownload, IconKey, IconMoon, IconSun, IconX, Wordmark, shortNpub, useCopy } from '@cachet/react';
+import { config } from '../config.ts';
 import { useSession } from '../lib/session.tsx';
 import { applyTheme, currentTheme, onSystemThemeChange, saveTheme } from '../lib/theme.ts';
 import { KeysDialog } from './KeysDialog.tsx';
@@ -94,6 +95,11 @@ const MeMenu = () => {
           <Link href={`/p/${npub}`} role="menuitem">
             <IconKey /> Your public profile
           </Link>
+          {config.apps.map((app) => (
+            <a key={app.id} href={app.url} target="_blank" rel="noreferrer" role="menuitem">
+              <IconArrowUpRight /> Open {app.name}
+            </a>
+          ))}
           {hasSandboxKeys && (
             <button type="button" role="menuitem" className="menu__item" onClick={() => (setKeys(true), setOpen(false))}>
               <IconDownload /> Back up sandbox keys
@@ -126,9 +132,12 @@ export const Header = () => {
         <nav className="nav" aria-label="Main">
           <NavLink href="/new">Create</NavLink>
           <NavLink href="/lab">Lab</NavLink>
-          <a className="hide-sm" href="https://github.com/nostr-protocol/nips/blob/master/39.md" target="_blank" rel="noreferrer">
-            NIP-39
-          </a>
+          <span className="nav__sep hide-sm" aria-hidden />
+          {config.apps.map((app) => (
+            <a key={app.id} className="nav__ext hide-sm" href={app.url} target="_blank" rel="noreferrer" title={app.blurb}>
+              {app.name} <IconArrowUpRight size={11} />
+            </a>
+          ))}
         </nav>
         <div className="header__end">
           <ThemeToggle />

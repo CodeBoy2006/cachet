@@ -484,8 +484,8 @@ textarea.c-input {
 /* ---------- Identity card ---------- */
 
 .c-idcard {
-  --mx: 50%;
-  --my: 50%;
+  --mx: 68%;
+  --my: 26%;
   --rx: 0deg;
   --ry: 0deg;
   container-type: inline-size;
@@ -497,7 +497,7 @@ textarea.c-input {
   overflow: hidden;
   transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry));
   transition:
-    transform 280ms var(--ease),
+    transform 300ms var(--ease),
     border-color 280ms var(--ease),
     box-shadow 280ms var(--ease);
 }
@@ -510,16 +510,23 @@ textarea.c-input {
 }
 
 .c-idcard[data-state='active'] {
-  border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
   box-shadow:
     var(--shadow-l),
-    0 12px 36px -20px color-mix(in srgb, var(--accent) 32%, transparent);
-  animation: c-card-recoil 480ms var(--ease) both;
+    0 14px 40px -18px color-mix(in srgb, var(--accent) 34%, transparent);
+  animation: c-card-recoil 520ms var(--ease) both;
+}
+
+.c-idcard[data-bch-signed='true'][data-state='draft'] {
+  border-color: color-mix(in srgb, var(--accent) 26%, var(--line-2));
 }
 
 .c-idcard[data-state='invalid'] {
-  border-color: color-mix(in srgb, var(--danger) 42%, var(--line));
-  animation: c-shake 320ms var(--ease) both;
+  border-color: color-mix(in srgb, var(--danger) 46%, var(--line));
+  box-shadow:
+    var(--shadow-l),
+    0 12px 34px -20px color-mix(in srgb, var(--danger) 28%, transparent);
+  animation: c-shake 340ms var(--ease) both;
 }
 
 /* Pointer-tracked security foil & banknote guilloche micro-pattern on verified cards */
@@ -529,9 +536,9 @@ textarea.c-input {
   inset: 0;
   opacity: 0;
   z-index: 2;
-  transition: opacity 320ms var(--ease);
+  transition: opacity 360ms var(--ease);
   background:
-    radial-gradient(300px circle at var(--mx) var(--my), color-mix(in srgb, var(--accent) 11%, transparent), transparent 68%),
+    radial-gradient(340px circle at var(--mx) var(--my), color-mix(in srgb, var(--accent) 11.5%, transparent), transparent 68%),
     repeating-linear-gradient(
       125deg,
       transparent 0,
@@ -539,11 +546,37 @@ textarea.c-input {
       color-mix(in srgb, var(--accent) 5.5%, transparent) 5px,
       color-mix(in srgb, var(--accent) 5.5%, transparent) 6px
     );
-  mask-image: radial-gradient(260px circle at var(--mx) var(--my), #000 12%, transparent 74%);
-  -webkit-mask-image: radial-gradient(260px circle at var(--mx) var(--my), #000 12%, transparent 74%);
+  mask-image: radial-gradient(290px circle at var(--mx) var(--my), #000 14%, transparent 76%);
+  -webkit-mask-image: radial-gradient(290px circle at var(--mx) var(--my), #000 14%, transparent 76%);
 }
 
 .c-idcard[data-state='active'] .c-idcard__foil {
+  opacity: 1;
+}
+
+/* Subtle 1px specular edge rim tracking light across verified / signing cards */
+.c-idcard__rim {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  opacity: 0;
+  z-index: 3;
+  transition: opacity 320ms var(--ease);
+  background: radial-gradient(260px circle at var(--mx) var(--my), color-mix(in srgb, var(--accent) 52%, transparent), transparent 65%);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+}
+
+.c-idcard[data-state='active'] .c-idcard__rim,
+.c-idcard[data-bch-signed='true'] .c-idcard__rim {
   opacity: 1;
 }
 
@@ -553,12 +586,18 @@ textarea.c-input {
   position: absolute;
   inset: 0;
   z-index: 2;
-  background: linear-gradient(108deg, transparent 34%, color-mix(in srgb, var(--accent) 14%, transparent) 49%, transparent 64%);
-  translate: -120% 0;
+  background: linear-gradient(
+    108deg,
+    transparent 32%,
+    color-mix(in srgb, var(--accent) 15%, transparent) 48%,
+    color-mix(in srgb, #fff 18%, transparent) 51%,
+    transparent 66%
+  );
+  translate: -125% 0;
 }
 
 .c-idcard[data-state='active'] .c-idcard__sweep {
-  animation: c-sheen-sweep 760ms 120ms var(--ease) forwards;
+  animation: c-sheen-sweep 820ms 90ms var(--ease) forwards;
 }
 
 .c-idcard__halves {
@@ -568,8 +607,19 @@ textarea.c-input {
 }
 
 .c-idcard__half {
-  padding: 22px 24px 20px;
+  position: relative;
+  padding: 22px 28px 20px 24px;
   min-width: 0;
+  transition: background 320ms var(--ease);
+}
+
+.c-idcard[data-nostr='true'] .c-idcard__half--nostr {
+  background: radial-gradient(220px circle at 0% 0%, color-mix(in srgb, var(--dot-nostr) 4.5%, transparent), transparent 72%);
+}
+
+.c-idcard[data-bch-signed='true'] .c-idcard__half--bch,
+.c-idcard[data-state='active'] .c-idcard__half--bch {
+  background: radial-gradient(220px circle at 100% 0%, color-mix(in srgb, var(--dot-bch) 5.5%, transparent), transparent 72%);
 }
 
 .c-idcard__half + .c-idcard__half {
@@ -579,11 +629,12 @@ textarea.c-input {
 
 .c-idcard[data-state='active'] .c-idcard__half + .c-idcard__half {
   border-left-style: solid;
-  border-left-color: color-mix(in srgb, var(--accent) 28%, var(--line));
+  border-left-color: color-mix(in srgb, var(--accent) 30%, var(--line));
 }
 
 .c-idcard__half--bch {
-  padding-left: 32px;
+  padding-left: 34px;
+  padding-right: 24px;
 }
 
 .c-idcard__kicker {
@@ -604,12 +655,12 @@ textarea.c-input {
 }
 
 .c-idcard[data-nostr='true'] .c-dot--nostr {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot-nostr) 18%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot-nostr) 20%, transparent);
 }
 
 .c-idcard[data-bch-signed='true'] .c-dot--bch,
 .c-idcard[data-state='active'] .c-dot--bch {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot-bch) 20%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot-bch) 22%, transparent);
 }
 
 .c-idcard__who {
@@ -617,6 +668,11 @@ textarea.c-input {
   align-items: center;
   gap: 12px;
   min-width: 0;
+  animation: c-rise 280ms var(--ease) both;
+}
+
+.c-idcard__bch-body {
+  animation: c-rise 280ms var(--ease) both;
 }
 
 .c-idcard__name {
@@ -665,10 +721,11 @@ textarea.c-input {
     font-size: 14px;
   }
   .c-idcard__half {
-    padding-inline: 18px;
+    padding-inline: 18px 22px;
   }
   .c-idcard__half--bch {
-    padding-left: 28px;
+    padding-left: 30px;
+    padding-right: 18px;
   }
   .c-idcard__who {
     gap: 10px;
@@ -692,6 +749,7 @@ textarea.c-input {
   overflow: hidden;
   text-overflow: ellipsis;
   margin: 4px 0 6px;
+  transition: color 240ms var(--ease);
 }
 
 .c-idcard__seal {
@@ -699,8 +757,8 @@ textarea.c-input {
   left: 50%;
   top: 50%;
   translate: -50% -50%;
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -708,31 +766,47 @@ textarea.c-input {
   border: 1px solid var(--line-2);
   box-shadow: 0 0 0 4px var(--surface);
   color: var(--ink-3);
-  z-index: 3;
+  z-index: 4;
   transition:
     background 260ms var(--ease),
     color 260ms,
-    border-color 260ms;
+    border-color 260ms,
+    box-shadow 260ms var(--ease);
+}
+
+.c-seal-svg {
+  overflow: visible;
 }
 
 .c-seal-ring {
   transition:
-    transform 360ms var(--ease-spring),
-    stroke 260ms var(--ease);
+    transform 420ms var(--ease-spring),
+    stroke 260ms var(--ease),
+    stroke-width 260ms var(--ease);
+}
+
+.c-seal-lens {
+  animation: c-fade 240ms var(--ease) both;
 }
 
 .c-idcard[data-bch-signed='true'] .c-idcard__seal {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--line-2));
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--line-2));
+  box-shadow:
+    0 0 0 4px var(--surface),
+    0 0 18px -2px color-mix(in srgb, var(--accent) 32%, transparent);
 }
 
 .c-idcard[data-state='active'] .c-idcard__seal {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-accent);
-  box-shadow: 0 0 0 5px var(--surface);
-  animation: c-stamp-down 460ms var(--ease-stamp) both;
+  box-shadow:
+    0 0 0 5px var(--surface),
+    0 6px 20px -4px color-mix(in srgb, var(--accent) 50%, transparent);
+  animation: c-stamp-down 480ms var(--ease-stamp) both;
 }
 
+.c-idcard[data-state='active'] .c-idcard__seal::before,
 .c-idcard[data-state='active'] .c-idcard__seal::after {
   content: '';
   position: absolute;
@@ -741,21 +815,43 @@ textarea.c-input {
   border: 1.75px solid var(--accent);
   opacity: 0;
   pointer-events: none;
-  animation: c-shockwave 620ms 140ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.c-idcard[data-state='active'] .c-idcard__seal::before {
+  animation: c-shockwave 580ms 100ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.c-idcard[data-state='active'] .c-idcard__seal::after {
+  border-width: 1px;
+  border-color: color-mix(in srgb, var(--dot-bch) 65%, var(--dot-nostr));
+  animation: c-shockwave-wide 760ms 175ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .c-idcard[data-state='active'] .c-idcard__seal .c-stroke-draw {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: c-draw 240ms 150ms var(--ease) forwards;
+  animation: c-draw 250ms 140ms var(--ease) forwards;
 }
 
 .c-idcard[data-state='invalid'] .c-idcard__seal {
   background: var(--danger);
   border-color: var(--danger);
   color: var(--on-danger);
-  box-shadow: 0 0 0 5px var(--surface);
+  box-shadow:
+    0 0 0 5px var(--surface),
+    0 6px 18px -4px color-mix(in srgb, var(--danger) 45%, transparent);
   animation: c-stamp-down 380ms var(--ease-stamp) both;
+}
+
+.c-idcard[data-state='invalid'] .c-idcard__seal::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1.5px solid var(--danger);
+  opacity: 0;
+  pointer-events: none;
+  animation: c-shockwave 520ms 90ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .c-idcard[data-state='invalid'] .c-idcard__seal .c-stroke-draw {
@@ -766,11 +862,6 @@ textarea.c-input {
 
 .c-idcard[data-state='invalid'] .c-idcard__seal .c-stroke-draw--2 {
   animation-delay: 190ms;
-}
-
-.c-idcard__who,
-.c-idcard__addr {
-  animation: c-fade 280ms var(--ease) both;
 }
 
 .c-idcard[data-state='expired'] .c-idcard__seal,
@@ -794,16 +885,19 @@ textarea.c-input {
   left: 0;
   right: 0;
   top: 52%;
-  height: 1.5px;
+  height: 1.6px;
   background: currentColor;
   transform: scaleX(0);
   transform-origin: left center;
-  transition: transform 320ms var(--ease);
+  transition: transform 340ms var(--ease);
 }
 
-.c-idcard[data-state='withdrawn'] .c-idcard__addr,
-.c-idcard[data-state='invalid'] .c-idcard__addr {
+.c-idcard[data-state='withdrawn'] .c-idcard__addr {
   color: var(--ink-3);
+}
+
+.c-idcard[data-state='invalid'] .c-idcard__addr {
+  color: var(--danger);
 }
 
 .c-idcard[data-state='withdrawn'] .c-idcard__addr-text::after,
@@ -868,6 +962,8 @@ textarea.c-input {
     right: 20px;
     top: 50%;
     translate: 0 -50%;
+    width: 42px;
+    height: 42px;
   }
   .c-idcard__half,
   .c-idcard__half--bch {
@@ -1437,10 +1533,21 @@ textarea.c-input {
 @keyframes c-shockwave {
   0% {
     scale: 0.88;
-    opacity: 0.7;
+    opacity: 0.72;
   }
   100% {
-    scale: 2.15;
+    scale: 2.05;
+    opacity: 0;
+  }
+}
+
+@keyframes c-shockwave-wide {
+  0% {
+    scale: 0.95;
+    opacity: 0.48;
+  }
+  100% {
+    scale: 2.85;
     opacity: 0;
   }
 }

@@ -15,12 +15,33 @@ import {
   shortCashaddr,
   shortNpub,
 } from '@cachet/react';
-import { brandOf } from '../../shared/brands.ts';
+import { BRANDS, brandOf } from '../../shared/brands.ts';
 import { LoginError, completeRedirect, getLog, getSession, login, logout, openChallenge, recheck, type LogEntry, type LoginStep, type SessionInfo } from './api.ts';
 import { CACHET_URL, extensionSigner, startRedirect, takeRedirectResult } from './signers.ts';
 import { BrandMark, FieldnoteContent, StallContent } from './content.tsx';
 
 const brand = brandOf(import.meta.env.VITE_RP);
+const sibling = BRANDS[brand.id === 'a' ? 'b' : 'a'];
+
+const resolveSiblingUrl = (): string | undefined => {
+  const env = import.meta.env;
+  const raw = (env.VITE_SIBLING_URL ?? (brand.id === 'a' ? env.VITE_RP_B_URL : env.VITE_RP_A_URL))?.trim();
+  if (raw) return raw.replace(/\/$/, '');
+  if (typeof window === 'undefined') return undefined;
+  const { protocol, hostname, host } = window.location;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return `${protocol}//${hostname}:${sibling.uiPort}`;
+  }
+  if (brand.id === 'a' && host.startsWith('fieldnote.')) {
+    return `${protocol}//stall.${host.slice('fieldnote.'.length)}`;
+  }
+  if (brand.id === 'b' && host.startsWith('stall.')) {
+    return `${protocol}//fieldnote.${host.slice('stall.'.length)}`;
+  }
+  return undefined;
+};
+
+const SIBLING_URL = resolveSiblingUrl();
 const STEPS: { id: LoginStep; label: string }[] = [
   { id: 'identity', label: 'Your Nostr key' },
   { id: 'challenge', label: `${brand.name} issues a one-time challenge` },
@@ -164,29 +185,66 @@ const SignIn = ({ onSession }: { onSession: (s: SessionInfo) => void }) => {
   );
 };
 
+const AUTO_RECHECK_COOLDOWN_MS = 4000;
+
 const SessionCard = ({ session, onChange }: { session: SessionInfo; onChange: (s: SessionInfo | null, message?: string) => void }) => {
   const [busy, setBusy] = useState(false);
+  const [autoChecking, setAutoChecking] = useState(false);
   const alive = useRef(true);
+  const busyRef = useRef(false);
+  const lastCheckAt = useRef(Date.now());
+
   useEffect(() => {
     alive.current = true;
     return () => {
       alive.current = false;
     };
   }, []);
-  const check = async () => {
-    setBusy(true);
-    try {
-      const r = await recheck();
-      if (!alive.current) return;
-      if (r.ok) onChange(r.session as SessionInfo);
-      else if (r.revoked === false) onChange(session, r.message);
-      else onChange(null, r.message ?? 'Signed out.');
-    } catch {
-      if (alive.current) onChange(session, 'Could not reach the server to re-check right now.');
-    } finally {
-      if (alive.current) setBusy(false);
-    }
-  };
+
+  const check = useCallback(
+    async (auto = false) => {
+      if (busyRef.current || !alive.current) return;
+      busyRef.current = true;
+      lastCheckAt.current = Date.now();
+      setBusy(true);
+      setAutoChecking(auto);
+      try {
+        const r = await recheck();
+        lastCheckAt.current = Date.now();
+        if (!alive.current) return;
+        if (r.ok) onChange(r.session as SessionInfo);
+        else if (r.revoked === false) {
+          if (!auto) onChange(session, r.message);
+        } else {
+          onChange(null, r.message ?? 'Signed out.');
+        }
+      } catch {
+        if (alive.current && !auto) onChange(session, 'Could not reach the server to re-check right now.');
+      } finally {
+        busyRef.current = false;
+        if (alive.current) {
+          setBusy(false);
+          setAutoChecking(false);
+        }
+      }
+    },
+    [onChange, session],
+  );
+
+  useEffect(() => {
+    const maybeAutoCheck = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (busyRef.current || Date.now() - lastCheckAt.current < AUTO_RECHECK_COOLDOWN_MS) return;
+      void check(true);
+    };
+    window.addEventListener('focus', maybeAutoCheck);
+    document.addEventListener('visibilitychange', maybeAutoCheck);
+    return () => {
+      window.removeEventListener('focus', maybeAutoCheck);
+      document.removeEventListener('visibilitychange', maybeAutoCheck);
+    };
+  }, [check]);
+
   const signOut = () => {
     alive.current = false;
     onChange(null);
@@ -223,11 +281,20 @@ const SessionCard = ({ session, onChange }: { session: SessionInfo; onChange: (s
         <dt>Snapshot</dt>
         <dd title={session.snapshotId}>{session.snapshotId.slice(0, 16)}…</dd>
       </dl>
-      <div className="row">
-        <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={check} disabled={busy}>
-          {busy ? <Spinner /> : <IconRefresh size={14} />} Re-check link
+      <div className="row session__actions">
+        <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={() => void check(false)} disabled={busy}>
+          {busy ? <Spinner /> : <IconRefresh size={14} />} {autoChecking ? 'Checking…' : 'Re-check link'}
         </button>
-        <button type="button" className="c-btn c-btn--ghost c-btn--sm" onClick={signOut}>
+        <a
+          className="c-btn c-btn--ghost c-btn--sm"
+          href={`${CACHET_URL}/p/${session.npub}`}
+          target="_blank"
+          rel="noreferrer"
+          title="Open your Cachet profile to inspect or withdraw this link"
+        >
+          Manage link <IconArrowUpRight size={13} />
+        </a>
+        <button type="button" className="c-btn c-btn--ghost c-btn--sm session__signout" onClick={signOut}>
           Sign out
         </button>
       </div>
@@ -308,9 +375,16 @@ export const App = () => {
             <BrandMark id={brand.id} /> {brand.name}
           </span>
           <span className="rp-tag">Example app</span>
-          <a className="rp-cachet" href={CACHET_URL} target="_blank" rel="noreferrer">
-            Identity by Cachet <IconArrowUpRight size={13} />
-          </a>
+          <nav className="rp-nav" aria-label="Ecosystem">
+            {SIBLING_URL && (
+              <a className="rp-link" href={SIBLING_URL} target="_blank" rel="noreferrer">
+                {sibling.name} <IconArrowUpRight size={13} />
+              </a>
+            )}
+            <a className="rp-cachet" href={CACHET_URL} target="_blank" rel="noreferrer">
+              Identity by Cachet <IconArrowUpRight size={13} />
+            </a>
+          </nav>
         </div>
       </header>
       <main className="wrap rp-main">

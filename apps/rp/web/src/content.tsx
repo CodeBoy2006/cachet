@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_ELECTRUM, ElectrumClient, formatBch, paymentUri, watchAddress, type IncomingPayment } from '@cachet/pay';
 import { CopyChip, IconArrowUpRight, IconCheck, IconLock, IconRefresh, Qr, Spinner, shortCashaddr, shortMiddle, shortNpub } from '@cachet/react';
 import { getNotes, getStall, type NoteItem, type SessionInfo, type StallState } from './api.ts';
@@ -90,23 +90,48 @@ export const StallContent = ({ session }: { session: SessionInfo | null }) => {
   const [watching, setWatching] = useState<'connecting' | 'live' | 'off'>('connecting');
   const [rechecking, setRechecking] = useState(false);
   const [reload, setReload] = useState(0);
+  const lastLoadAt = useRef(Date.now());
+  const recheckingRef = useRef(false);
   const sellerQuery = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('seller') ?? undefined : undefined;
 
   useEffect(() => {
     let live = true;
-    if (reload > 0) setRechecking(true);
+    lastLoadAt.current = Date.now();
+    if (reload > 0) {
+      recheckingRef.current = true;
+      setRechecking(true);
+    }
     void getStall(sellerQuery)
       .then((d) => {
         if (!live) return;
+        lastLoadAt.current = Date.now();
         setStall(d);
         if (!d.seller) setSelected(undefined);
       })
       .catch(() => {})
-      .finally(() => live && setRechecking(false));
+      .finally(() => {
+        recheckingRef.current = false;
+        if (live) setRechecking(false);
+      });
     return () => {
       live = false;
     };
   }, [sellerQuery, session?.pubkey, session?.checkedAt, reload]);
+
+  useEffect(() => {
+    if (!sellerQuery) return;
+    const maybeReload = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (recheckingRef.current || Date.now() - lastLoadAt.current < 4000) return;
+      setReload((n) => n + 1);
+    };
+    window.addEventListener('focus', maybeReload);
+    document.addEventListener('visibilitychange', maybeReload);
+    return () => {
+      window.removeEventListener('focus', maybeReload);
+      document.removeEventListener('visibilitychange', maybeReload);
+    };
+  }, [sellerQuery]);
 
   const sellerAddr = stall?.seller?.cashaddr;
   const isMainnet = !!sellerAddr && sellerAddr.startsWith('bitcoincash:');
@@ -206,7 +231,10 @@ export const StallContent = ({ session }: { session: SessionInfo | null }) => {
               </div>
               {active && seller && uri && (
                 <div className="stall__checkout">
-                  <Qr value={uri} size={136} label={`Pay ${l.bch} BCH`} />
+                  <div className="stall__qr" data-live={watching === 'live' && isMainnet ? '' : undefined}>
+                    {watching === 'live' && isMainnet && <span className="stall__qr-corners" aria-hidden />}
+                    <Qr value={uri} size={136} label={`Pay ${l.bch} BCH`} />
+                  </div>
                   <div style={{ display: 'grid', gap: 8, minWidth: 0 }}>
                     <div style={{ fontWeight: 550, fontSize: 14 }}>
                       Pay {l.sats.toLocaleString()} sats ({l.bch} BCH) directly to seller

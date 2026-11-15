@@ -1,6 +1,6 @@
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { npubEncode, type BindingState } from '@cachet/core';
-import { IconCheck, IconClock, IconX } from './icons.tsx';
+import { IconClock } from './icons.tsx';
 import { Avatar, CopyIcon, Spinner, StatePill } from './ui.tsx';
 import { formatDate, shortMiddle } from './format.ts';
 
@@ -28,46 +28,117 @@ const Fit = ({ value, long, short }: { value: string; long: [number, number]; sh
   </>
 );
 
-const DualRings = ({
+/**
+ * Continuous geometric state machine for the two cryptographic halves:
+ * - Draft: two rings slightly apart, lighting up violet (Nostr) and emerald (BCH) as keys arrive.
+ * - BCH signed: strong magnetic pull, illuminating the shared vesica-piscis lens.
+ * - Active (sealed): both rings converge concentrically into an engraved inner rim around the check.
+ * - Withdrawn / not_found: the rings decouple completely with a visible gap between them.
+ * - Invalid: fractured rings behind a crisp two-stroke rejection mark.
+ */
+const SealEmblem = ({
+  state,
   hasNostr,
   hasBch,
   bchSigned,
-  withdrawn,
 }: {
+  state: 'draft' | 'active' | 'withdrawn' | 'invalid' | 'not_found';
   hasNostr: boolean;
   hasBch: boolean;
   bchSigned?: boolean;
-  withdrawn: boolean;
 }) => {
-  const pull = bchSigned ? 1.45 : withdrawn ? -1.1 : hasNostr && hasBch ? 0.55 : 0;
+  const active = state === 'active';
+  const invalid = state === 'invalid';
+  const decoupled = state === 'withdrawn' || state === 'not_found';
+  const shift = active
+    ? 3.5
+    : invalid
+      ? -1.6
+      : decoupled
+        ? -3.1
+        : bchSigned
+          ? 1.95
+          : hasNostr && hasBch
+            ? 0.65
+            : hasNostr || hasBch
+              ? 0
+              : -0.9;
+  const ringScale = active ? 1.54 : invalid ? 0.92 : 1;
+  const leftStroke =
+    active || invalid
+      ? 'color-mix(in srgb, currentColor 30%, transparent)'
+      : hasNostr && !decoupled
+        ? 'var(--dot-nostr)'
+        : 'currentColor';
+  const rightStroke =
+    active || invalid
+      ? 'color-mix(in srgb, currentColor 30%, transparent)'
+      : hasBch && !decoupled
+        ? 'var(--dot-bch)'
+        : 'currentColor';
+  const solidLeft = active || invalid || (hasNostr && !decoupled);
+  const solidRight = active || invalid || Boolean(bchSigned);
+
   return (
-    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" aria-hidden className="c-seal-rings">
-      {bchSigned && (
+    <svg width={26} height={26} viewBox="0 0 26 26" fill="none" aria-hidden className="c-seal-svg">
+      {bchSigned && !active && !invalid && !decoupled && (
         <path
-          d="M12 6.234A6.5 6.5 0 0 1 12 17.766A6.5 6.5 0 0 1 12 6.234Z"
-          fill="color-mix(in srgb, var(--accent) 26%, transparent)"
+          className="c-seal-lens"
+          d="M13 7.6A6.1 6.1 0 0 1 13 18.4A6.1 6.1 0 0 1 13 7.6Z"
+          fill="color-mix(in srgb, var(--accent) 30%, transparent)"
         />
       )}
       <circle
-        className="c-seal-ring"
-        cx={9}
-        cy={12}
-        r={6.2}
-        stroke={hasNostr && !withdrawn ? 'var(--dot-nostr)' : 'currentColor'}
-        strokeWidth={1.65}
-        strokeDasharray={hasNostr && !withdrawn ? undefined : '2.2 2.1'}
-        style={{ transform: `translateX(${pull}px)` }}
+        className="c-seal-ring c-seal-ring--l"
+        cx={9.5}
+        cy={13}
+        r={5.8}
+        stroke={leftStroke}
+        strokeWidth={active || invalid ? 1.1 : 1.65}
+        strokeDasharray={solidLeft ? undefined : '2.2 2.1'}
+        style={{ transform: `translateX(${shift}px) scale(${ringScale})`, transformOrigin: '9.5px 13px' }}
       />
       <circle
-        className="c-seal-ring"
-        cx={15}
-        cy={12}
-        r={6.2}
-        stroke={hasBch && !withdrawn ? 'var(--dot-bch)' : 'currentColor'}
-        strokeWidth={1.65}
-        strokeDasharray={bchSigned ? undefined : '2.2 2.1'}
-        style={{ transform: `translateX(${-pull}px)` }}
+        className="c-seal-ring c-seal-ring--r"
+        cx={16.5}
+        cy={13}
+        r={5.8}
+        stroke={rightStroke}
+        strokeWidth={active || invalid ? 1.1 : 1.65}
+        strokeDasharray={solidRight ? undefined : '2.2 2.1'}
+        style={{ transform: `translateX(${-shift}px) scale(${ringScale})`, transformOrigin: '16.5px 13px' }}
       />
+      {active && (
+        <path
+          className="c-stroke-draw"
+          pathLength={1}
+          d="M8.5 13.3 11.4 16.2 17.6 9.8"
+          stroke="currentColor"
+          strokeWidth={2.25}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+      {invalid && (
+        <>
+          <path
+            className="c-stroke-draw"
+            pathLength={1}
+            d="M9.5 9.5l7 7"
+            stroke="currentColor"
+            strokeWidth={2.2}
+            strokeLinecap="round"
+          />
+          <path
+            className="c-stroke-draw c-stroke-draw--2"
+            pathLength={1}
+            d="M16.5 9.5l-7 7"
+            stroke="currentColor"
+            strokeWidth={2.2}
+            strokeLinecap="round"
+          />
+        </>
+      )}
     </svg>
   );
 };
@@ -83,11 +154,9 @@ const Seal = ({
   hasBch: boolean;
   bchSigned?: boolean;
 }) => {
-  if (state === 'active') return <IconCheck size={18} strokeWidth={2.2} />;
-  if (state === 'invalid') return <IconX size={17} strokeWidth={2.2} />;
   if (state === 'expired' || state === 'unavailable') return <IconClock size={18} />;
   if (state === 'loading') return <Spinner />;
-  return <DualRings hasNostr={hasNostr} hasBch={hasBch} bchSigned={bchSigned} withdrawn={state === 'withdrawn'} />;
+  return <SealEmblem state={state} hasNostr={hasNostr} hasBch={hasBch} bchSigned={bchSigned} />;
 };
 
 /** The two halves of one identity: the Nostr key and the BCH address it proves. */
@@ -126,8 +195,8 @@ export const IdentityCard = ({
       el.dataset.tilting = 'true';
       el.style.setProperty('--mx', `${(x * 100).toFixed(1)}%`);
       el.style.setProperty('--my', `${(y * 100).toFixed(1)}%`);
-      el.style.setProperty('--rx', `${((0.5 - y) * 4.8).toFixed(2)}deg`);
-      el.style.setProperty('--ry', `${((x - 0.5) * 5.6).toFixed(2)}deg`);
+      el.style.setProperty('--rx', `${((0.5 - y) * 4.4).toFixed(2)}deg`);
+      el.style.setProperty('--ry', `${((x - 0.5) * 5.2).toFixed(2)}deg`);
     });
   };
 
@@ -146,21 +215,23 @@ export const IdentityCard = ({
       className="c-idcard"
       data-state={state}
       data-nostr={Boolean(npub) || undefined}
+      data-bch={Boolean(body) || undefined}
       data-bch-signed={bchSigned || undefined}
       aria-label="Identity"
       onPointerMove={onPointerMove}
       onPointerLeave={onPointerLeave}
     >
       <span className="c-idcard__foil" aria-hidden />
+      <span className="c-idcard__rim" aria-hidden />
       <span className="c-idcard__sweep" aria-hidden />
       <div className="c-idcard__halves">
-        <div className="c-idcard__half">
+        <div className="c-idcard__half c-idcard__half--nostr">
           <div className="c-idcard__kicker">
             <span className="c-dot c-dot--nostr" style={{ background: 'var(--dot-nostr)' }} />
             Nostr
           </div>
           {npub ? (
-            <div className="c-idcard__who">
+            <div className="c-idcard__who" key={npub}>
               <Avatar pubkey={pubkey} picture={picture} />
               <div style={{ minWidth: 0 }}>
                 {name ? (
@@ -198,7 +269,7 @@ export const IdentityCard = ({
             {tokenAware && <span className="c-tag">CashTokens</span>}
           </div>
           {body ? (
-            <>
+            <div key={cashaddr} className="c-idcard__bch-body">
               <div className="c-idcard__addr" title={cashaddr}>
                 <span className="c-idcard__addr-text">
                   <Fit value={body} long={[10, 8]} short={[7, 6]} />
@@ -208,7 +279,7 @@ export const IdentityCard = ({
                 <span>{cashaddr!.split(':')[0]}</span>
                 <CopyIcon value={cashaddr!} title="Copy address" />
               </div>
-            </>
+            </div>
           ) : (
             <div className="muted" style={{ fontSize: 14, paddingTop: 10 }}>
               {state === 'loading' ? <span className="c-skel" style={{ width: 180 }} /> : emptyBch ?? 'No address yet'}

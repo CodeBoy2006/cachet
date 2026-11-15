@@ -150,3 +150,23 @@ export const IconPaste = (p: P) => (
     <path d="M6.25 3.5v-.25a1 1 0 0 1 1-1h1.5a1 1 0 0 1 1 1v.25M6.5 7.5h3M6.5 10h2" />
   </svg>
 );
+export const IconPlay = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M5.25 3.75 12.25 8l-7 4.25V3.75Z" fill="currentColor" stroke="currentColor" strokeWidth={1.2} />
+  </svg>
+);
+export const IconZap = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M8.75 2.25 4 8.75h4l-.75 5 4.75-6.5H8l.75-5Z" />
+  </svg>
+);
+export const IconChevronLeft = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M9.75 4.25 6 8l3.75 3.75" />
+  </svg>
+);
+export const IconChevronRight = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M6.25 4.25 10 8l-3.75 3.75" />
+  </svg>
+);
