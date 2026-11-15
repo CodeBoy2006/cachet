@@ -1,28 +1,28 @@
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { npubEncode, type BindingState } from '@cachet/core';
+import { CHECK_LABELS, npubEncode, verifyBinding, type BindingState, type Check, type CheckId } from '@cachet/core';
 import {
-  CheckList,
   Dialog,
   IconAlert,
   IconArrowRight,
   IconArrowUpRight,
   IconBeaker,
-  IconCheck,
   IconLock,
   IconRefresh,
   IconUndo,
   IconWallet,
   IconZap,
-  IdentityCard,
   Spinner,
-  formatDate,
+  StatePill,
+  shortCashaddr,
   shortNpub,
 } from '@cachet/react';
 import { config } from '../config.ts';
 import { SearchBox } from '../components/SearchBox.tsx';
+import { Cachet, CachetBack, Ledger, ZONE_OF, useReveal, type CachetStage, type CachetZone } from '../components/Cachet.tsx';
 import { useLookup } from '../lib/useLookup.ts';
 import { makeExample, type Example } from '../lib/example.ts';
+import { prefersReducedMotion } from '../lib/useScramble.ts';
 import { useSession } from '../lib/session.tsx';
 
 const PayPanel = lazy(() => import('../components/PayPanel.tsx').then((m) => ({ default: m.PayPanel })));
@@ -35,16 +35,34 @@ const CAPTIONS: Record<Exclude<BindingState, 'active'>, string> = {
   unavailable: 'Relays did not answer.',
 };
 
-const prefersReducedMotion = () =>
-  typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const OVERPRINT: Partial<Record<BindingState, string>> = { invalid: 'VOID', withdrawn: 'WITHDRAWN', expired: 'EXPIRED' };
+
+const HERO_CHECKS: CheckId[] = ['event', 'identity', 'time', 'bch_signature', 'key_separation'];
+const PENDING: Check[] = HERO_CHECKS.map((id) => ({ id, label: CHECK_LABELS[id], status: 'skip' }));
+const heroRows = (checks?: Check[]) => (checks ? checks.filter((c) => HERO_CHECKS.includes(c.id)) : PENDING);
+
+const fmtMs = (ms: number) => (ms < 0.1 ? '<0.1 ms' : ms < 10 ? `${ms.toFixed(1)} ms` : `${Math.round(ms)} ms`);
+
+const IconFlip = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M8 2v12" strokeDasharray="1.4 1.8" />
+    <path d="M5.75 4.5 2.25 11.5h3.5Z" />
+    <path d="M10.25 4.5l3.5 7h-3.5Z" />
+  </svg>
+);
 
 const Featured = ({ id, own }: { id: string; own: boolean }) => {
   const { state } = useLookup(id);
   const [payOpen, setPayOpen] = useState(false);
+  const [flipped, setFlipped] = useState(false);
+  const [hover, setHover] = useState<CachetZone>();
   const result = state.status === 'done' ? state.result : undefined;
   const resolution = result?.resolution;
   const claim = resolution?.primary;
-  const binding = claim?.result?.binding;
+  const res = claim?.result;
+  const binding = res?.binding;
+  const rows = heroRows(res?.checks);
+  const reveal = useReveal(rows.length, res ? `${res.event?.id ?? ''}-${resolution?.state}` : undefined, 150);
   const canPay = !own && resolution?.state === 'active' && !!claim && binding?.network === 'mainnet';
   const payee = result?.profile?.displayName || result?.profile?.name || (result ? shortNpub(result.pubkey) : '');
   const asked = state.status === 'loading' ? state.relays.length + state.pending.length : (result?.relays.length ?? 0);
@@ -52,6 +70,14 @@ const Featured = ({ id, own }: { id: string; own: boolean }) => {
 
   // Your own key without a link yet: show what one looks like instead of an empty card.
   if (own && resolution?.state === 'not_found') return <LocalExample />;
+
+  const bindingState: BindingState | undefined = state.status === 'error' ? 'unavailable' : resolution?.state;
+  const pubkey = result?.pubkey ?? (state.status === 'loading' ? state.pubkey : undefined);
+  const settled = !!bindingState && (!res || reveal.done);
+  const stage: CachetStage = settled ? 'sealed' : res ? 'nostr' : pubkey ? 'keys' : 'empty';
+  const verdict = bindingState === 'active' ? 'valid' : bindingState === 'invalid' ? 'void' : 'muted';
+  const current = !reveal.done && reveal.shown > 0 ? ZONE_OF[rows[reveal.shown - 1]!.id] : undefined;
+  const passed = rows.slice(0, reveal.shown).filter((c) => c.status === 'pass').length;
 
   const caption =
     state.status === 'loading' || state.status === 'idle'
@@ -66,15 +92,38 @@ const Featured = ({ id, own }: { id: string; own: boolean }) => {
 
   return (
     <>
-      <IdentityCard
-        state={state.status === 'error' ? 'unavailable' : (resolution?.state ?? 'loading')}
-        pubkey={result?.pubkey ?? (state.status === 'loading' ? state.pubkey : undefined)}
+      <Cachet
+        stage={stage}
+        verdict={verdict}
+        pubkey={pubkey}
         name={result?.profile?.displayName || result?.profile?.name}
         picture={result?.profile?.picture}
         cashaddr={claim?.cashaddr}
         tokenAware={binding?.tokenAware}
+        serial={binding?.bindingId}
+        bchKey={binding?.bchPublicKey}
         expiresAt={binding?.expiresAt}
+        focus={hover ?? current}
+        overprint={bindingState ? OVERPRINT[bindingState] : undefined}
+        status={settled && bindingState ? <StatePill state={bindingState} /> : <StatePill state="loading" />}
+        flipped={flipped && !!binding}
+        back={
+          binding && res?.event ? (
+            <CachetBack message={binding.message} bchSig={binding.bchSignature} eventId={binding.eventId} nostrSig={res.event.sig} />
+          ) : undefined
+        }
       />
+      {res && (
+        <Ledger
+          checks={rows}
+          shown={reveal.shown}
+          tone={reveal.done ? (res.ok ? 'pass' : 'fail') : 'pending'}
+          head={reveal.done ? (res.ok ? 'Verified in this browser' : 'Proof rejected') : 'Checking in this browser…'}
+          meta={`${passed}/${rows.length}`}
+          details={{ identity: 'npub · address', key_separation: 'keys differ' }}
+          onHover={setHover}
+        />
+      )}
       <div className="hero__caption">
         <span>{caption}</span>
         {result && (
@@ -82,6 +131,11 @@ const Featured = ({ id, own }: { id: string; own: boolean }) => {
             {canPay && (
               <button type="button" className="c-btn c-btn--accent c-btn--sm" onClick={() => setPayOpen(true)}>
                 <IconWallet size={14} /> Tip 1,000 sats
+              </button>
+            )}
+            {binding && (
+              <button type="button" className="c-btn c-btn--ghost c-btn--sm hero__tool" onClick={() => setFlipped((f) => !f)} aria-pressed={flipped}>
+                <IconFlip /> {flipped ? 'Front' : 'Statement'}
               </button>
             )}
             <Link href={`/p/${result.npub}`} className="hero__link">
@@ -107,13 +161,23 @@ const Featured = ({ id, own }: { id: string; own: boolean }) => {
   );
 };
 
-const EXAMPLE_CHECKS = ['event', 'identity', 'time', 'bch_signature', 'key_separation'];
-type MintStage = 'nostr' | 'bch' | 'sealed';
+type SignStage = Exclude<CachetStage, 'sealed'>;
 
+const SIGN_HEAD: Record<SignStage, string> = {
+  empty: 'Generating two keys…',
+  keys: 'Two fresh keys, one statement',
+  bch: 'BCH key signed the statement',
+  nostr: 'Nostr key signed the event',
+};
+
+/** A binding made and verified in this tab with throwaway keys. Nothing is published. */
 const LocalExample = () => {
   const [ex, setEx] = useState<Example>();
-  const [stage, setStage] = useState<MintStage>('nostr');
+  const [sign, setSign] = useState<SignStage>('empty');
   const [tampered, setTampered] = useState(false);
+  const [flipped, setFlipped] = useState(false);
+  const [run, setRun] = useState<string>();
+  const [hover, setHover] = useState<CachetZone>();
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const clearTimers = useCallback(() => {
@@ -121,116 +185,167 @@ const LocalExample = () => {
     timers.current = [];
   }, []);
 
-  const runMintSequence = useCallback(
+  const later = useCallback((ms: number, fn: () => void) => {
+    timers.current.push(setTimeout(fn, ms));
+  }, []);
+
+  const mint = useCallback(
     (next: Example) => {
       clearTimers();
-      setTampered(false);
       setEx(next);
+      setTampered(false);
+      setRun(undefined);
       if (prefersReducedMotion()) {
-        setStage('sealed');
+        setSign('nostr');
+        setRun(`${next.event.id}:ok`);
         return;
       }
-      setStage('nostr');
-      timers.current.push(
-        setTimeout(() => setStage('bch'), 290),
-        setTimeout(() => setStage('sealed'), 660),
-      );
+      setSign('keys');
+      later(700, () => setSign('bch'));
+      later(1350, () => setSign('nostr'));
+      later(1950, () => setRun(`${next.event.id}:ok`));
     },
-    [clearTimers],
+    [clearTimers, later],
   );
 
   useEffect(() => {
     let live = true;
-    void makeExample().then((e) => live && runMintSequence(e));
+    void makeExample().then((e) => live && mint(e));
     return () => {
       live = false;
       clearTimers();
     };
-  }, [runMintSequence, clearTimers]);
+  }, [mint, clearTimers]);
 
   const remint = () => {
-    void makeExample().then(runMintSequence);
+    setFlipped(false);
+    void makeExample().then(mint);
   };
 
-  const b = ex?.result.binding;
-  const activeResult = tampered ? ex?.forged.result : ex?.result;
-  const cardState = !ex ? 'loading' : tampered ? 'invalid' : stage === 'sealed' ? (ex.result.ok ? 'active' : 'invalid') : 'draft';
-  const shownAddr = !ex || stage === 'nostr' ? undefined : tampered ? ex.forged.cashaddr : b?.cashaddr;
-  const checkKey = !ex ? 'init' : `${ex.event.id}-${tampered ? 'tampered' : stage}`;
+  const toggleTamper = () => {
+    if (!ex) return;
+    clearTimers();
+    const next = !tampered;
+    setTampered(next);
+    setRun(undefined);
+    later(prefersReducedMotion() ? 0 : 620, () => setRun(`${ex.event.id}:${next ? 'forged' : 'ok'}`));
+  };
 
-  const foot =
-    !ex ? undefined : tampered ? (
-      <>
-        <span className="c-pill c-pill--invalid">Invalid</span>
-        <span className="hero__tamper-note">Fake BCH address rejected · missing wallet signature</span>
-      </>
-    ) : stage === 'nostr' ? (
-      <span className="hero__stage-line">
-        <span className="c-dot" style={{ background: 'var(--dot-nostr)' }} /> 1/2 Nostr key ready · signing BCH statement…
-      </span>
-    ) : stage === 'bch' ? (
-      <span className="idcard-foot-signed">
-        <IconCheck size={13} strokeWidth={2.2} /> 2/2 BCH statement signed · sealing proof…
-      </span>
+  // Each run verifies for real, in this tab; the ledger then replays the checks one by one.
+  const live = useMemo(() => {
+    if (!ex || !run) return undefined;
+    const event = run.endsWith(':forged') ? ex.forged.event : ex.event;
+    const t0 = performance.now();
+    const result = verifyBinding(event);
+    return { result, ms: performance.now() - t0 };
+  }, [ex, run]);
+
+  const rows = heroRows(live?.result.checks);
+  const reveal = useReveal(rows.length, live ? run : undefined, 170);
+  const sealed = !!live && reveal.done;
+  const ok = !!live?.result.ok;
+  const stage: CachetStage = sealed ? 'sealed' : sign;
+  const current = !reveal.done && reveal.shown > 0 ? ZONE_OF[rows[reveal.shown - 1]!.id] : undefined;
+  const passed = rows.slice(0, reveal.shown).filter((c) => c.status === 'pass').length;
+
+  const b = ex?.result.binding;
+  const fb = ex?.forged.result.binding;
+  const shownBinding = tampered ? fb : b;
+
+  const head = sealed
+    ? ok
+      ? 'Verified in this tab · nothing published'
+      : 'Swapped address rejected'
+    : live
+      ? 'Checking in this tab…'
+      : tampered
+        ? 'Swapping in an address this key does not own…'
+        : SIGN_HEAD[sign];
+
+  const status = sealed ? (
+    ok ? (
+      <span className="c-pill c-pill--active">Verified</span>
     ) : (
-      <>
-        <span className="c-pill c-pill--active">Verified</span>
-        {b?.expiresAt && <span>Valid until {formatDate(b.expiresAt)}</span>}
-      </>
-    );
+      <span className="c-pill c-pill--invalid">Invalid</span>
+    )
+  ) : (
+    <span className="hero__signs" data-n={sign === 'nostr' ? 2 : sign === 'bch' ? 1 : 0}>
+      <span className="c-dot" style={{ background: 'var(--dot-bch)' }} />
+      <span className="c-dot" style={{ background: 'var(--dot-nostr)' }} />
+      {live ? 'Checking…' : `${sign === 'nostr' ? 2 : sign === 'bch' ? 1 : 0} of 2 signed`}
+    </span>
+  );
 
   return (
     <>
-      <IdentityCard
-        key={ex?.event.id ?? 'init'}
-        state={cardState}
-        bchSigned={!tampered && stage === 'bch'}
+      <Cachet
+        stage={stage}
+        verdict={ok ? 'valid' : 'void'}
         pubkey={ex?.nostr.pubkey}
         name="Example identity"
-        cashaddr={shownAddr}
+        cashaddr={tampered ? ex?.forged.cashaddr : b?.cashaddr}
+        sealedCashaddr={tampered ? b?.cashaddr : undefined}
+        serial={shownBinding?.bindingId}
+        bchKey={tampered ? ex?.forged.signerKey : b?.bchPublicKey}
         expiresAt={b?.expiresAt}
-        emptyBch="Signing statement…"
-        foot={foot}
+        focus={hover ?? current}
+        overprint={sealed && !ok ? 'VOID' : undefined}
+        status={status}
+        flipped={flipped}
+        back={
+          ex && shownBinding ? (
+            <CachetBack
+              message={shownBinding.message}
+              bchSig={shownBinding.bchSignature}
+              eventId={tampered ? ex.forged.event.id : ex.event.id}
+              nostrSig={tampered ? ex.forged.event.sig : ex.event.sig}
+              tampered={tampered}
+            />
+          ) : undefined
+        }
       />
-      <div className="c-card hero__checks" data-tampered={tampered || undefined}>
-        {ex && (stage === 'sealed' || tampered) && activeResult ? (
-          <CheckList key={checkKey} checks={activeResult.checks.filter((c) => EXAMPLE_CHECKS.includes(c.id))} stagger={tampered ? 35 : 55} />
-        ) : (
-          <div className="hero__checks-skel" aria-hidden>
-            {EXAMPLE_CHECKS.map((c) => (
-              <span key={c} className="c-skel" />
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="hero__caption">
-        <span>{tampered ? 'Nostr event is valid, but BCH check catches the swapped address.' : 'Live dual-key proof, signed and verified in this tab.'}</span>
+      <Ledger
+        checks={rows}
+        shown={reveal.shown}
+        tone={sealed ? (ok ? 'pass' : 'fail') : 'pending'}
+        head={head}
+        meta={live ? `${passed}/${rows.length}${sealed ? ` · ${fmtMs(live.ms)}` : ''}` : undefined}
+        details={{
+          identity: 'npub · address',
+          key_separation: 'keys differ',
+          ...(tampered && ex ? { bch_signature: `recovers ${shortCashaddr(ex.forged.signer)}` } : {}),
+        }}
+        onHover={setHover}
+      />
+      <div className="hero__caption hero__deck">
         <span className="hero__caption-actions">
-          {ex && stage === 'sealed' && (
-            <button
-              type="button"
-              className={`c-btn c-btn--sm hero__tamper${tampered ? ' c-btn--secondary' : ' c-btn--ghost'}`}
-              onClick={() => setTampered((t) => !t)}
-              title={tampered ? 'Restore honest proof' : 'Simulate swapping in an unowned BCH address'}
-            >
-              {tampered ? (
-                <>
-                  <IconUndo size={13} /> Restore
-                </>
-              ) : (
-                <>
-                  <IconAlert size={13} /> Tamper address
-                </>
-              )}
-            </button>
-          )}
-          <button type="button" className="c-btn c-btn--ghost c-btn--sm hero__remint" onClick={remint} title="Generate fresh keys and re-verify">
+          <button
+            type="button"
+            className={`c-btn c-btn--sm hero__tool${tampered ? ' c-btn--secondary' : ' c-btn--ghost'}`}
+            onClick={toggleTamper}
+            disabled={!ex || sign !== 'nostr'}
+            title={tampered ? 'Put the real address back' : 'Claim an address this key does not own'}
+          >
+            {tampered ? (
+              <>
+                <IconUndo size={13} /> Restore
+              </>
+            ) : (
+              <>
+                <IconAlert size={13} /> Swap address
+              </>
+            )}
+          </button>
+          <button type="button" className="c-btn c-btn--ghost c-btn--sm hero__tool" onClick={() => setFlipped((f) => !f)} disabled={!ex} aria-pressed={flipped}>
+            <IconFlip /> {flipped ? 'Front' : 'Statement'}
+          </button>
+          <button type="button" className="c-btn c-btn--ghost c-btn--sm hero__tool" onClick={remint} title="Generate fresh keys and sign again">
             <IconRefresh size={13} /> New keys
           </button>
-          <Link href="/lab" className="hero__link">
-            12 attacks <IconArrowRight size={14} />
-          </Link>
         </span>
+        <Link href="/lab" className="hero__link">
+          12 attacks <IconArrowRight size={14} />
+        </Link>
       </div>
     </>
   );

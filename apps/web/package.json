@@ -16,6 +16,7 @@
     "@cachet/signers": "*",
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
+    "@fontsource-variable/source-serif-4": "^5.3.1",
     "@wizardconnect/core": "0.2.10",
     "@wizardconnect/dapp": "0.2.7",
     "@wizardconnect/react": "0.2.6",

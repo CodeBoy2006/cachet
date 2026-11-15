@@ -19,6 +19,11 @@ export interface Example {
   /** Same Nostr author validly signing a claim for a BCH address whose key they do not hold. */
   forged: {
     cashaddr: string;
+    /** The address the forged BCH signature actually recovers to (the attacker's). */
+    signer: string;
+    /** That key, compressed SEC hex. */
+    signerKey: string;
+    message: string;
     event: NostrEvent;
     result: VerifyResult;
   };
@@ -53,6 +58,9 @@ export const makeExample = async (opts: { tokenAware?: boolean } = {}): Promise<
     bch,
     forged: {
       cashaddr: victimAddr,
+      signer: attackerBch.address(opts.tokenAware),
+      signerKey: Array.from(attackerBch.publicKey, (b) => b.toString(16).padStart(2, '0')).join(''),
+      message: bindMessage(forgedStatement),
       event: forgedEvent,
       result: verifyBinding(forgedEvent, { now }),
     },

@@ -1,0 +1,1257 @@
+/* ---------- Cachet: the binding certificate ---------- */
+
+.cachet {
+  --mx: 50%;
+  --my: 46%;
+  --px: 0;
+  --py: 0;
+  --serif: 'Source Serif 4 Variable', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --paper: color-mix(in srgb, var(--surface) 86%, var(--bg));
+  --dome: #ffffff;
+  --nostr-ink: color-mix(in srgb, var(--dot-nostr) 80%, var(--ink));
+  --bch-ink: var(--accent-ink);
+  --engrave: color-mix(in srgb, var(--ink) 36%, transparent);
+  --cachet-shade: rgb(20 20 18 / 0.2);
+  --cachet-lift: rgb(255 255 255 / 0.7);
+  container-type: inline-size;
+  position: relative;
+  perspective: 1400px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .cachet {
+    --paper: color-mix(in srgb, var(--surface) 84%, #000);
+    --dome: color-mix(in srgb, var(--surface) 90%, #fff);
+    --nostr-ink: color-mix(in srgb, var(--dot-nostr) 70%, #fff);
+    --engrave: color-mix(in srgb, var(--ink) 42%, transparent);
+    --cachet-shade: rgb(0 0 0 / 0.62);
+    --cachet-lift: rgb(255 255 255 / 0.06);
+  }
+}
+
+:root[data-theme='dark'] .cachet {
+  --paper: color-mix(in srgb, var(--surface) 84%, #000);
+  --dome: color-mix(in srgb, var(--surface) 90%, #fff);
+  --nostr-ink: color-mix(in srgb, var(--dot-nostr) 70%, #fff);
+  --engrave: color-mix(in srgb, var(--ink) 42%, transparent);
+  --cachet-shade: rgb(0 0 0 / 0.62);
+  --cachet-lift: rgb(255 255 255 / 0.06);
+}
+
+.cachet__flip {
+  --flip: 0deg;
+  display: grid;
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateX(calc(var(--py) * -4deg)) rotateY(calc(var(--px) * 6deg + var(--flip)));
+  transition: transform 760ms cubic-bezier(0.3, 1.2, 0.4, 1);
+}
+
+.cachet[data-live] .cachet__flip {
+  transition: transform 180ms ease-out;
+}
+
+.cachet[data-flipped] .cachet__flip {
+  --flip: 180deg;
+}
+
+.cachet__face {
+  grid-area: 1 / 1;
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow:
+    inset 0 1px 0 var(--cachet-lift),
+    0 1px 2px rgb(20 20 18 / 0.05),
+    calc(var(--px) * -16px) calc(16px - var(--py) * 10px) 44px -20px var(--cachet-shade);
+  transition: border-color 320ms var(--ease);
+}
+
+.cachet__face--back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+}
+
+.cachet__face--front {
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+}
+
+.cachet[data-verdict='valid'] .cachet__face {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+}
+
+.cachet[data-verdict='void'] .cachet__face {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--line));
+}
+
+.cachet[data-verdict='void'] .cachet__face--front {
+  animation: c-shake 380ms 80ms var(--ease) both;
+}
+
+/* Double rule, as on a printed certificate. */
+.cachet__frame {
+  position: absolute;
+  inset: 7px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--ink) 11%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cachet__frame::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 10px;
+  border: 0.5px solid color-mix(in srgb, var(--ink) 7%, transparent);
+}
+
+.cachet__glare {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: radial-gradient(420px circle at var(--mx) var(--my), rgb(255 255 255 / 0.32), transparent 52%);
+  mix-blend-mode: soft-light;
+  opacity: 0;
+  transition: opacity 320ms var(--ease);
+}
+
+.cachet[data-live] .cachet__glare {
+  opacity: 1;
+}
+
+.cachet__sweep {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: linear-gradient(104deg, transparent 38%, rgb(255 255 255 / 0.38) 50%, transparent 62%);
+  mix-blend-mode: soft-light;
+  translate: -115% 0;
+  animation: c-sheen-sweep 1100ms 280ms var(--ease) forwards;
+}
+
+/* Head: title and serial number */
+.cachet__head {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 19px 24px 0;
+  white-space: nowrap;
+}
+
+.cachet__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.cachet__serial {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 5px;
+  margin: -2px -5px;
+  border-radius: 6px;
+}
+
+.cachet__no {
+  font-family: var(--serif);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.cachet__serial-v {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  transition: color 260ms var(--ease);
+}
+
+.cachet[data-verdict='valid'] .cachet__serial-v {
+  color: var(--ink);
+}
+
+.cachet[data-verdict='void'] .cachet__serial-v {
+  color: var(--danger);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* Body: Nostr | seal | BCH */
+.cachet__body {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px 12px;
+}
+
+.cachet__side {
+  position: relative;
+  min-width: 0;
+  padding: 8px 10px;
+  margin: -8px -10px;
+  border-radius: 12px;
+}
+
+.cachet__side--bch {
+  text-align: right;
+}
+
+.cachet__kicker {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.cachet__side--bch .cachet__kicker {
+  justify-content: flex-end;
+}
+
+.cachet__kicker .c-dot {
+  width: 6px;
+  height: 6px;
+}
+
+.cachet__main {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  height: 28px;
+  margin-bottom: 2px;
+}
+
+.cachet__side--bch .cachet__main {
+  justify-content: flex-end;
+}
+
+.cachet__value .c-avatar {
+  flex: none;
+  margin-right: 5px;
+  border: 0;
+}
+
+.cachet__name {
+  min-width: 0;
+  font-family: var(--serif);
+  font-optical-sizing: auto;
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: c-rise 360ms var(--ease) both;
+}
+
+.cachet__mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.cachet__addr {
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 260ms var(--ease);
+}
+
+.cachet__value {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.cachet__value > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cachet__side--bch .cachet__value {
+  justify-content: flex-end;
+}
+
+.cachet__diff {
+  font-weight: inherit;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-radius: 2px;
+  animation: c-fade 220ms ease both;
+}
+
+.cachet[data-verdict='void'] .cachet__addr {
+  color: var(--danger);
+}
+
+/* The signature scheme each key uses, inked when that key signs. */
+.cachet__scheme {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 14px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  transition: color 360ms var(--ease);
+}
+
+.cachet__side--bch .cachet__scheme {
+  justify-content: flex-end;
+}
+
+.cachet__scheme svg {
+  flex: none;
+  opacity: 0;
+  scale: 0.4;
+  transition:
+    opacity 260ms var(--ease),
+    scale 360ms var(--ease-spring);
+}
+
+.cachet__scheme[data-on] svg {
+  opacity: 1;
+  scale: 1;
+}
+
+.cachet__side--nostr .cachet__scheme[data-on] {
+  color: var(--nostr-ink);
+}
+
+.cachet__side--bch .cachet__scheme[data-on] {
+  color: var(--bch-ink);
+}
+
+.cachet[data-verdict='void'] .cachet__side--bch .cachet__scheme {
+  color: var(--danger);
+}
+
+/* Microprint rule: the secp256k1 domain parameters. */
+.cachet__micro {
+  position: relative;
+  z-index: 3;
+  display: block;
+  width: calc(100% - 48px);
+  height: 6px;
+  margin: 0 24px;
+}
+
+.cachet__micro text {
+  font-family: var(--font-mono);
+  font-size: 4.1px;
+  letter-spacing: 0.04em;
+  fill: color-mix(in srgb, var(--ink) 34%, transparent);
+}
+
+/* Foot */
+.cachet__foot {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+  flex-wrap: wrap;
+  min-height: 44px;
+  padding: 8px 24px 16px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.cachet__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.cachet__expiry {
+  padding: 2px 6px;
+  margin: -2px -6px;
+  border-radius: 6px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 13px;
+}
+
+/* Focus: each check lights the part of the card it covers. */
+.cachet [data-zone] {
+  transition:
+    opacity 260ms var(--ease),
+    background-color 260ms var(--ease),
+    color 260ms var(--ease);
+}
+
+.cachet[data-focus] [data-zone] {
+  opacity: 0.32;
+}
+
+.cachet[data-focus='nostr'] [data-zone='seal'],
+.cachet[data-focus='bch'] [data-zone='seal'] {
+  opacity: 0.85;
+}
+
+.cachet[data-focus='nostr'] [data-zone='nostr'],
+.cachet[data-focus='bch'] [data-zone='bch'],
+.cachet[data-focus='statement'] [data-zone='statement'],
+.cachet[data-focus='time'] [data-zone='time'],
+.cachet[data-focus='seal'] [data-zone='seal'] {
+  opacity: 1;
+}
+
+.cachet[data-focus='nostr'] .cachet__side--nostr {
+  background-color: color-mix(in srgb, var(--dot-nostr) 6%, transparent);
+}
+
+.cachet[data-focus='bch'] .cachet__side--bch {
+  background-color: color-mix(in srgb, var(--dot-bch) 7%, transparent);
+}
+
+.cachet[data-focus='statement'] .cachet__serial,
+.cachet[data-focus='time'] .cachet__expiry {
+  background-color: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent-ink);
+}
+
+.cachet[data-focus='statement'] .cachet__serial-v {
+  color: var(--accent-ink);
+}
+
+/* ---------- Seal ---------- */
+
+.cachet__seal {
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+}
+
+.cachet__seal-disc {
+  position: relative;
+  width: clamp(120px, 27cqi, 148px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 28%, var(--dome), var(--paper) 72%);
+  box-shadow:
+    inset 0 1.5px 0 var(--cachet-lift),
+    inset 0 -1.5px 3px rgb(20 20 18 / 0.06),
+    0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent),
+    0 1px 2px rgb(20 20 18 / 0.06),
+    0 12px 26px -14px var(--cachet-shade);
+  translate: calc(var(--px) * 6px) calc(var(--py) * 5px);
+  transition: translate 500ms var(--ease);
+}
+
+/* Concentric ground radiating from the seal. */
+.cachet__seal-disc::before {
+  content: '';
+  position: absolute;
+  inset: -96px;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  background: repeating-radial-gradient(
+    circle,
+    transparent 0 5.5px,
+    color-mix(in srgb, var(--ink) 7%, transparent) 5.5px 6.1px
+  );
+  mask-image: radial-gradient(closest-side, transparent 42%, #000 50%, transparent 100%);
+  -webkit-mask-image: radial-gradient(closest-side, transparent 42%, #000 50%, transparent 100%);
+}
+
+/* Light catching the emboss as the card turns. */
+.cachet__seal-disc::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(
+    from calc(var(--px) * 200deg + 30deg),
+    transparent 0deg,
+    rgb(255 255 255 / 0.5) 26deg,
+    transparent 62deg,
+    transparent 180deg,
+    rgb(255 255 255 / 0.32) 206deg,
+    transparent 242deg
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0;
+  transition: opacity 400ms var(--ease);
+}
+
+.cachet[data-live] .cachet__seal-disc::after {
+  opacity: 1;
+}
+
+.cachet[data-stage='sealed'] .cachet__seal-disc {
+  animation: seal-press 620ms var(--ease-stamp) both;
+}
+
+.cachet__eq {
+  font-family: var(--serif);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.cachet__eq i {
+  font-style: italic;
+  margin-right: 0.04em;
+}
+
+.seal {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+}
+
+.seal__face {
+  fill: none;
+}
+
+.seal__beads circle {
+  fill: color-mix(in srgb, var(--ink) 30%, transparent);
+}
+
+.seal__rule {
+  stroke: color-mix(in srgb, var(--ink) 20%, transparent);
+  stroke-width: 0.5;
+}
+
+.seal__rule--fine {
+  stroke: color-mix(in srgb, var(--ink) 12%, transparent);
+  stroke-width: 0.35;
+}
+
+.seal__ring {
+  rotate: -28deg;
+  opacity: 0.35;
+  transition:
+    rotate 1500ms cubic-bezier(0.2, 1.1, 0.3, 1),
+    opacity 600ms var(--ease);
+}
+
+.cachet:not([data-stage='empty']) .seal__ring {
+  rotate: -7deg;
+  opacity: 1;
+}
+
+.cachet[data-stage='sealed'] .seal__ring {
+  rotate: 0deg;
+}
+
+.seal__legend {
+  font-family: var(--serif);
+  font-size: 4.5px;
+  font-weight: 560;
+  fill: var(--engrave);
+  transition: fill 520ms var(--ease);
+}
+
+.cachet:is([data-stage='bch'], [data-stage='nostr'], [data-stage='sealed']) .seal__legend--bch {
+  fill: var(--bch-ink);
+}
+
+.cachet:is([data-stage='nostr'], [data-stage='sealed']) .seal__legend--nostr {
+  fill: var(--nostr-ink);
+}
+
+.cachet[data-verdict='void'] .seal__legend--bch {
+  fill: var(--danger);
+}
+
+.cachet[data-verdict='muted'] .seal__legend {
+  fill: var(--engrave);
+}
+
+.seal__star {
+  fill: color-mix(in srgb, var(--ink) 34%, transparent);
+  transition: fill 400ms var(--ease);
+}
+
+.cachet[data-verdict='valid'] .seal__star {
+  fill: var(--accent);
+}
+
+.seal__axes path {
+  stroke: color-mix(in srgb, var(--ink) 15%, transparent);
+  stroke-width: 0.4;
+}
+
+.seal__curve path {
+  stroke: color-mix(in srgb, var(--ink) 62%, transparent);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: c-draw 1300ms 120ms cubic-bezier(0.45, 0.05, 0.25, 1) forwards;
+  transition: stroke 600ms var(--ease);
+}
+
+.cachet[data-verdict='valid'] .seal__curve path {
+  stroke: var(--accent);
+}
+
+.cachet[data-verdict='muted'] .seal__curve path {
+  stroke: color-mix(in srgb, var(--ink) 36%, transparent);
+}
+
+.seal__proj path {
+  stroke: color-mix(in srgb, var(--ink) 50%, transparent);
+  stroke-width: 0.5;
+  stroke-dasharray: 1.2 1.3;
+  animation: c-fade 240ms var(--ease) both;
+}
+
+.seal__chord {
+  stroke: var(--accent);
+  stroke-width: 0.7;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: c-draw 560ms 160ms var(--ease) forwards;
+}
+
+.cachet[data-verdict='void'] .seal__chord {
+  stroke: var(--danger);
+  stroke-dasharray: 0.03 0.03;
+  stroke-dashoffset: 0;
+  animation: c-fade 300ms 120ms var(--ease) both;
+}
+
+/* P (Nostr) and Q (BCH): hollow until their key signs. */
+.seal__pt {
+  transition: transform 760ms cubic-bezier(0.3, 1.2, 0.4, 1);
+}
+
+.seal__pt-halo,
+.seal__pt-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    fill 320ms var(--ease),
+    stroke 320ms var(--ease),
+    scale 320ms var(--ease);
+}
+
+.seal__pt-halo {
+  fill: color-mix(in srgb, var(--paper) 86%, transparent);
+  stroke-width: 0.5;
+}
+
+.seal__pt-dot {
+  fill: var(--paper);
+  stroke-width: 0.9;
+}
+
+.seal__pt--p .seal__pt-halo,
+.seal__pt--p .seal__pt-dot {
+  stroke: var(--dot-nostr);
+}
+
+.seal__pt--q .seal__pt-halo,
+.seal__pt--q .seal__pt-dot {
+  stroke: var(--dot-bch);
+}
+
+.seal__pt--p[data-signed] .seal__pt-dot {
+  fill: var(--dot-nostr);
+}
+
+.seal__pt--q[data-signed] .seal__pt-dot {
+  fill: var(--dot-bch);
+}
+
+.seal__pt[data-signed] .seal__pt-halo {
+  animation: pt-ping 700ms var(--ease) both;
+}
+
+.cachet[data-verdict='void'] .seal__pt--q .seal__pt-dot,
+.cachet[data-verdict='void'] .seal__pt--q .seal__pt-halo {
+  stroke: var(--danger);
+}
+
+.cachet[data-verdict='void'] .seal__pt--q .seal__pt-dot {
+  fill: var(--danger);
+}
+
+.cachet[data-focus='nostr'] .seal__pt--p .seal__pt-halo,
+.cachet[data-focus='bch'] .seal__pt--q .seal__pt-halo,
+.cachet[data-focus='seal'] .seal__pt-halo {
+  scale: 1.45;
+}
+
+.seal__pt-label {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 7px;
+  fill: var(--ink-2);
+  stroke: var(--paper);
+  stroke-width: 1.6px;
+  paint-order: stroke;
+}
+
+/* A soft bloom behind the seal at the moment it is pressed. */
+.cachet__press {
+  position: absolute;
+  inset: -26px;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent), transparent 66%);
+  animation: cachet-bloom 1300ms 120ms var(--ease) both;
+}
+
+.cachet[data-verdict='void'] .cachet__press {
+  background: radial-gradient(circle, color-mix(in srgb, var(--danger) 22%, transparent), transparent 66%);
+}
+
+.cachet[data-verdict='muted'] .cachet__press {
+  display: none;
+}
+
+/* Overprint (VOID, WITHDRAWN, EXPIRED): hatched like a pantograph. */
+.cachet__overprint {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.cachet__overprint text {
+  font-family: var(--serif);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  stroke: color-mix(in srgb, var(--danger) 62%, transparent);
+  stroke-width: 1;
+  paint-order: stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: overprint-in 560ms 200ms var(--ease-stamp) both;
+}
+
+.cachet__overprint line {
+  stroke: color-mix(in srgb, var(--danger) 44%, transparent);
+  stroke-width: 1.2;
+}
+
+.cachet[data-verdict='muted'] .cachet__overprint text {
+  stroke: color-mix(in srgb, var(--ink-3) 50%, transparent);
+}
+
+.cachet[data-verdict='muted'] .cachet__overprint line {
+  stroke: color-mix(in srgb, var(--ink-3) 30%, transparent);
+}
+
+/* ---------- Back: the signed message ---------- */
+
+.cachet-back {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 10px;
+  padding-bottom: 18px;
+}
+
+.cachet-back__size {
+  gap: 2px;
+}
+
+.cachet-back .c-copy-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.cachet-back__msg {
+  position: relative;
+  z-index: 3;
+  margin: 0 24px;
+  padding: 11px 13px;
+  min-height: 0;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.cachet-back__h {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.cachet-back__n {
+  color: var(--nostr-ink);
+}
+
+.cachet-back__b {
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+
+.cachet-back__x {
+  color: var(--danger);
+  background: var(--danger-soft);
+  font-weight: 500;
+}
+
+.cachet-back__frame {
+  position: relative;
+  z-index: 3;
+  margin: 0 24px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.cachet-back__frame .cachet__mono {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--ink-2);
+}
+
+.cachet-back__rows {
+  position: relative;
+  z-index: 3;
+  margin: 0 24px;
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.cachet-back__rows > div {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.cachet-back__rows dt {
+  color: var(--ink-3);
+}
+
+.cachet-back__rows dd {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Ledger: the verification slip ---------- */
+
+.ledger {
+  position: relative;
+  margin-top: 14px;
+  padding: 2px 18px 8px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  transition: border-color 260ms var(--ease);
+}
+
+.ledger[data-tone='fail'] {
+  border-color: color-mix(in srgb, var(--danger) 32%, var(--line));
+}
+
+.ledger__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px 14px;
+  flex-wrap: wrap;
+  min-height: 40px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--line-2);
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.ledger__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 240ms var(--ease);
+}
+
+.ledger[data-tone='pass'] .ledger__title {
+  color: var(--accent-ink);
+}
+
+.ledger[data-tone='fail'] .ledger__title {
+  color: var(--danger);
+}
+
+.ledger__meta {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger__rows {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0 0;
+}
+
+.ledger__row {
+  display: grid;
+  grid-template-columns: 18px max-content minmax(10px, 1fr) minmax(0, max-content);
+  align-items: center;
+  gap: 10px;
+  min-height: 35px;
+  margin: 0 -8px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  transition: background-color 200ms var(--ease);
+}
+
+.ledger__row:hover {
+  background-color: var(--surface-2);
+}
+
+.ledger__mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--line-2);
+}
+
+.ledger__row[data-status='pending'] .ledger__label {
+  color: var(--ink-3);
+}
+
+.ledger__row[data-status='pass'] .ledger__mark,
+.ledger__row[data-status='fail'] .ledger__mark {
+  border: 0;
+  animation: ledger-pop 360ms var(--ease-spring) both;
+}
+
+.ledger__row[data-status='pass'] .ledger__mark {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.ledger__row[data-status='pass'] .c-stroke-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: c-draw 260ms 80ms var(--ease) forwards;
+}
+
+.ledger__row[data-status='fail'] .ledger__mark {
+  background: var(--danger);
+  color: var(--on-danger);
+}
+
+.ledger__row[data-status='fail'] .c-stroke-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: c-draw 200ms 60ms var(--ease) forwards;
+}
+
+.ledger__row[data-status='fail'] .c-stroke-draw--2 {
+  animation-delay: 140ms;
+}
+
+.ledger__row[data-status='fail'] {
+  background: linear-gradient(90deg, var(--danger-soft), transparent 88%);
+  box-shadow: inset 2px 0 0 var(--danger);
+  animation: c-shake 320ms 60ms var(--ease);
+}
+
+.ledger__row[data-status='skip'] .ledger__label {
+  color: var(--ink-3);
+}
+
+.ledger__row[data-current] {
+  animation: ledger-flash 600ms var(--ease);
+}
+
+.ledger__row[data-status='fail'][data-current] {
+  animation: c-shake 320ms 60ms var(--ease);
+}
+
+.ledger__label {
+  min-width: 0;
+  transition: color 200ms var(--ease);
+}
+
+.ledger__code {
+  display: block;
+  margin-top: -1px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--danger);
+}
+
+/* Leader dots, drawn left to right as each check lands. */
+.ledger__dots {
+  height: 2px;
+  align-self: center;
+  translate: 0 3px;
+  background: radial-gradient(circle, var(--line-2) 0.85px, transparent 1.1px) 0 50% / 5px 2px repeat-x;
+  transform-origin: left center;
+  scale: 0 1;
+  transition: scale 380ms var(--ease);
+}
+
+.ledger__row:not([data-status='pending']) .ledger__dots {
+  scale: 1 1;
+}
+
+.ledger__detail {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 250px;
+  animation: c-fade 260ms 120ms var(--ease) both;
+}
+
+.ledger__row[data-status='fail'] .ledger__detail {
+  color: var(--danger);
+}
+
+/* ---------- Keyframes ---------- */
+
+@keyframes seal-press {
+  0%,
+  24% {
+    scale: 1;
+    box-shadow:
+      inset 0 1.5px 0 var(--cachet-lift),
+      inset 0 -1.5px 3px rgb(20 20 18 / 0.06),
+      0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent),
+      0 1px 2px rgb(20 20 18 / 0.06),
+      0 12px 26px -14px var(--cachet-shade);
+  }
+  44% {
+    scale: 0.955;
+    box-shadow:
+      inset 0 3px 8px rgb(20 20 18 / 0.16),
+      inset 0 -1px 0 var(--cachet-lift),
+      0 0 0 1px color-mix(in srgb, var(--ink) 10%, transparent),
+      0 1px 1px rgb(20 20 18 / 0.06),
+      0 4px 10px -8px var(--cachet-shade);
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes pt-ping {
+  0% {
+    scale: 2.6;
+    opacity: 0;
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes cachet-bloom {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.3;
+  }
+}
+
+@keyframes overprint-in {
+  0% {
+    opacity: 0;
+    scale: 1.28;
+  }
+  55% {
+    opacity: 1;
+    scale: 0.97;
+  }
+  100% {
+    opacity: 0.9;
+    scale: 1;
+  }
+}
+
+@keyframes ledger-pop {
+  0% {
+    scale: 0.4;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes ledger-flash {
+  0% {
+    background-color: color-mix(in srgb, var(--accent) 9%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/* ---------- Narrower cards ---------- */
+
+@container (max-width: 540px) {
+  .cachet__head,
+  .cachet__body,
+  .cachet__foot {
+    padding-inline: 20px;
+  }
+  .cachet__micro {
+    width: calc(100% - 40px);
+    margin-inline: 20px;
+  }
+  .cachet__name {
+    font-size: 19px;
+  }
+  .cachet__addr {
+    font-size: 14px;
+  }
+  .cachet__scheme {
+    font-size: 12px;
+  }
+}
+
+/* Phones: seal on top, the two keys side by side beneath it. */
+@container (max-width: 440px) {
+  .cachet__head {
+    padding: 17px 18px 0;
+  }
+  .cachet__body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'seal seal'
+      'nostr bch';
+    gap: 14px 12px;
+    padding: 12px 18px 12px;
+  }
+  .cachet__side--nostr {
+    grid-area: nostr;
+  }
+  .cachet__side--bch {
+    grid-area: bch;
+  }
+  .cachet__seal {
+    grid-area: seal;
+  }
+  .cachet__seal-disc {
+    width: 128px;
+  }
+  .cachet__kicker {
+    margin-bottom: 8px;
+  }
+  .cachet__main {
+    gap: 6px;
+    height: 24px;
+  }
+  .cachet__name {
+    font-size: 17px;
+  }
+  .cachet__addr {
+    font-size: 13px;
+  }
+  .cachet__value {
+    font-size: 11.5px;
+  }
+  .cachet__scheme {
+    margin-top: 9px;
+    font-size: 11.5px;
+  }
+  .cachet__micro {
+    width: calc(100% - 36px);
+    margin-inline: 18px;
+  }
+  .cachet__foot {
+    padding: 8px 18px 14px;
+    font-size: 12px;
+  }
+  .cachet-back__msg,
+  .cachet-back__rows,
+  .cachet-back__frame {
+    margin-inline: 18px;
+  }
+  .cachet-back .cachet__head {
+    padding-inline: 18px;
+  }
+  .cachet-back__rows > div {
+    grid-template-columns: 104px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .ledger {
+    padding-inline: 14px;
+  }
+  .ledger__row {
+    gap: 8px;
+    font-size: 13px;
+  }
+}
