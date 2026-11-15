@@ -7,6 +7,7 @@ import {
   CopyChip,
   CopyIcon,
   Dialog,
+  IconArrowUpRight,
   IconDownload,
   IconRefresh,
   IdentityCard,
@@ -162,10 +163,25 @@ const OwnerBar = ({
 
   return (
     <div className="owner-bar" data-tone={needsRenewal ? 'warn' : undefined}>
-      <span>
+      <span className="owner-bar__lead">
         Your identity
         {expiringSoon && binding && <span className="owner-bar__hint"> · expires {relativeTime(binding.expiresAt)}</span>}
         {state === 'expired' && <span className="owner-bar__hint"> · this link has expired</span>}
+        {state === 'active' && !needsRenewal && (
+          <span className="owner-bar__apps hide-sm">
+            {config.apps.map((app) => (
+              <a
+                key={app.id}
+                href={app.id === 'b' ? `${app.url}/?seller=${encodeURIComponent(result.npub)}` : app.url}
+                target="_blank"
+                rel="noreferrer"
+                className="owner-bar__app"
+              >
+                {app.name} <IconArrowUpRight size={12} />
+              </a>
+            ))}
+          </span>
+        )}
       </span>
       <span className="row owner-bar__actions">
         <Link className={needsRenewal ? 'c-btn c-btn--sm' : 'c-btn c-btn--secondary c-btn--sm'} href="/new">

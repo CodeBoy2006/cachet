@@ -37,6 +37,7 @@
   --shadow-l: 0 2px 4px rgb(20 20 18 / 0.04), 0 18px 48px -18px rgb(20 20 18 / 0.18);
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-stamp: cubic-bezier(0.22, 1.26, 0.36, 1);
 
   color-scheme: light;
 }
@@ -483,6 +484,10 @@ textarea.c-input {
 /* ---------- Identity card ---------- */
 
 .c-idcard {
+  --mx: 50%;
+  --my: 50%;
+  --rx: 0deg;
+  --ry: 0deg;
   container-type: inline-size;
   position: relative;
   background: var(--surface);
@@ -490,6 +495,70 @@ textarea.c-input {
   border-radius: 20px;
   box-shadow: var(--shadow-l);
   overflow: hidden;
+  transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry));
+  transition:
+    transform 280ms var(--ease),
+    border-color 280ms var(--ease),
+    box-shadow 280ms var(--ease);
+}
+
+.c-idcard[data-tilting='true'] {
+  transition:
+    transform 65ms linear,
+    border-color 280ms var(--ease),
+    box-shadow 280ms var(--ease);
+}
+
+.c-idcard[data-state='active'] {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+  box-shadow:
+    var(--shadow-l),
+    0 12px 36px -20px color-mix(in srgb, var(--accent) 32%, transparent);
+  animation: c-card-recoil 480ms var(--ease) both;
+}
+
+.c-idcard[data-state='invalid'] {
+  border-color: color-mix(in srgb, var(--danger) 42%, var(--line));
+  animation: c-shake 320ms var(--ease) both;
+}
+
+/* Pointer-tracked security foil & banknote guilloche micro-pattern on verified cards */
+.c-idcard__foil {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  z-index: 2;
+  transition: opacity 320ms var(--ease);
+  background:
+    radial-gradient(300px circle at var(--mx) var(--my), color-mix(in srgb, var(--accent) 11%, transparent), transparent 68%),
+    repeating-linear-gradient(
+      125deg,
+      transparent 0,
+      transparent 5px,
+      color-mix(in srgb, var(--accent) 5.5%, transparent) 5px,
+      color-mix(in srgb, var(--accent) 5.5%, transparent) 6px
+    );
+  mask-image: radial-gradient(260px circle at var(--mx) var(--my), #000 12%, transparent 74%);
+  -webkit-mask-image: radial-gradient(260px circle at var(--mx) var(--my), #000 12%, transparent 74%);
+}
+
+.c-idcard[data-state='active'] .c-idcard__foil {
+  opacity: 1;
+}
+
+/* One-shot specular sheen right as the verified seal lands */
+.c-idcard__sweep {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(108deg, transparent 34%, color-mix(in srgb, var(--accent) 14%, transparent) 49%, transparent 64%);
+  translate: -120% 0;
+}
+
+.c-idcard[data-state='active'] .c-idcard__sweep {
+  animation: c-sheen-sweep 760ms 120ms var(--ease) forwards;
 }
 
 .c-idcard__halves {
@@ -505,6 +574,12 @@ textarea.c-input {
 
 .c-idcard__half + .c-idcard__half {
   border-left: 1px dashed var(--line-2);
+  transition: border-color 300ms var(--ease);
+}
+
+.c-idcard[data-state='active'] .c-idcard__half + .c-idcard__half {
+  border-left-style: solid;
+  border-left-color: color-mix(in srgb, var(--accent) 28%, var(--line));
 }
 
 .c-idcard__half--bch {
@@ -525,6 +600,16 @@ textarea.c-input {
   height: 7px;
   border-radius: 50%;
   flex: none;
+  transition: box-shadow 260ms var(--ease);
+}
+
+.c-idcard[data-nostr='true'] .c-dot--nostr {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot-nostr) 18%, transparent);
+}
+
+.c-idcard[data-bch-signed='true'] .c-dot--bch,
+.c-idcard[data-state='active'] .c-dot--bch {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot-bch) 20%, transparent);
 }
 
 .c-idcard__who {
@@ -614,19 +699,30 @@ textarea.c-input {
   left: 50%;
   top: 50%;
   translate: -50% -50%;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   background: var(--surface);
   border: 1px solid var(--line-2);
+  box-shadow: 0 0 0 4px var(--surface);
   color: var(--ink-3);
-  z-index: 1;
+  z-index: 3;
   transition:
-    background 300ms var(--ease),
-    color 300ms,
-    border-color 300ms;
+    background 260ms var(--ease),
+    color 260ms,
+    border-color 260ms;
+}
+
+.c-seal-ring {
+  transition:
+    transform 360ms var(--ease-spring),
+    stroke 260ms var(--ease);
+}
+
+.c-idcard[data-bch-signed='true'] .c-idcard__seal {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line-2));
 }
 
 .c-idcard[data-state='active'] .c-idcard__seal {
@@ -634,7 +730,24 @@ textarea.c-input {
   border-color: var(--accent);
   color: var(--on-accent);
   box-shadow: 0 0 0 5px var(--surface);
-  animation: c-stamp 520ms var(--ease-spring) both;
+  animation: c-stamp-down 460ms var(--ease-stamp) both;
+}
+
+.c-idcard[data-state='active'] .c-idcard__seal::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1.75px solid var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  animation: c-shockwave 620ms 140ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.c-idcard[data-state='active'] .c-idcard__seal .c-stroke-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: c-draw 240ms 150ms var(--ease) forwards;
 }
 
 .c-idcard[data-state='invalid'] .c-idcard__seal {
@@ -642,7 +755,17 @@ textarea.c-input {
   border-color: var(--danger);
   color: var(--on-danger);
   box-shadow: 0 0 0 5px var(--surface);
-  animation: c-stamp 420ms var(--ease) both;
+  animation: c-stamp-down 380ms var(--ease-stamp) both;
+}
+
+.c-idcard[data-state='invalid'] .c-idcard__seal .c-stroke-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: c-draw 200ms 110ms var(--ease) forwards;
+}
+
+.c-idcard[data-state='invalid'] .c-idcard__seal .c-stroke-draw--2 {
+  animation-delay: 190ms;
 }
 
 .c-idcard__who,
@@ -656,11 +779,36 @@ textarea.c-input {
   border-color: color-mix(in srgb, var(--warn) 50%, var(--line-2));
 }
 
+.c-idcard__addr-text {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+.c-idcard__addr-text::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 52%;
+  height: 1.5px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 320ms var(--ease);
+}
+
 .c-idcard[data-state='withdrawn'] .c-idcard__addr,
 .c-idcard[data-state='invalid'] .c-idcard__addr {
-  text-decoration: line-through;
-  text-decoration-thickness: 1px;
   color: var(--ink-3);
+}
+
+.c-idcard[data-state='withdrawn'] .c-idcard__addr-text::after,
+.c-idcard[data-state='invalid'] .c-idcard__addr-text::after {
+  transform: scaleX(1);
 }
 
 .c-idcard__foot {
@@ -709,6 +857,11 @@ textarea.c-input {
   .c-idcard__half + .c-idcard__half {
     border-left: 0;
     border-top: 1px dashed var(--line-2);
+  }
+  .c-idcard[data-state='active'] .c-idcard__half + .c-idcard__half {
+    border-left: 0;
+    border-top-style: solid;
+    border-top-color: color-mix(in srgb, var(--accent) 28%, var(--line));
   }
   .c-idcard__seal {
     left: auto;
@@ -762,9 +915,21 @@ textarea.c-input {
   color: var(--accent-ink);
 }
 
+.c-check[data-status='pass'] .c-stroke-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: c-draw 240ms calc(var(--d, 0ms) + 80ms) var(--ease) forwards;
+}
+
 .c-check[data-status='fail'] .c-check__mark {
   background: var(--danger);
   color: var(--on-danger);
+}
+
+.c-check[data-status='fail'] .c-stroke-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: c-draw 200ms calc(var(--d, 0ms) + 60ms) var(--ease) forwards;
 }
 
 .c-check[data-status='skip'] .c-check__mark {
@@ -777,11 +942,15 @@ textarea.c-input {
 }
 
 .c-check[data-status='fail'] {
-  background: linear-gradient(90deg, var(--danger-soft), transparent 80%);
+  background: linear-gradient(90deg, var(--danger-soft), transparent 82%);
+  box-shadow: inset 3px 0 0 var(--danger);
   margin: 0 -10px;
-  padding-inline: 10px;
+  padding-inline: 12px 10px;
   border-radius: 8px;
   border-bottom-color: transparent;
+  animation:
+    c-rise 320ms var(--ease) both,
+    c-shake 300ms calc(var(--d, 0ms) + 80ms) var(--ease);
 }
 
 .c-check__detail {
@@ -817,16 +986,46 @@ textarea.c-input {
 
 .c-relays {
   display: grid;
-  gap: 2px;
+  gap: 4px;
   font-size: 13.5px;
 }
 
 .c-relay {
+  position: relative;
   display: grid;
   grid-template-columns: 8px minmax(0, 1fr) auto auto;
   gap: 10px;
   align-items: center;
-  padding: 7px 0;
+  padding: 7px 10px;
+  margin: 0 -10px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.c-relay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 360ms calc(var(--i, 0) * 45ms) var(--ease);
+  pointer-events: none;
+}
+
+.c-relay[data-tone='good']::before {
+  transform: scaleX(1);
+}
+
+.c-relay[data-tone='wait']::before {
+  transform: scaleX(1);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 5%, transparent), transparent);
+  background-size: 200% 100%;
+  animation: c-shimmer 1.3s linear infinite;
+}
+
+.c-relay > * {
+  position: relative;
 }
 
 .c-relay__dot {
@@ -834,10 +1033,14 @@ textarea.c-input {
   height: 7px;
   border-radius: 50%;
   background: var(--line-2);
+  transition:
+    background 200ms,
+    box-shadow 200ms;
 }
 
 .c-relay[data-tone='good'] .c-relay__dot {
   background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .c-relay[data-tone='bad'] .c-relay__dot {
@@ -911,14 +1114,63 @@ textarea.c-input {
   color: var(--ink-3);
 }
 
+.c-copy[data-copied='true'] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
 .c-copy[data-copied='true'] .c-copy__icon,
 .c-copy-icon[data-copied='true'] {
   color: var(--accent);
 }
 
+.c-copy-icon {
+  position: relative;
+}
+
+.c-copy-icon[data-copied='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.c-copy-icon__tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  z-index: 10;
+  translate: -50% 3px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  background: var(--ink);
+  color: var(--surface);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 150ms,
+    translate 150ms var(--ease);
+}
+
+.c-copy-icon[data-copied='true'] .c-copy-icon__tip {
+  opacity: 1;
+  translate: -50% 0;
+}
+
 .c-copy[data-copied='true'] .c-copy__icon svg,
 .c-copy-icon[data-copied='true'] svg {
   animation: c-stamp 320ms var(--ease-spring) both;
+}
+
+.c-copy[data-copied='true'] .c-stroke-draw,
+.c-copy-icon[data-copied='true'] .c-stroke-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: c-draw 220ms var(--ease) forwards;
 }
 
 /* ---------- Dialog ---------- */
@@ -1161,6 +1413,71 @@ textarea.c-input {
   }
   100% {
     scale: 1;
+  }
+}
+
+@keyframes c-stamp-down {
+  0% {
+    scale: 1.62;
+    opacity: 0;
+  }
+  46% {
+    scale: 0.92;
+    opacity: 1;
+  }
+  78% {
+    scale: 1.03;
+  }
+  100% {
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+@keyframes c-shockwave {
+  0% {
+    scale: 0.88;
+    opacity: 0.7;
+  }
+  100% {
+    scale: 2.15;
+    opacity: 0;
+  }
+}
+
+@keyframes c-card-recoil {
+  0%,
+  26% {
+    scale: 1;
+  }
+  44% {
+    scale: 0.991;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes c-sheen-sweep {
+  to {
+    translate: 120% 0;
+  }
+}
+
+@keyframes c-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes c-shake {
+  20%,
+  60% {
+    translate: -4px 0;
+  }
+  40%,
+  80% {
+    translate: 4px 0;
   }
 }
 

@@ -17,12 +17,13 @@ const base = ({ size = 16, ...rest }: P) => ({
 
 export const IconCheck = (p: P) => (
   <svg {...base(p)}>
-    <path d="M3.5 8.4 6.5 11.2 12.5 4.8" />
+    <path className="c-stroke-draw" pathLength={1} d="M3.5 8.4 6.5 11.2 12.5 4.8" />
   </svg>
 );
 export const IconX = (p: P) => (
   <svg {...base(p)}>
-    <path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />
+    <path className="c-stroke-draw" pathLength={1} d="M4.5 4.5l7 7" />
+    <path className="c-stroke-draw c-stroke-draw--2" pathLength={1} d="M11.5 4.5l-7 7" />
   </svg>
 );
 export const IconClock = (p: P) => (
@@ -141,5 +142,11 @@ export const IconUndo = (p: P) => (
   <svg {...base(p)}>
     <path d="M5.5 3.75 3 6.25l2.5 2.5" />
     <path d="M3 6.25h6.25a3.5 3.5 0 0 1 0 7H6.5" />
+  </svg>
+);
+export const IconPaste = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="4" y="3.5" width="8" height="9.75" rx="1.75" />
+    <path d="M6.25 3.5v-.25a1 1 0 0 1 1-1h1.5a1 1 0 0 1 1 1v.25M6.5 7.5h3M6.5 10h2" />
   </svg>
 );

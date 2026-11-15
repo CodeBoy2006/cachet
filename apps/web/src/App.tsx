@@ -8,16 +8,29 @@ import { Footer } from './components/Footer.tsx';
 import { Home } from './pages/Home.tsx';
 import { NotFound } from './pages/NotFound.tsx';
 
-const Create = lazy(() => import('./pages/Create.tsx').then((m) => ({ default: m.Create })));
-const Profile = lazy(() => import('./pages/Profile.tsx').then((m) => ({ default: m.Profile })));
-const Lab = lazy(() => import('./pages/Lab.tsx').then((m) => ({ default: m.Lab })));
-const SignRequest = lazy(() => import('./pages/SignRequest.tsx').then((m) => ({ default: m.SignRequest })));
+const loadCreate = () => import('./pages/Create.tsx').then((m) => ({ default: m.Create }));
+const loadProfile = () => import('./pages/Profile.tsx').then((m) => ({ default: m.Profile }));
+const loadLab = () => import('./pages/Lab.tsx').then((m) => ({ default: m.Lab }));
+const loadSignRequest = () => import('./pages/SignRequest.tsx').then((m) => ({ default: m.SignRequest }));
+
+const Create = lazy(loadCreate);
+const Profile = lazy(loadProfile);
+const Lab = lazy(loadLab);
+const SignRequest = lazy(loadSignRequest);
 
 const ScrollTop = () => {
   const [location] = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      void loadCreate();
+      void loadProfile();
+      void loadLab();
+    }, 240);
+    return () => clearTimeout(t);
+  }, []);
   return null;
 };
 

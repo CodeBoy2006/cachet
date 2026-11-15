@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { VERIFY_CODES, verifyBinding } from '@cachet/core';
-import { CheckList, IconCheck, IconRefresh, IconUndo, IconX, Note } from '@cachet/react';
+import { LocalBchSigner } from '@cachet/signers';
+import { CheckList, CopyIcon, IconCheck, IconRefresh, IconUndo, IconX, Note } from '@cachet/react';
 import { SCENARIOS, type Built } from '../lib/scenarios.ts';
 import { usePageTitle } from '../lib/usePageTitle.ts';
 
@@ -55,6 +56,17 @@ export const Lab = () => {
     setSeed((x) => x + 1);
   };
 
+  const tamperAddress = () => {
+    const replacement = LocalBchSigner.generate().address();
+    const match = /bitcoincash:[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{42}/i.exec(text);
+    if (match) {
+      setText(text.replaceAll(match[0], replacement));
+      return;
+    }
+    // Fallback: flip one hex nibble in event sig so any event can be tampered in one click.
+    setText(text.replace(/"sig":\s*"([0-9a-f])/, (_, c: string) => `"sig": "${c === '0' ? '1' : '0'}`));
+  };
+
   const onNavKey = (e: React.KeyboardEvent) => {
     const step = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0;
     if (!step) return;
@@ -89,7 +101,7 @@ export const Lab = () => {
         <section className="c-card lab__result" aria-live="polite">
           {result ? (
             <>
-              <div className="verdict" data-ok={result.ok} key={`${active}-${seed}-${result.ok}`}>
+              <div className="verdict" data-ok={result.ok} key={`${active}-${seed}-${result.code}`}>
                 <span className="verdict__mark">{result.ok ? <IconCheck size={20} strokeWidth={2.2} /> : <IconX size={18} strokeWidth={2.2} />}</span>
                 <div className="verdict__text">
                   <h2>{result.ok ? 'Valid binding' : VERIFY_CODES[result.code]}</h2>
@@ -98,6 +110,7 @@ export const Lab = () => {
                     {!edited && matches && <span className="muted"> · as expected</span>}
                     {edited && <span className="muted"> · edited by you</span>}
                   </p>
+                  {!edited && <div className="verdict__focus mono">{scenario.focus}</div>}
                 </div>
                 <div className="verdict__actions">
                   {edited && (
@@ -121,10 +134,25 @@ export const Lab = () => {
               <span className="c-skel" style={{ width: '28%' }} />
             </div>
           )}
-          <label htmlFor="event-json" className="lab__editor-label">
-            <span>Event JSON</span>
-            {edited && <span className="lab__edited">edited</span>}
-          </label>
+          <div className="lab__editor-bar">
+            <label htmlFor="event-json" className="lab__editor-title">
+              <span>Event JSON</span>
+              {edited && <span className="lab__edited">edited</span>}
+            </label>
+            <div className="lab__editor-tools">
+              {result?.ok && (
+                <button type="button" className="c-btn c-btn--ghost c-btn--sm lab__tamper-btn" onClick={tamperAddress}>
+                  Swap address
+                </button>
+              )}
+              {edited && (
+                <button type="button" className="c-btn c-btn--ghost c-btn--sm" onClick={() => setText(original)}>
+                  <IconUndo size={13} /> Restore
+                </button>
+              )}
+              <CopyIcon value={text} title="Copy event JSON" />
+            </div>
+          </div>
           <textarea id="event-json" className="lab__editor" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
         </section>
       </div>

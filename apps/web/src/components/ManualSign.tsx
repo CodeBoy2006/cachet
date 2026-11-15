@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { recoverSigner, parseCashAddr, isAddressError } from '@cachet/core';
-import { CopyIcon, Note, shortCashaddr } from '@cachet/react';
+import { CopyChip, CopyIcon, IconPaste, Note, shortCashaddr } from '@cachet/react';
 
 /** For wallets without WalletConnect: copy the exact message, sign it elsewhere, paste the result. */
 export const ManualSign = ({ message, address, onSigned }: { message: string; address: string; onSigned: (sig: string) => void }) => {
   const [sig, setSig] = useState('');
   const [error, setError] = useState<string>();
+  const sigRef = useRef<HTMLTextAreaElement>(null);
 
   const check = (value: string) => {
     setSig(value);
@@ -27,22 +28,44 @@ export const ManualSign = ({ message, address, onSigned }: { message: string; ad
     onSigned(trimmed);
   };
 
+  const pasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) {
+        check(text);
+        return;
+      }
+    } catch {
+      /* Browser may require manual paste; focus the field below. */
+    }
+    sigRef.current?.focus();
+  };
+
   return (
     <div className="manual">
       <div>
-        <span className="c-label">
-          1. Sign this exact message with <span className="mono">{shortCashaddr(address)}</span>
-        </span>
+        <div className="manual__head">
+          <span className="c-label">
+            1. Sign this exact message with <span className="mono">{shortCashaddr(address)}</span>
+          </span>
+          <CopyChip value={message} label="Copy message" />
+        </div>
         <div className="message-box">
           <pre className="c-code">{message}</pre>
           <CopyIcon value={message} title="Copy message" />
         </div>
       </div>
       <div>
-        <label className="c-label" htmlFor="sig">
-          2. Paste the signature
-        </label>
+        <div className="manual__head">
+          <label className="c-label" htmlFor="sig">
+            2. Paste the signature
+          </label>
+          <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={pasteFromClipboard}>
+            <IconPaste size={13} /> Paste & verify
+          </button>
+        </div>
         <textarea
+          ref={sigRef}
           id="sig"
           className="c-input mono"
           rows={2}

@@ -26,6 +26,8 @@ export interface Scenario {
   id: string;
   title: string;
   blurb: string;
+  /** Compact invariant / tampered relation highlighted in the verdict bar. */
+  focus: string;
   expect: VerifyCode;
   build(): Promise<Built>;
 }
@@ -60,6 +62,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'valid',
     title: 'Honest binding',
     blurb: 'Both keys sign; nothing touched.',
+    focus: 'kind 10011 · Nostr sig + BCH sig · distinct x-coords',
     expect: 'ok',
     async build() {
       const h = honest();
@@ -70,6 +73,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'steal',
     title: 'Claim someone else’s address',
     blurb: 'An attacker names your address but can only sign with their own BCH key.',
+    focus: 'recovered_pkh(bch_signature) ≠ statement.cashaddr',
     expect: 'signature_invalid',
     async build() {
       const victim = LocalBchSigner.generate();
@@ -85,6 +89,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'replay',
     title: 'Replay a proof under another npub',
     blurb: 'Copy a valid BCH proof into the attacker’s own Nostr profile.',
+    focus: 'event.pubkey ≠ statement.nostr_pubkey',
     expect: 'pubkey_mismatch',
     async build() {
       const h = honest();
@@ -96,6 +101,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'legacy30078',
     title: 'Unverified 30078 announcement',
     blurb: 'Announce someone else’s BCH address in kind 30078 with no BCH signature.',
+    focus: 'event.kind = 30078 (single-key announcement, not 10011)',
     expect: 'wrong_kind',
     async build() {
       const victim = LocalBchSigner.generate();
@@ -116,6 +122,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'edit',
     title: 'Edit after signing',
     blurb: 'Swap the address inside a published event without re-signing it.',
+    focus: 'sha256(serialized_event) ≠ event.id',
     expect: 'event_id_mismatch',
     async build() {
       const h = honest();
@@ -129,6 +136,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'cache',
     title: 'Trust a cached check',
     blurb: 'Mutate an event after nostr-tools has verified it once.',
+    focus: 'Symbol(verified) = true on mutated object → rebuilt from raw fields',
     expect: 'event_id_mismatch',
     async build() {
       const h = honest();
@@ -143,6 +151,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'reuse',
     title: 'One key for both sides',
     blurb: 'Use the same secret as the Nostr key and the BCH key.',
+    focus: 'bch_pubkey.x == nostr_pubkey.x (identical secret d)',
     expect: 'key_reuse',
     async build() {
       const n = keys();
@@ -156,6 +165,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'mirror',
     title: 'Mirrored key (d and n − d)',
     blurb: 'Different BCH address, same x-only key as the Nostr side.',
+    focus: 'd_bch = n − d_nostr ⇒ negated y, identical x-coordinate',
     expect: 'key_reuse',
     async build() {
       const n = keys();
@@ -174,6 +184,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'expired',
     title: 'Expired',
     blurb: 'Signed 40 days ago with a 30-day validity.',
+    focus: 'now > statement.expires_at + clock_skew',
     expect: 'expired',
     async build() {
       const n = keys();
@@ -188,6 +199,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'network',
     title: 'Wrong network',
     blurb: 'A mainnet address in a statement that says chipnet, validly signed.',
+    focus: 'prefix(cashaddr) = mainnet ≠ statement.network (chipnet)',
     expect: 'network_mismatch',
     async build() {
       const n = keys();
@@ -201,6 +213,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'canonical',
     title: 'Non-canonical proof',
     blurb: 'Same proof, pretty-printed. Two encodings of one claim are not allowed.',
+    focus: 'tag[2] ≠ JCS(parse(tag[2]))',
     expect: 'proof_not_canonical',
     async build() {
       const h = honest();
@@ -212,6 +225,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'p2sh',
     title: 'Contract address',
     blurb: 'P2SH has no single key, so a message signature cannot prove control.',
+    focus: 'cashaddr.type = P2SH (bitcoincash:p…)',
     expect: 'unsupported_address_type',
     async build() {
       const n = keys();

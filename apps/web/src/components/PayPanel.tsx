@@ -28,6 +28,7 @@ export const PayPanel = ({ cashaddr, payee, initialAmount }: { cashaddr: string;
   const [preset, setPreset] = useState(init.preset);
   const [custom, setCustom] = useState(init.custom);
   const [received, setReceived] = useState<IncomingPayment[]>([]);
+  const [dismissedTxid, setDismissedTxid] = useState<string>();
   const [watching, setWatching] = useState<'connecting' | 'live' | 'off'>('connecting');
   const [keysOpen, setKeysOpen] = useState(false);
   const electrum = useMemo(() => new ElectrumClient(config.electrum), []);
@@ -48,6 +49,7 @@ export const PayPanel = ({ cashaddr, payee, initialAmount }: { cashaddr: string;
 
   useEffect(() => {
     setReceived([]);
+    setDismissedTxid(undefined);
     setWatching('connecting');
     let stop: (() => void) | undefined;
     let live = true;
@@ -65,6 +67,7 @@ export const PayPanel = ({ cashaddr, payee, initialAmount }: { cashaddr: string;
   useEffect(() => () => electrum.close(), [electrum]);
 
   const latest = received[0];
+  const activeReceipt = latest && latest.txid !== dismissedTxid ? latest : undefined;
   const server = electrum.server?.replace(/^wss?:\/\//, '').split(':')[0];
 
   return (
@@ -101,54 +104,76 @@ export const PayPanel = ({ cashaddr, payee, initialAmount }: { cashaddr: string;
       </div>
       {customError && <span className="field-error">{customError}</span>}
 
-      <div className="pay__qr">
-        <a href={uri} className="pay__qr-code" aria-label="Open in a BCH wallet" data-dim={!payable || undefined}>
-          <Qr value={uri} size={168} label="Payment request" />
-        </a>
-        <div className="pay__summary">
-          <div className="amount">
-            {payable ? formatBch(sats) : '—'}
-            <small>BCH</small>
-          </div>
-          <div className="pay__meta">
-            {payable && <span>{sats.toLocaleString()} sats</span>}
-            <span>
-              to {payee} · <span className="mono">{shortCashaddr(cashaddr)}</span>
+      {activeReceipt ? (
+        <div className="pay-receipt" key={activeReceipt.txid} role="status" aria-live="polite">
+          <div className="pay-receipt__top">
+            <span className="received__mark">
+              <IconCheck size={17} strokeWidth={2.3} />
             </span>
-          </div>
-          <div className="row">
-            <a className="c-btn c-btn--sm" href={uri} aria-disabled={!payable || undefined} onClick={(e) => !payable && e.preventDefault()}>
-              Open wallet <IconArrowUpRight size={13} />
-            </a>
-            <CopyChip value={cashaddr} label="Copy address" />
-          </div>
-        </div>
-      </div>
-
-      {latest ? (
-        <div className="received" key={latest.txid}>
-          <span className="received__mark">
-            <IconCheck size={16} strokeWidth={2.2} />
-          </span>
-          <div>
-            <strong>Received {formatBch(latest.sats)} BCH</strong>
-            <span>
-              {latest.confirmed ? 'Confirmed' : 'Seen in mempool'} ·{' '}
-              <a href={config.explorerTx(latest.txid)} target="_blank" rel="noreferrer">
-                {shortMiddle(latest.txid, 10, 6)}
-              </a>
-            </span>
+            <div className="pay-receipt__body">
+              <div className="pay-receipt__amount">
+                {formatBch(activeReceipt.sats)}
+                <small>BCH received</small>
+              </div>
+              <div className="pay-receipt__meta">
+                <span className="pay-receipt__pill" data-confirmed={activeReceipt.confirmed || undefined}>
+                  {activeReceipt.confirmed ? 'Confirmed' : '0-conf · in mempool'}
+                </span>
+                <span>{activeReceipt.sats.toLocaleString()} sats</span>
+                <a href={config.explorerTx(activeReceipt.txid)} target="_blank" rel="noreferrer">
+                  {shortMiddle(activeReceipt.txid, 10, 6)} <IconArrowUpRight size={12} />
+                </a>
+              </div>
+            </div>
+            <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={() => setDismissedTxid(activeReceipt.txid)}>
+              Pay again
+            </button>
           </div>
         </div>
       ) : (
-        <div className="watch" data-state={watching}>
-          {watching === 'live' ? <span className="live" /> : watching === 'connecting' ? <Spinner /> : null}
-          {watching === 'live'
-            ? `Watching for payments via ${server}`
-            : watching === 'connecting'
-              ? 'Connecting to Fulcrum…'
-              : 'Payment watcher offline. The QR still works.'}
-        </div>
+        <>
+          <div className="pay__qr">
+            <a href={uri} className="pay__qr-code" aria-label="Open in a BCH wallet" data-dim={!payable || undefined}>
+              <span className="pay__qr-frame">
+                <Qr value={uri} size={168} label="Payment request" />
+              </span>
+            </a>
+            <div className="pay__summary">
+              <div className="amount">
+                {payable ? formatBch(sats) : '—'}
+                <small>BCH</small>
+              </div>
+              <div className="pay__meta">
+                {payable && <span>{sats.toLocaleString()} sats</span>}
+                <span>
+                  to {payee} · <span className="mono">{shortCashaddr(cashaddr)}</span>
+                </span>
+              </div>
+              <div className="row">
+                <a className="c-btn c-btn--sm" href={uri} aria-disabled={!payable || undefined} onClick={(e) => !payable && e.preventDefault()}>
+                  Open wallet <IconArrowUpRight size={13} />
+                </a>
+                <CopyChip value={cashaddr} label="Copy address" />
+              </div>
+            </div>
+          </div>
+
+          <div className="watch" data-state={watching}>
+            {watching === 'live' ? <span className="live" /> : watching === 'connecting' ? <Spinner /> : null}
+            <span>
+              {watching === 'live'
+                ? `Watching via ${server} · instant 0-conf`
+                : watching === 'connecting'
+                  ? 'Connecting to Fulcrum…'
+                  : 'Payment watcher offline. The QR still works.'}
+            </span>
+            {latest && (
+              <button type="button" className="c-link watch__last" onClick={() => setDismissedTxid(undefined)}>
+                Last receipt ({formatBch(latest.sats)} BCH)
+              </button>
+            )}
+          </div>
+        </>
       )}
 
       <div className="divider-label">or pay from Selene</div>
@@ -165,7 +190,10 @@ export const PayPanel = ({ cashaddr, payee, initialAmount }: { cashaddr: string;
             to={cashaddr}
             sats={sats}
             payee={payee}
-            onSent={(txid) => setReceived((prev) => (prev.some((x) => x.txid === txid) ? prev : [{ txid, sats, confirmed: false }, ...prev]))}
+            onSent={(txid) => {
+              setDismissedTxid(undefined);
+              setReceived((prev) => (prev.some((x) => x.txid === txid) ? prev : [{ txid, sats, confirmed: false }, ...prev]));
+            }}
           />
         </Suspense>
       ) : (

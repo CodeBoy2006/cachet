@@ -325,7 +325,11 @@ export const App = () => {
         <div className="rp-grid">
           <div>{brand.id === 'a' ? <FieldnoteContent session={session ?? null} /> : <StallContent session={session ?? null} />}</div>
           <div className="rp-side">
-            {notice && <Note tone="warn">{notice}</Note>}
+            {notice && (
+              <div className="rp-notice" key={`${tick}-${notice}`}>
+                <Note tone="warn">{notice}</Note>
+              </div>
+            )}
             {session === undefined && redirectSettled ? (
               <div className="c-card signin signin--loading muted">
                 <Spinner /> Checking session…

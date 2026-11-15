@@ -40,6 +40,7 @@ import { usePageTitle } from '../lib/usePageTitle.ts';
 import { NostrConnect } from '../components/NostrConnect.tsx';
 import { BchConnect } from '../components/BchConnect.tsx';
 import { ManualSign } from '../components/ManualSign.tsx';
+import { ShareButton } from '../components/ShareButton.tsx';
 import { downloadJson } from '../lib/download.ts';
 
 const DAY = 86400;
@@ -156,6 +157,7 @@ export const Create = () => {
   const [tokenAware, setTokenAware] = useState(false);
   const [ttl, setTtl] = useState(30 * DAY);
   const [relays, setRelays] = useState(config.relays);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
   const [statement, setStatement] = useState<BindStatement>();
   const [signature, setSignature] = useState<string>();
   const [busy, setBusy] = useState<'bch' | 'publish'>();
@@ -260,6 +262,8 @@ export const Create = () => {
   const accepted = results.filter((r) => r.ok).length;
   const pendingSign = published ? readPendingSign() : null;
   const showRelayProgress = busy === 'publish' || results.length > 0;
+  const ttlLabel = TTL_OPTIONS.find((o) => o.value === ttl)?.label ?? '30 days';
+  const isCashTokens = Boolean(effective?.startsWith('bitcoincash:z'));
 
   return (
     <div className="wrap page">
@@ -315,6 +319,7 @@ export const Create = () => {
                     View your profile <IconArrowRight size={14} />
                   </Link>
                 )}
+                {npub && <ShareButton url={`${window.location.origin}/p/${npub}`} title="My Cachet identity" label="Share profile" />}
                 {config.apps.map((app) => (
                   <a key={app.id} className="c-btn c-btn--secondary" href={app.url} target="_blank" rel="noreferrer">
                     Sign in to {app.name} <IconArrowUpRight size={14} />
@@ -372,28 +377,64 @@ export const Create = () => {
               </Step>
 
               <Step n={3} title="Sign and publish" state={step < 3 ? 'todo' : 'current'}>
-                {parsedChosen && !isAddressError(parsedChosen) && !parsedChosen.tokenAware && (
-                  <label className="check-row" data-disabled={locked || undefined}>
-                    <input type="checkbox" checked={tokenAware} onChange={(e) => setTokenAware(e.target.checked)} disabled={locked} />
-                    <span>
-                      My wallet accepts CashTokens at this address
-                      <span className="muted check-row__hint">Publishes the z… form of the same key. Leave off if unsure.</span>
+                <div className="create-params" data-open={customizeOpen || undefined}>
+                  <div className="create-params__bar">
+                    <span className="create-params__summary">
+                      Valid <strong>{ttlLabel}</strong> · <strong>{relays.length}</strong> {relays.length === 1 ? 'relay' : 'relays'}
+                      {isCashTokens ? ' · CashTokens' : ''}
                     </span>
-                  </label>
-                )}
-                <div className="field-row">
-                  <span className="c-label">Valid for</span>
-                  <Segmented value={ttl} options={TTL_OPTIONS} onChange={setTtl} label="Validity" disabled={locked} />
+                    <button
+                      type="button"
+                      className="c-btn c-btn--ghost c-btn--sm create-params__toggle"
+                      aria-expanded={customizeOpen}
+                      onClick={() => setCustomizeOpen(!customizeOpen)}
+                      disabled={locked}
+                    >
+                      {customizeOpen ? 'Done' : 'Customize'} <IconChevron size={14} />
+                    </button>
+                  </div>
+                  {customizeOpen && (
+                    <div className="create-params__body">
+                      {parsedChosen && !isAddressError(parsedChosen) && !parsedChosen.tokenAware && (
+                        <label className="check-row" data-disabled={locked || undefined}>
+                          <input type="checkbox" checked={tokenAware} onChange={(e) => setTokenAware(e.target.checked)} disabled={locked} />
+                          <span>
+                            My wallet accepts CashTokens at this address
+                            <span className="muted check-row__hint">Publishes the z… form of the same key. Leave off if unsure.</span>
+                          </span>
+                        </label>
+                      )}
+                      <div className="field-row">
+                        <span className="c-label">Valid for</span>
+                        <Segmented value={ttl} options={TTL_OPTIONS} onChange={setTtl} label="Validity" disabled={locked} />
+                      </div>
+                      <div>
+                        <span className="c-label">Relays</span>
+                        <RelayEditor relays={relays} onChange={setRelays} disabled={locked} />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <span className="c-label">Relays</span>
-                  <RelayEditor relays={relays} onChange={setRelays} disabled={locked} />
-                </div>
+
                 {existingClaims.length > 0 && (
                   <Note>
                     {replacing ? 'Replaces your current link for this address. ' : ''}
                     {otherClaims.length ? `Your other claims stay: ${otherClaims.join(', ')}.` : 'No other claims in your profile.'}
                   </Note>
+                )}
+
+                {!bothLocal && (
+                  <div className="sig-track" aria-label="Dual-signature progress">
+                    <span className="sig-track__pill" data-state={signature ? 'done' : 'now'}>
+                      <span className="sig-track__dot">{signature ? <IconCheck size={11} strokeWidth={2.4} /> : '1'}</span>
+                      BCH statement
+                    </span>
+                    <span className="sig-track__line" data-done={Boolean(signature) || undefined} aria-hidden />
+                    <span className="sig-track__pill" data-state={busy === 'publish' ? 'now' : signature ? 'ready' : 'todo'}>
+                      <span className="sig-track__dot">{busy === 'publish' ? <Spinner /> : '2'}</span>
+                      Nostr event
+                    </span>
+                  </div>
                 )}
 
                 {bch?.kind === 'manual' && message && effective && !signature ? (
@@ -417,7 +458,7 @@ export const Create = () => {
                       <IconCheck /> BCH signature checks out for {shortCashaddr(effective!)}
                     </div>
                     {showRelayProgress && <RelayList rows={publishRows} />}
-                    <button type="button" className="c-btn c-btn--lg" onClick={() => publish()} disabled={locked}>
+                    <button type="button" className="c-btn c-btn--accent c-btn--lg" onClick={() => publish()} disabled={locked}>
                       {busy === 'publish' && <Spinner />}
                       {busy === 'publish' ? 'Publishing…' : `Sign with ${nostr?.signer.label ?? 'Nostr'} and publish`}
                     </button>
@@ -432,20 +473,22 @@ export const Create = () => {
         <aside className="create__aside">
           <IdentityCard
             state={published ? (published.check.ok ? 'active' : 'invalid') : 'draft'}
+            bchSigned={!published && Boolean(signature)}
             pubkey={nostr?.pubkey}
             name={profile?.profile?.displayName || profile?.profile?.name}
             picture={profile?.profile?.picture}
             cashaddr={effective}
-            tokenAware={effective?.startsWith('bitcoincash:z')}
+            tokenAware={isCashTokens}
             expiresAt={statement?.expires_at}
             emptyNostr="Connect a key"
             emptyBch="Connect a wallet"
             foot={
-              published ? undefined : (
-                <span>
-                  {signature ? 'Signed by BCH · ' : ''}
-                  {statement ? `Valid until ${formatDate(statement.expires_at)}` : 'Draft'}
+              published ? undefined : signature && statement ? (
+                <span className="idcard-foot-signed">
+                  <IconCheck size={13} strokeWidth={2.2} /> BCH signed · valid until {formatDate(statement.expires_at)}
                 </span>
+              ) : (
+                <span>{statement ? `Valid until ${formatDate(statement.expires_at)}` : 'Draft · connect both keys'}</span>
               )
             }
           />

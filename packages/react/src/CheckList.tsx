@@ -1,10 +1,16 @@
+import type { CSSProperties } from 'react';
 import { VERIFY_CODES, type Check } from '@cachet/core';
 import { IconCheck, IconX } from './icons.tsx';
 
 export const CheckList = ({ checks, stagger = 45 }: { checks: Check[]; stagger?: number }) => (
   <ul className="c-checks">
     {checks.map((c, i) => (
-      <li key={c.id} className="c-check" data-status={c.status} style={{ animationDelay: `${i * stagger}ms` }}>
+      <li
+        key={c.id}
+        className="c-check"
+        data-status={c.status}
+        style={{ '--d': `${i * stagger}ms`, animationDelay: `${i * stagger}ms` } as CSSProperties}
+      >
         <span className="c-check__mark" aria-label={c.status}>
           {c.status === 'pass' && <IconCheck size={12} strokeWidth={2.2} />}
           {c.status === 'fail' && <IconX size={11} strokeWidth={2.2} />}

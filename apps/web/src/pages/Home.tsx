@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { npubEncode, type BindingState } from '@cachet/core';
-import { CheckList, Dialog, IconArrowRight, IconArrowUpRight, IconBeaker, IconKey, IconLock, IconWallet, IdentityCard, Spinner, shortNpub } from '@cachet/react';
+import { CheckList, Dialog, IconArrowRight, IconArrowUpRight, IconBeaker, IconKey, IconLock, IconRefresh, IconWallet, IdentityCard, Spinner, shortNpub } from '@cachet/react';
 import { config } from '../config.ts';
 import { SearchBox } from '../components/SearchBox.tsx';
 import { useLookup } from '../lib/useLookup.ts';
@@ -98,10 +98,15 @@ const LocalExample = () => {
       live = false;
     };
   }, []);
+  const remint = () => {
+    void makeExample().then(setEx);
+  };
   const b = ex?.result.binding;
+  const stampKey = ex?.event.id ?? 'init';
   return (
     <>
       <IdentityCard
+        key={stampKey}
         state={ex ? (ex.result.ok ? 'active' : 'invalid') : 'loading'}
         pubkey={ex?.nostr.pubkey}
         name="Example identity"
@@ -110,7 +115,7 @@ const LocalExample = () => {
       />
       <div className="c-card hero__checks">
         {ex ? (
-          <CheckList checks={ex.result.checks.filter((c) => EXAMPLE_CHECKS.includes(c.id))} stagger={70} />
+          <CheckList key={stampKey} checks={ex.result.checks.filter((c) => EXAMPLE_CHECKS.includes(c.id))} stagger={60} />
         ) : (
           <div className="hero__checks-skel" aria-hidden>
             {EXAMPLE_CHECKS.map((c) => (
@@ -120,10 +125,15 @@ const LocalExample = () => {
         )}
       </div>
       <div className="hero__caption">
-        <span>Throwaway keys, signed and verified in this tab. Nothing published.</span>
-        <Link href="/lab" className="hero__link">
-          Break it <IconArrowRight size={14} />
-        </Link>
+        <span>Throwaway keys, signed and verified in this tab.</span>
+        <span className="hero__caption-actions">
+          <button type="button" className="c-btn c-btn--ghost c-btn--sm hero__remint" onClick={remint} title="Generate fresh keys and re-verify">
+            <IconRefresh size={13} /> New keys
+          </button>
+          <Link href="/lab" className="hero__link">
+            Break it <IconArrowRight size={14} />
+          </Link>
+        </span>
       </div>
     </>
   );
@@ -145,6 +155,13 @@ export const Home = () => {
     <div className="wrap page">
       <section className="hero">
         <div className="hero__copy">
+          <div className="hero__eyebrow">
+            <span className="hero__dots" aria-hidden>
+              <span className="c-dot" style={{ background: 'var(--dot-nostr)' }} />
+              <span className="c-dot" style={{ background: 'var(--dot-bch)' }} />
+            </span>
+            NIP-39 · Dual-signed BCH identity
+          </div>
           <h1>Link your Bitcoin Cash address to your Nostr key.</h1>
           <p className="lede">
             Both keys sign one statement. It lives on Nostr relays, so any wallet or app can check who an address belongs to without asking us.

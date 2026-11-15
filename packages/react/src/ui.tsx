@@ -81,7 +81,10 @@ export const CopyIcon = ({ value, title = 'Copy' }: { value: string; title?: str
   const { copied, copy } = useCopy();
   return (
     <button type="button" className="c-icon-btn c-copy-icon" data-copied={copied} onClick={() => copy(value)} title={copied ? 'Copied' : title} aria-label={title}>
-      {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+      {copied ? <IconCheck size={14} strokeWidth={2} /> : <IconCopy size={14} />}
+      <span className="c-copy-icon__tip" aria-hidden>
+        Copied
+      </span>
     </button>
   );
 };

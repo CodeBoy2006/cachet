@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { DEFAULT_ELECTRUM, ElectrumClient, formatBch, paymentUri, watchAddress, type IncomingPayment } from '@cachet/pay';
-import { CopyChip, IconArrowUpRight, IconLock, IconRefresh, Qr, Spinner, shortCashaddr, shortMiddle, shortNpub } from '@cachet/react';
+import { CopyChip, IconArrowUpRight, IconCheck, IconLock, IconRefresh, Qr, Spinner, shortCashaddr, shortMiddle, shortNpub } from '@cachet/react';
 import { getNotes, getStall, type NoteItem, type SessionInfo, type StallState } from './api.ts';
 import { CACHET_URL } from './signers.ts';
 
@@ -57,9 +57,13 @@ export const FieldnoteContent = ({ session }: { session: SessionInfo | null }) =
         <article key={`${n.id}-${data.locked}`} className="note" data-locked={data.locked}>
           <div className="note__meta">
             <span>{n.date}</span>
-            {data.locked && (
+            {data.locked ? (
               <span className="note__lock">
                 <IconLock size={13} /> Members
+              </span>
+            ) : (
+              <span className="note__unlocked">
+                <IconCheck size={12} strokeWidth={2.2} /> Unlocked
               </span>
             )}
           </div>
@@ -141,10 +145,11 @@ export const StallContent = ({ session }: { session: SessionInfo | null }) => {
 
   return (
     <div className="stall">
-      <div className="stall__payout">
-        <span className="muted">Payouts go to</span>
+      <div className="stall__payout" data-closed={(!seller && Boolean(sellerQuery)) || undefined}>
+        <span className="muted">{seller || !sellerQuery ? 'Payouts go to' : 'Storefront closed'}</span>
         {seller ? (
           <span className="row" style={{ gap: 8 }}>
+            <span className="stall__verified-dot" aria-hidden />
             <span className="mono">{shortCashaddr(seller.cashaddr, 10, 8)}</span>
             {sellerQuery ? (
               <button type="button" className="c-btn c-btn--ghost c-btn--sm" onClick={() => setReload((n) => n + 1)} disabled={rechecking}>
@@ -228,14 +233,19 @@ export const StallContent = ({ session }: { session: SessionInfo | null }) => {
                     </div>
                     {isMainnet &&
                       (latest ? (
-                        <div className="stall__received">
-                          <strong>Payment seen · {formatBch(latest.sats)} BCH</strong>
-                          <span>
-                            {latest.confirmed ? 'Confirmed' : 'Seen in mempool'} ·{' '}
-                            <a href={`https://blockchair.com/bitcoin-cash/transaction/${latest.txid}`} target="_blank" rel="noreferrer">
-                              {shortMiddle(latest.txid, 10, 6)}
-                            </a>
+                        <div className="stall__received" key={latest.txid}>
+                          <span className="stall__received-mark">
+                            <IconCheck size={14} strokeWidth={2.3} />
                           </span>
+                          <div>
+                            <strong>Payment seen · {formatBch(latest.sats)} BCH</strong>
+                            <span>
+                              {latest.confirmed ? 'Confirmed' : '0-conf · in mempool'} ·{' '}
+                              <a href={`https://blockchair.com/bitcoin-cash/transaction/${latest.txid}`} target="_blank" rel="noreferrer">
+                                {shortMiddle(latest.txid, 10, 6)}
+                              </a>
+                            </span>
+                          </div>
                         </div>
                       ) : (
                         <div className="stall__watch">

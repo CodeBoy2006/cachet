@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { relayHost } from './format.ts';
 
 export interface RelayRow {
@@ -9,8 +10,8 @@ export interface RelayRow {
 
 export const RelayList = ({ rows }: { rows: RelayRow[] }) => (
   <div className="c-relays">
-    {rows.map((r) => (
-      <div key={r.url} className="c-relay" data-tone={r.tone}>
+    {rows.map((r, i) => (
+      <div key={r.url} className="c-relay" data-tone={r.tone} style={{ '--i': i } as CSSProperties}>
         <span className="c-relay__dot" />
         <span className="c-relay__host" title={r.url}>
           {relayHost(r.url)}
