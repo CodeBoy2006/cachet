@@ -81,6 +81,8 @@ export interface CachetProps {
   stage: CachetStage;
   verdict?: CachetVerdict;
   pubkey?: string;
+  /** Placeholder copy for the Nostr slot before a key is connected. */
+  emptyNostr?: string;
   name?: string;
   picture?: string;
   cashaddr?: string;
@@ -366,6 +368,7 @@ export const Cachet = ({
   stage,
   verdict = 'valid',
   pubkey,
+  emptyNostr,
   name,
   picture,
   cashaddr,
@@ -699,6 +702,10 @@ export const Cachet = ({
               </span>
               <CopyIcon value={npub} title="Copy npub" />
             </div>
+          ) : emptyNostr ? (
+            <div className="cachet__field">
+              <span className="cachet__addr cachet__addr--empty">{emptyNostr}</span>
+            </div>
           ) : (
             <div className="cachet__field">
               <span className="c-skel" style={{ width: 156, height: 16 }} />
@@ -815,6 +822,25 @@ export const Cachet = ({
     </div>
   );
 };
+
+/** Card flip glyph shared by interactive `<Cachet>` toolbars. */
+export const IconFlip = ({ size = 13 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M8 2v12" strokeDasharray="1.4 1.8" />
+    <path d="M5.75 4.5 2.25 11.5h3.5Z" />
+    <path d="M10.25 4.5l3.5 7h-3.5Z" />
+  </svg>
+);
 
 /** Standalone flat back-face card container with zero 3D or lighting effects, paired alongside `<Cachet flat />`. */
 export const CachetBackCard = ({

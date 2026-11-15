@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
+  binToHex,
   bindMessage,
+  bindingIdOf,
   createStatement,
   isAddressError,
   npubEncode,
   parseCashAddr,
+  recoverSigner,
   toggleTokenForm,
   type BindProof,
   type BindStatement,
@@ -13,7 +16,6 @@ import {
 import { lookupIdentity, normalizeRelayUrl, uniqueRelays, type LookupResult, type PublishResult } from '@cachet/discovery';
 import {
   CheckList,
-  CopyIcon,
   IconArrowRight,
   IconArrowUpRight,
   IconCheck,
@@ -23,18 +25,17 @@ import {
   IconWallet,
   IconX,
   IconZap,
-  IdentityCard,
   Note,
   RelayList,
   Segmented,
   Spinner,
-  formatDate,
   relayHost,
   shortCashaddr,
   shortNpub,
   type RelayRow,
 } from '@cachet/react';
 import { config } from '../config.ts';
+import { Cachet, CachetBack, IconFlip, type CachetStage } from '../components/Cachet.tsx';
 import { useSession } from '../lib/session.tsx';
 import { browserCache, clearPendingSign, readPendingSign } from '../lib/storage.ts';
 import { publishBinding } from '../lib/publish.ts';
@@ -168,6 +169,7 @@ export const Create = () => {
   const [error, setError] = useState<string>();
   const [results, setResults] = useState<PublishResult[]>([]);
   const [published, setPublished] = useState<Published>();
+  const [flipped, setFlipped] = useState(false);
   const [expressMode, setExpressMode] = useState(() => new URLSearchParams(window.location.search).get('sandbox') === '1');
   const expressRan = useRef(false);
 
@@ -302,6 +304,55 @@ export const Create = () => {
   const showRelayProgress = busy === 'publish' || results.length > 0;
   const ttlLabel = TTL_OPTIONS.find((o) => o.value === ttl)?.label ?? '30 days';
   const isCashTokens = Boolean(effective?.startsWith('bitcoincash:z'));
+
+  const sealedBinding = published?.check.binding;
+  const draftBchKey = useMemo(() => {
+    if (!message || !signature) return undefined;
+    const rec = recoverSigner(message, signature);
+    return rec.ok && rec.compressed ? binToHex(rec.publicKey) : undefined;
+  }, [message, signature]);
+  const draftSerial = useMemo(() => (message ? bindingIdOf(message) : undefined), [message]);
+
+  const cardStage: CachetStage = published
+    ? 'sealed'
+    : signature
+      ? busy === 'publish'
+        ? 'nostr'
+        : 'bch'
+      : nostr || effective
+        ? 'keys'
+        : 'empty';
+  const signedCount = published || (signature && busy === 'publish') ? 2 : signature ? 1 : 0;
+  const backMessage = sealedBinding?.message ?? message;
+  const canInspectBack = Boolean(backMessage);
+
+  useEffect(() => {
+    if (!backMessage) setFlipped(false);
+  }, [backMessage]);
+
+  useEffect(() => {
+    if (published) setFlipped(false);
+  }, [published]);
+
+  const cardStatus = published ? (
+    published.check.ok ? (
+      <span className="c-pill c-pill--active">Verified</span>
+    ) : (
+      <span className="c-pill c-pill--invalid">Invalid</span>
+    )
+  ) : (
+    <span className="hero__signs" data-n={signedCount}>
+      <span className="c-dot" style={{ background: 'var(--dot-bch)' }} />
+      <span className="c-dot" style={{ background: 'var(--dot-nostr)' }} />
+      {busy === 'publish'
+        ? 'Sealing…'
+        : signature
+          ? '1 of 2 signed'
+          : nostr && effective
+            ? '0 of 2 signed'
+            : 'Draft · connect keys'}
+    </span>
+  );
 
   return (
     <div className="wrap page">
@@ -523,37 +574,45 @@ export const Create = () => {
         </div>
 
         <aside className="create__aside">
-          <IdentityCard
-            state={published ? (published.check.ok ? 'active' : 'invalid') : 'draft'}
-            bchSigned={!published && Boolean(signature)}
-            pubkey={nostr?.pubkey}
+          <Cachet
+            stage={cardStage}
+            verdict={published && !published.check.ok ? 'void' : 'valid'}
+            pubkey={sealedBinding?.nostrPubkey ?? nostr?.pubkey}
+            emptyNostr="Connect a Nostr key"
             name={profile?.profile?.displayName || profile?.profile?.name}
             picture={profile?.profile?.picture}
-            cashaddr={effective}
-            tokenAware={isCashTokens}
-            expiresAt={statement?.expires_at}
-            emptyNostr="Connect a key"
-            emptyBch="Connect a wallet"
-            foot={
-              published ? undefined : signature && statement ? (
-                <span className="idcard-foot-signed">
-                  <IconCheck size={13} strokeWidth={2.2} /> BCH signed · valid until {formatDate(statement.expires_at)}
-                </span>
-              ) : (
-                <span>{statement ? `Valid until ${formatDate(statement.expires_at)}` : 'Draft · connect both keys'}</span>
-              )
+            cashaddr={sealedBinding?.cashaddr ?? effective}
+            emptyBch="Connect a BCH wallet"
+            tokenAware={sealedBinding?.tokenAware ?? isCashTokens}
+            serial={sealedBinding?.bindingId ?? draftSerial}
+            bchKey={sealedBinding?.bchPublicKey ?? draftBchKey}
+            expiresAt={sealedBinding?.expiresAt ?? statement?.expires_at}
+            overprint={published && !published.check.ok ? 'VOID' : undefined}
+            status={cardStatus}
+            flipped={flipped}
+            onFlip={canInspectBack ? () => setFlipped((f) => !f) : undefined}
+            back={
+              <CachetBack
+                message={backMessage}
+                bchSig={sealedBinding?.bchSignature ?? signature}
+                eventId={published?.event.id}
+                nostrSig={published?.event.sig}
+                emptyNote="Connect both keys to generate the statement."
+              />
             }
           />
-          {message && (
-            <details className="statement-peek">
-              <summary>
-                What your wallet signs <IconChevron size={14} />
-              </summary>
-              <div className="message-box">
-                <pre className="c-code">{message}</pre>
-                <CopyIcon value={message} title="Copy message" />
-              </div>
-            </details>
+          {canInspectBack && (
+            <div className="create__deck">
+              <button
+                type="button"
+                className="c-btn c-btn--ghost c-btn--sm hero__tool"
+                onClick={() => setFlipped((f) => !f)}
+                aria-pressed={flipped}
+              >
+                <IconFlip /> {flipped ? 'Front of card' : published ? 'Signed statement' : 'What your wallet signs'}
+              </button>
+              <span className="muted create__deck-hint">{flipped ? 'Back · SHA-256D payload' : 'Click or drag card to flip'}</span>
+            </div>
           )}
           {!published && profile === undefined && nostr && (
             <div className="row muted aside-status">

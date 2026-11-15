@@ -839,8 +839,8 @@ button.tile:hover .tile__go svg {
 
 .create {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
-  gap: 48px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
+  gap: 44px;
   align-items: start;
 }
 
@@ -852,7 +852,23 @@ button.tile:hover .tile__go svg {
   position: sticky;
   top: 86px;
   display: grid;
-  gap: 16px;
+  gap: 14px;
+}
+
+.create__deck {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.create__deck > .hero__tool {
+  margin-left: -9px;
+}
+
+.create__deck-hint {
+  font-size: 12px;
 }
 
 .aside-status {
@@ -1378,14 +1394,6 @@ button.tile:hover .tile__go svg {
   transform: scaleX(1);
 }
 
-.idcard-foot-signed {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--accent-ink);
-  font-weight: 500;
-}
-
 .signed-line {
   display: flex;
   align-items: center;
@@ -1444,38 +1452,6 @@ button.tile:hover .tile__go svg {
   .done-card__proof {
     margin-left: 0;
   }
-}
-
-.statement-peek summary {
-  cursor: pointer;
-  font-size: 13.5px;
-  color: var(--ink-2);
-  list-style: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: 6px;
-}
-
-.statement-peek summary:hover {
-  color: var(--ink);
-}
-
-.statement-peek summary::-webkit-details-marker {
-  display: none;
-}
-
-.statement-peek summary svg {
-  transition: rotate 200ms var(--ease);
-}
-
-.statement-peek[open] summary svg {
-  rotate: 180deg;
-}
-
-.statement-peek .message-box {
-  margin-top: 10px;
-  animation: step-open 240ms var(--ease) both;
 }
 
 .wc-pair {

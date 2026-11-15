@@ -19,7 +19,7 @@ import {
 } from '@cachet/react';
 import { config } from '../config.ts';
 import { SearchBox } from '../components/SearchBox.tsx';
-import { Cachet, CachetBack, Ledger, ZONE_OF, useReveal, type CachetStage, type CachetZone } from '../components/Cachet.tsx';
+import { Cachet, CachetBack, IconFlip, Ledger, ZONE_OF, useReveal, type CachetStage, type CachetZone } from '../components/Cachet.tsx';
 import { useLookup } from '../lib/useLookup.ts';
 import { makeExample, type Example } from '../lib/example.ts';
 import { prefersReducedMotion } from '../lib/useScramble.ts';
@@ -42,14 +42,6 @@ const PENDING: Check[] = HERO_CHECKS.map((id) => ({ id, label: CHECK_LABELS[id],
 const heroRows = (checks?: Check[]) => (checks ? checks.filter((c) => HERO_CHECKS.includes(c.id)) : PENDING);
 
 const fmtMs = (ms: number) => (ms < 0.1 ? '<0.1 ms' : ms < 10 ? `${ms.toFixed(1)} ms` : `${Math.round(ms)} ms`);
-
-const IconFlip = ({ size = 13 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d="M8 2v12" strokeDasharray="1.4 1.8" />
-    <path d="M5.75 4.5 2.25 11.5h3.5Z" />
-    <path d="M10.25 4.5l3.5 7h-3.5Z" />
-  </svg>
-);
 
 const Featured = ({ id, own }: { id: string; own: boolean }) => {
   const { state } = useLookup(id);
