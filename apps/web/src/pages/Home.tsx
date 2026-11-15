@@ -107,6 +107,7 @@ const Featured = ({ id, own }: { id: string; own: boolean }) => {
         overprint={bindingState ? OVERPRINT[bindingState] : undefined}
         status={settled && bindingState ? <StatePill state={bindingState} /> : <StatePill state="loading" />}
         flipped={flipped && !!binding}
+        onFlip={binding ? () => setFlipped((f) => !f) : undefined}
         back={
           binding && res?.event ? (
             <CachetBack message={binding.message} bchSig={binding.bchSignature} eventId={binding.eventId} nostrSig={res.event.sig} />
@@ -292,6 +293,7 @@ const LocalExample = () => {
         overprint={sealed && !ok ? 'VOID' : undefined}
         status={status}
         flipped={flipped}
+        onFlip={ex ? () => setFlipped((f) => !f) : undefined}
         back={
           ex && shownBinding ? (
             <CachetBack

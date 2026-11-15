@@ -1,18 +1,22 @@
-/* ---------- Cachet: the binding certificate ---------- */
+/* ---------- Cachet: Constructivist Bank-Card Credential ---------- */
 
 .cachet {
   --mx: 50%;
-  --my: 46%;
+  --my: 42%;
   --px: 0;
   --py: 0;
-  --serif: 'Source Serif 4 Variable', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-  --paper: color-mix(in srgb, var(--surface) 86%, var(--bg));
-  --dome: #ffffff;
-  --nostr-ink: color-mix(in srgb, var(--dot-nostr) 80%, var(--ink));
-  --bch-ink: var(--accent-ink);
-  --engrave: color-mix(in srgb, var(--ink) 36%, transparent);
-  --cachet-shade: rgb(20 20 18 / 0.2);
-  --cachet-lift: rgb(255 255 255 / 0.7);
+  --card-bg: linear-gradient(142deg, #fdfcfa 0%, #f6f4ee 54%, #ece9e0 100%);
+  --card-border: color-mix(in srgb, var(--ink) 15%, var(--line-2));
+  --card-rule: color-mix(in srgb, var(--ink) 11%, transparent);
+  --card-bevel: rgb(255 255 255 / 0.96);
+  --card-shade: rgb(20 20 18 / 0.22);
+  --ring-ink: #151513;
+  --lens-fill: #0b7a55;
+  --draft-ink: color-mix(in srgb, var(--ink) 22%, transparent);
+  --nostr-ink: #7c3aed;
+  --bch-ink: #087a55;
+  --stripe-bg: #181816;
+  --stripe-ink: #f2f0ea;
   container-type: inline-size;
   position: relative;
   perspective: 1400px;
@@ -20,22 +24,34 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .cachet {
-    --paper: color-mix(in srgb, var(--surface) 84%, #000);
-    --dome: color-mix(in srgb, var(--surface) 90%, #fff);
-    --nostr-ink: color-mix(in srgb, var(--dot-nostr) 70%, #fff);
-    --engrave: color-mix(in srgb, var(--ink) 42%, transparent);
-    --cachet-shade: rgb(0 0 0 / 0.62);
-    --cachet-lift: rgb(255 255 255 / 0.06);
+    --card-bg: linear-gradient(142deg, #1e1f1d 0%, #151614 55%, #0f100e 100%);
+    --card-border: color-mix(in srgb, #ffffff 14%, var(--line));
+    --card-rule: color-mix(in srgb, #ffffff 10%, transparent);
+    --card-bevel: rgb(255 255 255 / 0.11);
+    --card-shade: rgb(0 0 0 / 0.65);
+    --ring-ink: #edece7;
+    --lens-fill: #15996b;
+    --draft-ink: color-mix(in srgb, #edece7 22%, transparent);
+    --nostr-ink: #a78bfa;
+    --bch-ink: #34d399;
+    --stripe-bg: #0b0b0a;
+    --stripe-ink: #edece7;
   }
 }
 
 :root[data-theme='dark'] .cachet {
-  --paper: color-mix(in srgb, var(--surface) 84%, #000);
-  --dome: color-mix(in srgb, var(--surface) 90%, #fff);
-  --nostr-ink: color-mix(in srgb, var(--dot-nostr) 70%, #fff);
-  --engrave: color-mix(in srgb, var(--ink) 42%, transparent);
-  --cachet-shade: rgb(0 0 0 / 0.62);
-  --cachet-lift: rgb(255 255 255 / 0.06);
+  --card-bg: linear-gradient(142deg, #1e1f1d 0%, #151614 55%, #0f100e 100%);
+  --card-border: color-mix(in srgb, #ffffff 14%, var(--line));
+  --card-rule: color-mix(in srgb, #ffffff 10%, transparent);
+  --card-bevel: rgb(255 255 255 / 0.11);
+  --card-shade: rgb(0 0 0 / 0.65);
+  --ring-ink: #edece7;
+  --lens-fill: #15996b;
+  --draft-ink: color-mix(in srgb, #edece7 22%, transparent);
+  --nostr-ink: #a78bfa;
+  --bch-ink: #34d399;
+  --stripe-bg: #0b0b0a;
+  --stripe-ink: #edece7;
 }
 
 .cachet__flip {
@@ -43,12 +59,12 @@
   display: grid;
   position: relative;
   transform-style: preserve-3d;
-  transform: rotateX(calc(var(--py) * -4deg)) rotateY(calc(var(--px) * 6deg + var(--flip)));
-  transition: transform 760ms cubic-bezier(0.3, 1.2, 0.4, 1);
+  transform: rotateX(calc(var(--py) * -4.2deg)) rotateY(calc(var(--px) * 5.8deg + var(--flip)));
+  transition: transform 720ms cubic-bezier(0.24, 1.12, 0.36, 1);
 }
 
 .cachet[data-live] .cachet__flip {
-  transition: transform 180ms ease-out;
+  transition: transform 150ms ease-out;
 }
 
 .cachet[data-flipped] .cachet__flip {
@@ -60,15 +76,24 @@
   position: relative;
   border-radius: 18px;
   overflow: hidden;
-  background: var(--paper);
-  border: 1px solid var(--line);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   box-shadow:
-    inset 0 1px 0 var(--cachet-lift),
-    0 1px 2px rgb(20 20 18 / 0.05),
-    calc(var(--px) * -16px) calc(16px - var(--py) * 10px) 44px -20px var(--cachet-shade);
-  transition: border-color 320ms var(--ease);
+    inset 0 1px 0 var(--card-bevel),
+    0 2px 5px rgb(20 20 18 / 0.06),
+    calc(var(--px) * -14px) calc(18px - var(--py) * 10px) 46px -20px var(--card-shade);
+  transition:
+    border-color 320ms var(--ease),
+    box-shadow 320ms var(--ease);
+}
+
+.cachet__face--front {
+  aspect-ratio: 600 / 378;
+  min-height: 252px;
+  display: grid;
+  grid-template-rows: 14.021% 1fr 14.021%;
 }
 
 .cachet__face--back {
@@ -77,50 +102,28 @@
   transform: rotateY(180deg);
 }
 
-.cachet__face--front {
-  display: grid;
-  grid-template-rows: auto 1fr auto auto;
-}
-
 .cachet[data-verdict='valid'] .cachet__face {
-  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--card-border));
 }
 
 .cachet[data-verdict='void'] .cachet__face {
-  border-color: color-mix(in srgb, var(--danger) 40%, var(--line));
+  border-color: color-mix(in srgb, var(--danger) 48%, var(--card-border));
 }
 
 .cachet[data-verdict='void'] .cachet__face--front {
-  animation: c-shake 380ms 80ms var(--ease) both;
+  animation: c-shake 360ms 70ms var(--ease) both;
 }
 
-/* Double rule, as on a printed certificate. */
-.cachet__frame {
-  position: absolute;
-  inset: 7px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--ink) 11%, transparent);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.cachet__frame::after {
-  content: '';
-  position: absolute;
-  inset: 2px;
-  border-radius: 10px;
-  border: 0.5px solid color-mix(in srgb, var(--ink) 7%, transparent);
-}
-
+/* Specular metallic glare & sealing sweep */
 .cachet__glare {
   position: absolute;
   inset: 0;
   z-index: 6;
   pointer-events: none;
-  background: radial-gradient(420px circle at var(--mx) var(--my), rgb(255 255 255 / 0.32), transparent 52%);
+  background: radial-gradient(380px circle at var(--mx) var(--my), rgb(255 255 255 / 0.34), transparent 56%);
   mix-blend-mode: soft-light;
   opacity: 0;
-  transition: opacity 320ms var(--ease);
+  transition: opacity 280ms var(--ease);
 }
 
 .cachet[data-live] .cachet__glare {
@@ -132,32 +135,323 @@
   inset: 0;
   z-index: 6;
   pointer-events: none;
-  background: linear-gradient(104deg, transparent 38%, rgb(255 255 255 / 0.38) 50%, transparent 62%);
+  background: linear-gradient(106deg, transparent 36%, rgb(255 255 255 / 0.42) 50%, transparent 64%);
   mix-blend-mode: soft-light;
   translate: -115% 0;
-  animation: c-sheen-sweep 1100ms 280ms var(--ease) forwards;
+  animation: c-sheen-sweep 1000ms 180ms var(--ease) forwards;
 }
 
-/* Head: title and serial number */
+/* ---------- Monumental Constructivist Vesica Piscis ---------- */
+
+.cachet__monument {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.vesica {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+}
+
+.vesica__guide {
+  stroke: var(--card-rule);
+  stroke-width: 0.75;
+  stroke-dasharray: 2.5 3;
+}
+
+.vesica__ring {
+  fill: none;
+  stroke: var(--ring-ink);
+  stroke-width: 11.5;
+  opacity: 0.16;
+  transition:
+    transform 680ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 420ms var(--ease),
+    stroke 360ms var(--ease),
+    stroke-width 420ms var(--ease);
+}
+
+.cachet:not([data-stage='empty']) .vesica__ring {
+  opacity: 0.88;
+}
+
+.cachet[data-stage='sealed'][data-verdict='valid'] .vesica__ring {
+  opacity: 1;
+}
+
+.cachet[data-verdict='muted'] .vesica__ring {
+  opacity: 0.24;
+  stroke-width: 8.5;
+}
+
+.cachet[data-verdict='void'] .vesica__ring--bch {
+  stroke: var(--danger);
+  opacity: 0.88;
+}
+
+.vesica__lens {
+  fill: var(--lens-fill);
+  opacity: 0;
+  transform-origin: 456px 189px;
+  transition:
+    opacity 460ms var(--ease),
+    scale 520ms var(--ease-stamp);
+}
+
+.cachet[data-stage='keys'] .vesica__lens {
+  opacity: 0.06;
+}
+
+.cachet[data-stage='bch'] .vesica__lens {
+  opacity: 0.24;
+}
+
+.cachet[data-stage='nostr'] .vesica__lens {
+  opacity: 0.54;
+}
+
+.cachet[data-stage='sealed'][data-verdict='valid'] .vesica__lens {
+  opacity: 1;
+  animation: lens-lock 560ms var(--ease-stamp) both;
+}
+
+.cachet[data-stage='sealed'][data-verdict='void'] .vesica__lens {
+  opacity: 1;
+}
+
+.cachet[data-stage='sealed'][data-verdict='muted'] .vesica__lens {
+  fill: color-mix(in srgb, var(--ink) 5%, transparent);
+  opacity: 1;
+}
+
+.vesica__hatch-line {
+  stroke: color-mix(in srgb, var(--danger) 55%, transparent);
+  stroke-width: 1.8;
+}
+
+.vesica__center {
+  stroke: var(--draft-ink);
+  stroke-width: 0.9;
+  transition: transform 680ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Mathematical Constructivist sub-layer & white intaglio counter-change */
+.vesica__axis {
+  stroke: var(--draft-ink);
+  stroke-width: 0.75;
+}
+
+.vesica__rhombus {
+  fill: none;
+  stroke: var(--draft-ink);
+  stroke-width: 0.65;
+  opacity: 0.55;
+}
+
+.vesica__proj {
+  stroke: var(--draft-ink);
+  stroke-width: 0.85;
+  stroke-dasharray: 2.2 2.2;
+  opacity: 0.65;
+  transition: opacity 240ms var(--ease), stroke-width 240ms var(--ease);
+}
+
+.cachet[data-focus='seal'] .vesica__proj {
+  opacity: 1;
+  stroke-width: 1.3;
+}
+
+.vesica__curve path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 30%, transparent);
+  stroke-width: 1.25px;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: c-draw 1100ms 100ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.vesica__secant {
+  stroke: var(--draft-ink);
+  stroke-width: 0.7;
+  stroke-dasharray: 2.5 2.5;
+}
+
+.vesica__chord {
+  stroke: var(--bch-ink);
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: c-draw 520ms 140ms var(--ease) forwards;
+}
+
+.cachet[data-verdict='void'] .vesica__chord {
+  stroke: var(--danger);
+  stroke-dasharray: 0.04 0.04;
+  stroke-dashoffset: 0;
+}
+
+/* Inverted intaglio layer strictly inside the solid emerald lens */
+.vesica__math--inv .vesica__axis {
+  stroke: rgb(255 255 255 / 0.34);
+}
+
+.vesica__math--inv .vesica__rhombus {
+  stroke: rgb(255 255 255 / 0.28);
+  opacity: 1;
+}
+
+.vesica__math--inv .vesica__proj {
+  stroke: rgb(255 255 255 / 0.58);
+  opacity: 1;
+}
+
+.vesica__math--inv .vesica__curve path {
+  stroke: rgb(255 255 255 / 0.85);
+  stroke-width: 1.45px;
+}
+
+.vesica__math--inv .vesica__secant {
+  stroke: rgb(255 255 255 / 0.42);
+}
+
+.vesica__math--inv .vesica__chord {
+  stroke: #ffffff;
+  stroke-width: 1.6;
+}
+
+/* Key coordinate nodes P (circle) & Q (45° Constructivist square) */
+.vesica__pt {
+  transition: transform 680ms cubic-bezier(0.24, 1.12, 0.36, 1);
+}
+
+.vesica__pt-halo,
+.vesica__pt-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    fill 280ms var(--ease),
+    stroke 280ms var(--ease),
+    scale 280ms var(--ease);
+}
+
+.vesica__pt-halo {
+  fill: none;
+  stroke-width: 0.9;
+  opacity: 0.55;
+}
+
+.vesica__pt-dot {
+  fill: var(--surface);
+  stroke-width: 1.4;
+}
+
+.vesica__pt--p .vesica__pt-halo,
+.vesica__pt--p .vesica__pt-dot {
+  stroke: var(--nostr-ink);
+}
+
+.vesica__pt--q .vesica__pt-halo,
+.vesica__pt--q .vesica__pt-dot {
+  stroke: var(--bch-ink);
+}
+
+.vesica__pt--p[data-signed] .vesica__pt-dot {
+  fill: var(--nostr-ink);
+}
+
+.vesica__pt--q[data-signed] .vesica__pt-dot {
+  fill: var(--bch-ink);
+}
+
+.vesica__pt[data-signed] .vesica__pt-halo {
+  animation: pt-ping 640ms var(--ease) both;
+}
+
+.cachet[data-verdict='void'] .vesica__pt--q .vesica__pt-halo,
+.cachet[data-verdict='void'] .vesica__pt--q .vesica__pt-dot {
+  stroke: var(--danger);
+}
+
+.cachet[data-verdict='void'] .vesica__pt--q .vesica__pt-dot {
+  fill: var(--danger);
+}
+
+/* Counter-change node contrast inside emerald lens */
+.vesica__pt--inv .vesica__pt-halo,
+.vesica__pt--inv .vesica__pt-dot {
+  stroke: #ffffff !important;
+}
+
+.vesica__pt--inv[data-signed] .vesica__pt-dot {
+  fill: #ffffff !important;
+}
+
+.vesica__pt-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  fill: var(--ink-2);
+}
+
+.vesica__pt--inv .vesica__pt-label {
+  fill: #ffffff;
+}
+
+.cachet[data-focus='nostr'] .vesica__pt--p .vesica__pt-halo,
+.cachet[data-focus='bch'] .vesica__pt--q .vesica__pt-halo,
+.cachet[data-focus='seal'] .vesica__pt-halo {
+  scale: 1.5;
+  opacity: 1;
+}
+
+.cachet__domain {
+  margin-top: 2px;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  opacity: 0.76;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Top Header Bar (Exact 14.021% = y:53 datum) ---------- */
+
 .cachet__head {
   position: relative;
   z-index: 3;
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
-  padding: 19px 24px 0;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--card-rule);
   white-space: nowrap;
 }
 
-.cachet__title {
+.cachet__brand {
   display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.cachet__word {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.2em;
+  color: var(--ink);
+}
+
+.cachet__spec {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
   color: var(--ink-3);
 }
 
@@ -165,24 +459,26 @@
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  padding: 2px 5px;
-  margin: -2px -5px;
-  border-radius: 6px;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  border-radius: 5px;
 }
 
 .cachet__no {
-  font-family: var(--serif);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
   color: var(--ink-3);
 }
 
 .cachet__serial-v {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
-  transition: color 260ms var(--ease);
+  transition: color 240ms var(--ease);
 }
 
 .cachet[data-verdict='valid'] .cachet__serial-v {
@@ -195,85 +491,127 @@
   text-decoration-thickness: 1px;
 }
 
-/* Body: Nostr | seal | BCH */
+/* ---------- Middle Credential Register (Left Golden Section) ---------- */
+
 .cachet__body {
   position: relative;
   z-index: 3;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-  padding: 10px 24px 12px;
-}
-
-.cachet__side {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  width: 58%;
   min-width: 0;
-  padding: 8px 10px;
-  margin: -8px -10px;
-  border-radius: 12px;
+  padding: 12px 12px 12px 24px;
 }
 
-.cachet__side--bch {
-  text-align: right;
-}
-
-.cachet__kicker {
+.cachet__holder {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-bottom: 12px;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.cachet__side--bch .cachet__kicker {
-  justify-content: flex-end;
-}
-
-.cachet__kicker .c-dot {
-  width: 6px;
-  height: 6px;
-}
-
-.cachet__main {
-  display: flex;
-  align-items: center;
-  gap: 9px;
+  gap: 8px;
   min-width: 0;
-  height: 28px;
-  margin-bottom: 2px;
+  margin-bottom: -2px;
+  animation: c-rise 300ms var(--ease) both;
 }
 
-.cachet__side--bch .cachet__main {
-  justify-content: flex-end;
-}
-
-.cachet__value .c-avatar {
+.cachet__holder .c-avatar {
   flex: none;
-  margin-right: 5px;
   border: 0;
 }
 
 .cachet__name {
   min-width: 0;
-  font-family: var(--serif);
-  font-optical-sizing: auto;
-  font-size: 21px;
-  font-weight: 500;
-  letter-spacing: -0.012em;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  animation: c-rise 360ms var(--ease) both;
+}
+
+.cachet__reg {
+  min-width: 0;
+  padding: 5px 8px;
+  margin: -5px -8px;
+  border-radius: 8px;
+}
+
+.cachet__kicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.cachet__idx {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+.cachet__chip-tag {
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid var(--card-rule);
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+}
+
+.cachet__mark {
+  display: inline-grid;
+  place-items: center;
+  opacity: 0;
+  scale: 0.5;
+  color: var(--bch-ink);
+  transition:
+    opacity 240ms var(--ease),
+    scale 320ms var(--ease-spring);
+}
+
+.cachet__reg[data-zone='nostr'] .cachet__mark {
+  color: var(--nostr-ink);
+}
+
+.cachet__mark[data-on] {
+  opacity: 1;
+  scale: 1;
+}
+
+.cachet[data-verdict='void'] .cachet__reg[data-zone='bch'] .cachet__mark {
+  color: var(--danger);
+}
+
+.cachet__field {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  height: 24px;
+}
+
+.cachet__field .c-copy-icon {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  opacity: 0.62;
+}
+
+.cachet__field .c-copy-icon:hover {
+  opacity: 1;
 }
 
 .cachet__mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: 'zero';
 }
 
 .cachet__addr {
@@ -281,150 +619,155 @@
   font-size: 15px;
   font-weight: 500;
   letter-spacing: -0.01em;
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: color 260ms var(--ease);
-}
-
-.cachet__value {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  min-width: 0;
-  font-size: 12px;
-  color: var(--ink-2);
-  white-space: nowrap;
-}
-
-.cachet__value > span:first-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.cachet__side--bch .cachet__value {
-  justify-content: flex-end;
+  transition: color 240ms var(--ease);
 }
 
 .cachet__diff {
-  font-weight: inherit;
+  font-weight: 600;
   color: var(--danger);
   background: var(--danger-soft);
   border-radius: 2px;
-  animation: c-fade 220ms ease both;
+  padding: 0 1px;
+  animation: c-fade 200ms ease both;
 }
 
-.cachet[data-verdict='void'] .cachet__addr {
+.cachet[data-verdict='void'] .cachet__reg[data-zone='bch'] .cachet__addr {
   color: var(--danger);
 }
 
-/* The signature scheme each key uses, inked when that key signs. */
-.cachet__scheme {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 14px;
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 12.5px;
-  color: var(--ink-3);
-  white-space: nowrap;
-  transition: color 360ms var(--ease);
-}
+/* ---------- Bottom Architectural Datum Bar (Exact 14.021% = y:325) ---------- */
 
-.cachet__side--bch .cachet__scheme {
-  justify-content: flex-end;
-}
-
-.cachet__scheme svg {
-  flex: none;
-  opacity: 0;
-  scale: 0.4;
-  transition:
-    opacity 260ms var(--ease),
-    scale 360ms var(--ease-spring);
-}
-
-.cachet__scheme[data-on] svg {
-  opacity: 1;
-  scale: 1;
-}
-
-.cachet__side--nostr .cachet__scheme[data-on] {
-  color: var(--nostr-ink);
-}
-
-.cachet__side--bch .cachet__scheme[data-on] {
-  color: var(--bch-ink);
-}
-
-.cachet[data-verdict='void'] .cachet__side--bch .cachet__scheme {
-  color: var(--danger);
-}
-
-/* Microprint rule: the secp256k1 domain parameters. */
-.cachet__micro {
-  position: relative;
-  z-index: 3;
-  display: block;
-  width: calc(100% - 48px);
-  height: 6px;
-  margin: 0 24px;
-}
-
-.cachet__micro text {
-  font-family: var(--font-mono);
-  font-size: 4.1px;
-  letter-spacing: 0.04em;
-  fill: color-mix(in srgb, var(--ink) 34%, transparent);
-}
-
-/* Foot */
 .cachet__foot {
   position: relative;
   z-index: 3;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 14px;
-  flex-wrap: wrap;
-  min-height: 44px;
-  padding: 8px 24px 16px;
-  font-size: 12.5px;
+  gap: 10px;
+  padding: 0 24px;
+  border-top: 1px solid var(--card-rule);
+  font-size: 11.5px;
   color: var(--ink-3);
+  white-space: nowrap;
 }
 
 .cachet__status {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 24px;
+}
+
+/* Refine generic pills inside the bank card into crisp architectural status stamps */
+.cachet__status .c-pill {
+  height: 21px;
+  padding: 0 8px 0 7px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cachet__stamp {
+  display: inline-flex;
+  align-items: center;
+  height: 21px;
+  padding: 0 7px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--danger) 48%, transparent);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--danger);
+  animation: c-pop 260ms var(--ease-stamp) both;
+}
+
+.cachet[data-verdict='muted'] .cachet__stamp {
+  border-color: var(--line-2);
+  color: var(--ink-3);
+}
+
+.cachet[data-flippable] .cachet__face {
+  cursor: pointer;
+}
+
+.cachet__foot-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cachet__flip-cue {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid var(--card-rule);
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 160ms var(--ease),
+    border-color 160ms var(--ease),
+    background-color 160ms var(--ease);
+}
+
+.cachet__flip-cue:hover {
+  color: var(--ink);
+  border-color: var(--card-border);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
 }
 
 .cachet__expiry {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   padding: 2px 6px;
   margin: -2px -6px;
-  border-radius: 6px;
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 13px;
+  border-radius: 5px;
 }
 
-/* Focus: each check lights the part of the card it covers. */
+.cachet__expiry-k {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+}
+
+.cachet__expiry-v {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+}
+
+/* ---------- Zone Spotlight Interaction ---------- */
+
 .cachet [data-zone] {
   transition:
-    opacity 260ms var(--ease),
-    background-color 260ms var(--ease),
-    color 260ms var(--ease);
+    opacity 240ms var(--ease),
+    background-color 240ms var(--ease),
+    color 240ms var(--ease);
 }
 
 .cachet[data-focus] [data-zone] {
-  opacity: 0.32;
+  opacity: 0.28;
 }
 
 .cachet[data-focus='nostr'] [data-zone='seal'],
 .cachet[data-focus='bch'] [data-zone='seal'] {
-  opacity: 0.85;
+  opacity: 0.88;
 }
 
 .cachet[data-focus='nostr'] [data-zone='nostr'],
@@ -435,390 +778,80 @@
   opacity: 1;
 }
 
-.cachet[data-focus='nostr'] .cachet__side--nostr {
-  background-color: color-mix(in srgb, var(--dot-nostr) 6%, transparent);
+.cachet[data-focus='nostr'] .cachet__reg[data-zone='nostr'] {
+  background-color: color-mix(in srgb, var(--nostr-ink) 8%, transparent);
 }
 
-.cachet[data-focus='bch'] .cachet__side--bch {
-  background-color: color-mix(in srgb, var(--dot-bch) 7%, transparent);
+.cachet[data-focus='bch'] .cachet__reg[data-zone='bch'] {
+  background-color: color-mix(in srgb, var(--bch-ink) 9%, transparent);
 }
 
 .cachet[data-focus='statement'] .cachet__serial,
 .cachet[data-focus='time'] .cachet__expiry {
-  background-color: color-mix(in srgb, var(--accent) 10%, transparent);
+  background-color: color-mix(in srgb, var(--accent) 11%, transparent);
+}
+
+.cachet[data-focus='statement'] .cachet__serial-v,
+.cachet[data-focus='time'] .cachet__expiry-v {
   color: var(--accent-ink);
 }
 
-.cachet[data-focus='statement'] .cachet__serial-v {
-  color: var(--accent-ink);
-}
-
-/* ---------- Seal ---------- */
-
-.cachet__seal {
-  margin: 0;
-  display: grid;
-  justify-items: center;
-  gap: 7px;
-}
-
-.cachet__seal-disc {
-  position: relative;
-  width: clamp(120px, 27cqi, 148px);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle at 36% 28%, var(--dome), var(--paper) 72%);
-  box-shadow:
-    inset 0 1.5px 0 var(--cachet-lift),
-    inset 0 -1.5px 3px rgb(20 20 18 / 0.06),
-    0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent),
-    0 1px 2px rgb(20 20 18 / 0.06),
-    0 12px 26px -14px var(--cachet-shade);
-  translate: calc(var(--px) * 6px) calc(var(--py) * 5px);
-  transition: translate 500ms var(--ease);
-}
-
-/* Concentric ground radiating from the seal. */
-.cachet__seal-disc::before {
-  content: '';
-  position: absolute;
-  inset: -96px;
-  z-index: -1;
-  border-radius: 50%;
-  pointer-events: none;
-  background: repeating-radial-gradient(
-    circle,
-    transparent 0 5.5px,
-    color-mix(in srgb, var(--ink) 7%, transparent) 5.5px 6.1px
-  );
-  mask-image: radial-gradient(closest-side, transparent 42%, #000 50%, transparent 100%);
-  -webkit-mask-image: radial-gradient(closest-side, transparent 42%, #000 50%, transparent 100%);
-}
-
-/* Light catching the emboss as the card turns. */
-.cachet__seal-disc::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  pointer-events: none;
-  background: conic-gradient(
-    from calc(var(--px) * 200deg + 30deg),
-    transparent 0deg,
-    rgb(255 255 255 / 0.5) 26deg,
-    transparent 62deg,
-    transparent 180deg,
-    rgb(255 255 255 / 0.32) 206deg,
-    transparent 242deg
-  );
-  mix-blend-mode: soft-light;
-  opacity: 0;
-  transition: opacity 400ms var(--ease);
-}
-
-.cachet[data-live] .cachet__seal-disc::after {
-  opacity: 1;
-}
-
-.cachet[data-stage='sealed'] .cachet__seal-disc {
-  animation: seal-press 620ms var(--ease-stamp) both;
-}
-
-.cachet__eq {
-  font-family: var(--serif);
-  font-size: 13px;
-  letter-spacing: 0.02em;
-  color: var(--ink-3);
-  white-space: nowrap;
-}
-
-.cachet__eq i {
-  font-style: italic;
-  margin-right: 0.04em;
-}
-
-.seal {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  fill: none;
-}
-
-.seal__face {
-  fill: none;
-}
-
-.seal__beads circle {
-  fill: color-mix(in srgb, var(--ink) 30%, transparent);
-}
-
-.seal__rule {
-  stroke: color-mix(in srgb, var(--ink) 20%, transparent);
-  stroke-width: 0.5;
-}
-
-.seal__rule--fine {
-  stroke: color-mix(in srgb, var(--ink) 12%, transparent);
-  stroke-width: 0.35;
-}
-
-.seal__ring {
-  rotate: -28deg;
-  opacity: 0.35;
-  transition:
-    rotate 1500ms cubic-bezier(0.2, 1.1, 0.3, 1),
-    opacity 600ms var(--ease);
-}
-
-.cachet:not([data-stage='empty']) .seal__ring {
-  rotate: -7deg;
-  opacity: 1;
-}
-
-.cachet[data-stage='sealed'] .seal__ring {
-  rotate: 0deg;
-}
-
-.seal__legend {
-  font-family: var(--serif);
-  font-size: 4.5px;
-  font-weight: 560;
-  fill: var(--engrave);
-  transition: fill 520ms var(--ease);
-}
-
-.cachet:is([data-stage='bch'], [data-stage='nostr'], [data-stage='sealed']) .seal__legend--bch {
-  fill: var(--bch-ink);
-}
-
-.cachet:is([data-stage='nostr'], [data-stage='sealed']) .seal__legend--nostr {
-  fill: var(--nostr-ink);
-}
-
-.cachet[data-verdict='void'] .seal__legend--bch {
-  fill: var(--danger);
-}
-
-.cachet[data-verdict='muted'] .seal__legend {
-  fill: var(--engrave);
-}
-
-.seal__star {
-  fill: color-mix(in srgb, var(--ink) 34%, transparent);
-  transition: fill 400ms var(--ease);
-}
-
-.cachet[data-verdict='valid'] .seal__star {
-  fill: var(--accent);
-}
-
-.seal__axes path {
-  stroke: color-mix(in srgb, var(--ink) 15%, transparent);
-  stroke-width: 0.4;
-}
-
-.seal__curve path {
-  stroke: color-mix(in srgb, var(--ink) 62%, transparent);
-  stroke-width: 1;
-  stroke-linecap: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: c-draw 1300ms 120ms cubic-bezier(0.45, 0.05, 0.25, 1) forwards;
-  transition: stroke 600ms var(--ease);
-}
-
-.cachet[data-verdict='valid'] .seal__curve path {
-  stroke: var(--accent);
-}
-
-.cachet[data-verdict='muted'] .seal__curve path {
-  stroke: color-mix(in srgb, var(--ink) 36%, transparent);
-}
-
-.seal__proj path {
-  stroke: color-mix(in srgb, var(--ink) 50%, transparent);
-  stroke-width: 0.5;
-  stroke-dasharray: 1.2 1.3;
-  animation: c-fade 240ms var(--ease) both;
-}
-
-.seal__chord {
-  stroke: var(--accent);
-  stroke-width: 0.7;
-  stroke-linecap: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: c-draw 560ms 160ms var(--ease) forwards;
-}
-
-.cachet[data-verdict='void'] .seal__chord {
-  stroke: var(--danger);
-  stroke-dasharray: 0.03 0.03;
-  stroke-dashoffset: 0;
-  animation: c-fade 300ms 120ms var(--ease) both;
-}
-
-/* P (Nostr) and Q (BCH): hollow until their key signs. */
-.seal__pt {
-  transition: transform 760ms cubic-bezier(0.3, 1.2, 0.4, 1);
-}
-
-.seal__pt-halo,
-.seal__pt-dot {
-  transform-box: fill-box;
-  transform-origin: center;
-  transition:
-    fill 320ms var(--ease),
-    stroke 320ms var(--ease),
-    scale 320ms var(--ease);
-}
-
-.seal__pt-halo {
-  fill: color-mix(in srgb, var(--paper) 86%, transparent);
-  stroke-width: 0.5;
-}
-
-.seal__pt-dot {
-  fill: var(--paper);
-  stroke-width: 0.9;
-}
-
-.seal__pt--p .seal__pt-halo,
-.seal__pt--p .seal__pt-dot {
-  stroke: var(--dot-nostr);
-}
-
-.seal__pt--q .seal__pt-halo,
-.seal__pt--q .seal__pt-dot {
-  stroke: var(--dot-bch);
-}
-
-.seal__pt--p[data-signed] .seal__pt-dot {
-  fill: var(--dot-nostr);
-}
-
-.seal__pt--q[data-signed] .seal__pt-dot {
-  fill: var(--dot-bch);
-}
-
-.seal__pt[data-signed] .seal__pt-halo {
-  animation: pt-ping 700ms var(--ease) both;
-}
-
-.cachet[data-verdict='void'] .seal__pt--q .seal__pt-dot,
-.cachet[data-verdict='void'] .seal__pt--q .seal__pt-halo {
-  stroke: var(--danger);
-}
-
-.cachet[data-verdict='void'] .seal__pt--q .seal__pt-dot {
-  fill: var(--danger);
-}
-
-.cachet[data-focus='nostr'] .seal__pt--p .seal__pt-halo,
-.cachet[data-focus='bch'] .seal__pt--q .seal__pt-halo,
-.cachet[data-focus='seal'] .seal__pt-halo {
-  scale: 1.45;
-}
-
-.seal__pt-label {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 7px;
-  fill: var(--ink-2);
-  stroke: var(--paper);
-  stroke-width: 1.6px;
-  paint-order: stroke;
-}
-
-/* A soft bloom behind the seal at the moment it is pressed. */
-.cachet__press {
-  position: absolute;
-  inset: -26px;
-  z-index: -1;
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent), transparent 66%);
-  animation: cachet-bloom 1300ms 120ms var(--ease) both;
-}
-
-.cachet[data-verdict='void'] .cachet__press {
-  background: radial-gradient(circle, color-mix(in srgb, var(--danger) 22%, transparent), transparent 66%);
-}
-
-.cachet[data-verdict='muted'] .cachet__press {
-  display: none;
-}
-
-/* Overprint (VOID, WITHDRAWN, EXPIRED): hatched like a pantograph. */
-.cachet__overprint {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 5;
-  pointer-events: none;
-}
-
-.cachet__overprint text {
-  font-family: var(--serif);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  stroke: color-mix(in srgb, var(--danger) 62%, transparent);
-  stroke-width: 1;
-  paint-order: stroke;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: overprint-in 560ms 200ms var(--ease-stamp) both;
-}
-
-.cachet__overprint line {
-  stroke: color-mix(in srgb, var(--danger) 44%, transparent);
-  stroke-width: 1.2;
-}
-
-.cachet[data-verdict='muted'] .cachet__overprint text {
-  stroke: color-mix(in srgb, var(--ink-3) 50%, transparent);
-}
-
-.cachet[data-verdict='muted'] .cachet__overprint line {
-  stroke: color-mix(in srgb, var(--ink-3) 30%, transparent);
-}
-
-/* ---------- Back: the signed message ---------- */
+/* ---------- Back Face: Bank-Card Magnetic Stripe & Signed Statement ---------- */
 
 .cachet-back {
   position: relative;
   height: 100%;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 10px;
-  padding-bottom: 18px;
+  padding: 14px 0 14px;
+}
+
+.cachet-back__stripe {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+  padding: 0 22px;
+  background: var(--stripe-bg);
+  color: var(--stripe-ink);
+}
+
+.cachet-back__title {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.88;
 }
 
 .cachet-back__size {
-  gap: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  opacity: 0.88;
 }
 
-.cachet-back .c-copy-icon {
+.cachet-back__size .c-copy-icon {
   width: 22px;
   height: 22px;
+  color: inherit;
 }
 
 .cachet-back__msg {
-  position: relative;
-  z-index: 3;
-  margin: 0 24px;
-  padding: 11px 13px;
+  margin: 0 22px;
+  padding: 9px 12px;
   min-height: 0;
   overflow: auto;
-  border-radius: 8px;
-  background: var(--sunken);
-  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--sunken) 80%, transparent);
+  border: 1px solid var(--card-rule);
   font-family: var(--font-mono);
-  font-size: 11px;
-  line-height: 1.6;
+  font-size: 10.5px;
+  line-height: 1.55;
   color: var(--ink-2);
   white-space: pre-wrap;
   word-break: break-all;
@@ -834,88 +867,65 @@
 }
 
 .cachet-back__b {
-  color: var(--accent-ink);
+  color: var(--bch-ink);
   font-weight: 500;
 }
 
 .cachet-back__x {
   color: var(--danger);
   background: var(--danger-soft);
-  font-weight: 500;
-}
-
-.cachet-back__frame {
-  position: relative;
-  z-index: 3;
-  margin: 0 24px;
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 12px;
-  color: var(--ink-3);
-}
-
-.cachet-back__frame .cachet__mono {
-  font-style: normal;
-  font-size: 10.5px;
-  color: var(--ink-2);
+  font-weight: 600;
 }
 
 .cachet-back__rows {
-  position: relative;
-  z-index: 3;
-  margin: 0 24px;
+  margin: 0 22px;
   display: grid;
-  gap: 3px;
-  font-size: 12px;
+  gap: 2px;
+  font-size: 11px;
 }
 
 .cachet-back__rows > div {
   display: grid;
-  grid-template-columns: 118px minmax(0, 1fr);
+  grid-template-columns: 98px minmax(0, 1fr);
   gap: 10px;
   align-items: baseline;
 }
 
 .cachet-back__rows dt {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
   color: var(--ink-3);
 }
 
 .cachet-back__rows dd {
   margin: 0;
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--ink-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* ---------- Ledger: the verification slip ---------- */
+/* ---------- Frameless Swiss Verification Index (Ledger) ---------- */
 
 .ledger {
   position: relative;
-  margin-top: 14px;
-  padding: 2px 18px 8px;
-  border-radius: 16px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-  transition: border-color 260ms var(--ease);
-}
-
-.ledger[data-tone='fail'] {
-  border-color: color-mix(in srgb, var(--danger) 32%, var(--line));
+  margin-top: 18px;
+  padding: 0 2px;
 }
 
 .ledger__head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 6px 14px;
+  gap: 8px 14px;
   flex-wrap: wrap;
-  min-height: 40px;
-  padding: 8px 0;
-  border-bottom: 1px dashed var(--line-2);
-  font-size: 12.5px;
+  min-height: 32px;
+  padding: 0 0 7px;
+  border-bottom: 1px solid var(--line-2);
+  font-size: 12px;
+  font-weight: 500;
   color: var(--ink-3);
 }
 
@@ -936,41 +946,42 @@
 
 .ledger__meta {
   font-family: var(--font-mono);
-  font-size: 11.5px;
-  color: var(--ink-2);
+  font-size: 11px;
+  color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
 
 .ledger__rows {
   list-style: none;
   margin: 0;
-  padding: 4px 0 0;
+  padding: 0;
 }
 
 .ledger__row {
   display: grid;
-  grid-template-columns: 18px max-content minmax(10px, 1fr) minmax(0, max-content);
+  grid-template-columns: 16px minmax(0, 1fr) minmax(0, max-content);
   align-items: center;
   gap: 10px;
-  min-height: 35px;
-  margin: 0 -8px;
-  padding: 0 8px;
-  border-radius: 8px;
-  font-size: 13.5px;
-  transition: background-color 200ms var(--ease);
+  min-height: 31px;
+  padding: 0 4px;
+  margin: 0 -4px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+  font-size: 13px;
+  transition: background-color 180ms var(--ease);
 }
 
 .ledger__row:hover {
-  background-color: var(--surface-2);
+  background-color: color-mix(in srgb, var(--ink) 3.5%, transparent);
 }
 
 .ledger__mark {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
   display: grid;
   place-items: center;
-  border: 1px dashed var(--line-2);
+  border: 1px solid var(--line-2);
+  color: var(--ink-3);
 }
 
 .ledger__row[data-status='pending'] .ledger__label {
@@ -980,7 +991,7 @@
 .ledger__row[data-status='pass'] .ledger__mark,
 .ledger__row[data-status='fail'] .ledger__mark {
   border: 0;
-  animation: ledger-pop 360ms var(--ease-spring) both;
+  animation: ledger-pop 320ms var(--ease-spring) both;
 }
 
 .ledger__row[data-status='pass'] .ledger__mark {
@@ -988,31 +999,14 @@
   color: var(--accent-ink);
 }
 
-.ledger__row[data-status='pass'] .c-stroke-draw {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: c-draw 260ms 80ms var(--ease) forwards;
-}
-
 .ledger__row[data-status='fail'] .ledger__mark {
   background: var(--danger);
   color: var(--on-danger);
 }
 
-.ledger__row[data-status='fail'] .c-stroke-draw {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: c-draw 200ms 60ms var(--ease) forwards;
-}
-
-.ledger__row[data-status='fail'] .c-stroke-draw--2 {
-  animation-delay: 140ms;
-}
-
 .ledger__row[data-status='fail'] {
-  background: linear-gradient(90deg, var(--danger-soft), transparent 88%);
-  box-shadow: inset 2px 0 0 var(--danger);
-  animation: c-shake 320ms 60ms var(--ease);
+  background: linear-gradient(90deg, var(--danger-soft), transparent 85%);
+  animation: c-shake 300ms 50ms var(--ease);
 }
 
 .ledger__row[data-status='skip'] .ledger__label {
@@ -1020,50 +1014,36 @@
 }
 
 .ledger__row[data-current] {
-  animation: ledger-flash 600ms var(--ease);
-}
-
-.ledger__row[data-status='fail'][data-current] {
-  animation: c-shake 320ms 60ms var(--ease);
+  animation: ledger-flash 520ms var(--ease);
 }
 
 .ledger__label {
   min-width: 0;
-  transition: color 200ms var(--ease);
+  color: var(--ink-2);
+  transition: color 180ms var(--ease);
+}
+
+.ledger__row[data-status='pass'] .ledger__label {
+  color: var(--ink);
 }
 
 .ledger__code {
-  display: block;
-  margin-top: -1px;
+  display: inline-block;
+  margin-left: 7px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--danger);
-}
-
-/* Leader dots, drawn left to right as each check lands. */
-.ledger__dots {
-  height: 2px;
-  align-self: center;
-  translate: 0 3px;
-  background: radial-gradient(circle, var(--line-2) 0.85px, transparent 1.1px) 0 50% / 5px 2px repeat-x;
-  transform-origin: left center;
-  scale: 0 1;
-  transition: scale 380ms var(--ease);
-}
-
-.ledger__row:not([data-status='pending']) .ledger__dots {
-  scale: 1 1;
 }
 
 .ledger__detail {
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--ink-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 250px;
-  animation: c-fade 260ms 120ms var(--ease) both;
+  max-width: 240px;
+  animation: c-fade 240ms 90ms var(--ease) both;
 }
 
 .ledger__row[data-status='fail'] .ledger__detail {
@@ -1072,25 +1052,12 @@
 
 /* ---------- Keyframes ---------- */
 
-@keyframes seal-press {
-  0%,
-  24% {
-    scale: 1;
-    box-shadow:
-      inset 0 1.5px 0 var(--cachet-lift),
-      inset 0 -1.5px 3px rgb(20 20 18 / 0.06),
-      0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent),
-      0 1px 2px rgb(20 20 18 / 0.06),
-      0 12px 26px -14px var(--cachet-shade);
+@keyframes lens-lock {
+  0% {
+    scale: 0.94;
   }
-  44% {
-    scale: 0.955;
-    box-shadow:
-      inset 0 3px 8px rgb(20 20 18 / 0.16),
-      inset 0 -1px 0 var(--cachet-lift),
-      0 0 0 1px color-mix(in srgb, var(--ink) 10%, transparent),
-      0 1px 1px rgb(20 20 18 / 0.06),
-      0 4px 10px -8px var(--cachet-shade);
+  55% {
+    scale: 1.015;
   }
   100% {
     scale: 1;
@@ -1099,7 +1066,7 @@
 
 @keyframes pt-ping {
   0% {
-    scale: 2.6;
+    scale: 2.3;
     opacity: 0;
   }
   45% {
@@ -1110,38 +1077,9 @@
   }
 }
 
-@keyframes cachet-bloom {
-  0% {
-    opacity: 0;
-    scale: 0.6;
-  }
-  30% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    scale: 1.3;
-  }
-}
-
-@keyframes overprint-in {
-  0% {
-    opacity: 0;
-    scale: 1.28;
-  }
-  55% {
-    opacity: 1;
-    scale: 0.97;
-  }
-  100% {
-    opacity: 0.9;
-    scale: 1;
-  }
-}
-
 @keyframes ledger-pop {
   0% {
-    scale: 0.4;
+    scale: 0.45;
   }
   100% {
     scale: 1;
@@ -1150,108 +1088,62 @@
 
 @keyframes ledger-flash {
   0% {
-    background-color: color-mix(in srgb, var(--accent) 9%, transparent);
+    background-color: color-mix(in srgb, var(--accent) 8%, transparent);
   }
   100% {
     background-color: transparent;
   }
 }
 
-/* ---------- Narrower cards ---------- */
+/* ---------- Responsive Container Queries ---------- */
 
-@container (max-width: 540px) {
+@container (max-width: 500px) {
   .cachet__head,
-  .cachet__body,
   .cachet__foot {
-    padding-inline: 20px;
-  }
-  .cachet__micro {
-    width: calc(100% - 40px);
-    margin-inline: 20px;
-  }
-  .cachet__name {
-    font-size: 19px;
-  }
-  .cachet__addr {
-    font-size: 14px;
-  }
-  .cachet__scheme {
-    font-size: 12px;
-  }
-}
-
-/* Phones: seal on top, the two keys side by side beneath it. */
-@container (max-width: 440px) {
-  .cachet__head {
-    padding: 17px 18px 0;
-  }
-  .cachet__body {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas:
-      'seal seal'
-      'nostr bch';
-    gap: 14px 12px;
-    padding: 12px 18px 12px;
-  }
-  .cachet__side--nostr {
-    grid-area: nostr;
-  }
-  .cachet__side--bch {
-    grid-area: bch;
-  }
-  .cachet__seal {
-    grid-area: seal;
-  }
-  .cachet__seal-disc {
-    width: 128px;
-  }
-  .cachet__kicker {
-    margin-bottom: 8px;
-  }
-  .cachet__main {
-    gap: 6px;
-    height: 24px;
-  }
-  .cachet__name {
-    font-size: 17px;
-  }
-  .cachet__addr {
-    font-size: 13px;
-  }
-  .cachet__value {
-    font-size: 11.5px;
-  }
-  .cachet__scheme {
-    margin-top: 9px;
-    font-size: 11.5px;
-  }
-  .cachet__micro {
-    width: calc(100% - 36px);
-    margin-inline: 18px;
-  }
-  .cachet__foot {
-    padding: 8px 18px 14px;
-    font-size: 12px;
-  }
-  .cachet-back__msg,
-  .cachet-back__rows,
-  .cachet-back__frame {
-    margin-inline: 18px;
-  }
-  .cachet-back .cachet__head {
     padding-inline: 18px;
   }
-  .cachet-back__rows > div {
-    grid-template-columns: 104px minmax(0, 1fr);
+  .cachet__body {
+    width: 60%;
+    padding-left: 18px;
+    gap: 10px;
+  }
+  .cachet__addr {
+    font-size: 13.5px;
+  }
+  .cachet-back__stripe {
+    padding-inline: 18px;
+  }
+  .cachet-back__msg,
+  .cachet-back__rows {
+    margin-inline: 18px;
   }
 }
 
-@media (max-width: 480px) {
-  .ledger {
-    padding-inline: 14px;
+@container (max-width: 400px) {
+  .cachet__face--front {
+    aspect-ratio: auto;
+    min-height: 236px;
+    grid-template-rows: 40px 1fr 40px;
   }
-  .ledger__row {
-    gap: 8px;
-    font-size: 13px;
+  .cachet__head,
+  .cachet__foot {
+    padding-inline: 15px;
+  }
+  .cachet__spec {
+    display: none;
+  }
+  .cachet__body {
+    width: 64%;
+    padding: 10px 8px 10px 15px;
+    gap: 9px;
+  }
+  .cachet__addr {
+    font-size: 12.5px;
+  }
+  .cachet__kicker {
+    font-size: 8.5px;
+  }
+  .cachet__domain {
+    display: none;
   }
 }
