@@ -1,0 +1,65 @@
+{
+  "npub": "npub1v79hjtmd9rjfjxcv6vtfyltu0pt5vppc70c03fdzxl6unzp60kjswjv8hx",
+  "pubkey": "678b792f6d28e4991b0cd316927d7c7857460438f3f0f8a5a237f5c9883a7da5",
+  "cashaddr": "bitcoincash:qpc7grwtzlq6jmc2a5j8cku09vcnaejrgcus6cday9",
+  "bindingId": "b513bb223fc73f864cf0c77a17f8e9f3d9965b10b9169bbf29dd3ec80335adf9",
+  "message": "BCH-NOSTR-ID/v1\nVerifying that I control the following Nostr public key: npub1v79hjtmd9rjfjxcv6vtfyltu0pt5vppc70c03fdzxl6unzp60kjswjv8hx\n{\"cashaddr\":\"bitcoincash:qpc7grwtzlq6jmc2a5j8cku09vcnaejrgcus6cday9\",\"expires_at\":1797337739,\"issued_at\":1794745739,\"network\":\"mainnet\",\"nonce\":\"6992e7ab17be09bbbb795798d6a221c81359898aba905f8c0e4b3748363b9b38\",\"nostr_pubkey\":\"678b792f6d28e4991b0cd316927d7c7857460438f3f0f8a5a237f5c9883a7da5\",\"purpose\":\"bind\",\"version\":1}",
+  "statement": {
+    "cashaddr": "bitcoincash:qpc7grwtzlq6jmc2a5j8cku09vcnaejrgcus6cday9",
+    "expires_at": 1797337739,
+    "issued_at": 1794745739,
+    "network": "mainnet",
+    "nonce": "6992e7ab17be09bbbb795798d6a221c81359898aba905f8c0e4b3748363b9b38",
+    "nostr_pubkey": "678b792f6d28e4991b0cd316927d7c7857460438f3f0f8a5a237f5c9883a7da5",
+    "purpose": "bind",
+    "version": 1
+  },
+  "bchSignature": "H7OaAlXtabQbI73v0Pv9tHrjSHsJxxO2hs62IpKZ0qTeFq2Oaja4zNb94f7VkdAaUQWg2Vuzzurl+Odmzuczqv4=",
+  "bchPublicKey": "027686f7dfef16f38b16fcebc6d6d6e2737834f4a886d409c5175a78370dfdb1da",
+  "eventId": "67d04908aca37cfa968934df99df03afc94cfb6e3b10ed6e1c8690acc4dda026",
+  "nostrSig": "843c6097cd6f6c07e95b1bf25160534daa0f40b3c89d9f2fc7b6ebcef708d70328b842aa517ab7d7075dca1fcbfe2c9adb7a15799858ef50638beab1c2299cac",
+  "expiresAt": 1797337739,
+  "checks": [
+    {
+      "label": "Nostr signature",
+      "status": "pass"
+    },
+    {
+      "label": "BCH claim",
+      "status": "pass"
+    },
+    {
+      "label": "Statement format",
+      "status": "pass"
+    },
+    {
+      "label": "Statement matches event",
+      "status": "pass"
+    },
+    {
+      "label": "Address type",
+      "status": "pass"
+    },
+    {
+      "label": "Network",
+      "status": "pass"
+    },
+    {
+      "label": "Validity window",
+      "status": "pass"
+    },
+    {
+      "label": "BCH signature",
+      "status": "pass"
+    },
+    {
+      "label": "Separate keys",
+      "status": "pass"
+    }
+  ],
+  "attack": {
+    "attackerAddress": "bitcoincash:qqhfd6n6f5zum0hjpxjnumalhetemh5k6uf7y0gqqc",
+    "attackerNpub": "npub1a2sdzgemxv2pp98k2gega8save5s360eucl3jlu0clg9e0yzq4sqcs9hzt",
+    "stolenSig": "H96j3k5ecsV/444by4VsQmml9NVsgjDqLFOwCWOJqMgeYxcM73i+N+BcYa9XnpvqIh4thlswbBJe6AL1zADFjGM="
+  }
+}

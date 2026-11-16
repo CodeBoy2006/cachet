@@ -1,0 +1,17 @@
+{
+  "name": "cachet-film",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5180 --strictPort",
+    "capture": "node tools/capture.mjs",
+    "score": "sh tools/score.sh",
+    "frames": "node tools/frames.mjs"
+  },
+  "dependencies": {
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.57.0"
+  }
+}
