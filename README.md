@@ -14,7 +14,7 @@ Built for **BCH BLAZE 2026** (Paytaca decentralized identity bounty, mainnet tra
 
 1. Open the site. The card on the right is a real binding made and verified in your tab.
 2. **Quick sandbox test** on the home page (or **Create** with your own wallet) → *Sign* → *Publish*. You get a profile page that anyone can verify.
-3. On the profile, **Pay**: default `1,000 sats`, scan the QR with any BCH wallet, or *Pay with WizardConnect* from Selene. Incoming payments and supporter receipts update live via Fulcrum.
+3. On the profile, **Pay**: default `1,000 sats`, scan the QR with any BCH wallet, or connect **Paytaca** over WalletConnect or **Selene** over WizardConnect. Incoming payments and supporter receipts update live via Fulcrum.
 4. Open **Fieldnote** and **Stall** (two separate apps with their own origins). *Sign in with Cachet* to unlock member articles on Fieldnote and open verified BCH seller checkout on Stall; share your `?seller=npub…` storefront URL so any buyer can verify it live from relays.
 5. Back on your profile, **Withdraw**. Stall's public `?seller=` storefront closes on refresh immediately, and pressing *Re-check link* in Fieldnote or Stall ends the active session.
 6. **Lab**: twelve attacks (stolen address, replayed proof, mirrored key, cached-verification bypass, unverified 30078…) and the exact check each one fails.
@@ -42,7 +42,7 @@ npm run dev
 Cachet: http://localhost:5173 · Fieldnote: http://localhost:5174 · Stall: http://localhost:5175
 
 ```bash
-npm test                         # 128 tests: vectors, verifier, resolver, relays + legacy 30078, RP login/gating/gateway, payments
+npm test                         # 139 tests: vectors, verifier, resolver, relays + legacy 30078, RP login/gating/gateway, payments
 npm run typecheck
 npm run verify -- fixtures/valid.json          # offline verifier
 npm run verify -- --npub npub1…                # resolve from relays
@@ -66,8 +66,8 @@ The full profile, checks and states are in [docs/PROTOCOL.md](docs/PROTOCOL.md).
 |---|---|---|
 | [`packages/core`](packages/core/src) | Statement, message, JCS, Bitcoin Signed Message, CashAddr, `verifyBinding`, `resolveSnapshots`, NIP-98 | network, keys, DOM |
 | [`packages/discovery`](packages/discovery/src) | Per-relay queries with evidence, NIP-65, publish with acks, reverse lookup | sign anything |
-| [`packages/signers`](packages/signers/src) | NIP-07, sandbox keys, WalletConnect `bch_signMessage`; re-verifies every signer result | talk to relays |
-| [`packages/pay`](packages/pay/src) | BIP21, Fulcrum watcher, unsigned P2PKH payment for WizardConnect | hold keys |
+| [`packages/signers`](packages/signers/src) | NIP-07, sandbox keys, WalletConnect `bch_signMessage` + `bch_signTransaction`; re-verifies every signer result | talk to relays |
+| [`packages/pay`](packages/pay/src) | BIP21, Fulcrum watcher, unsigned P2PKH payment for WalletConnect & WizardConnect | hold keys |
 | [`packages/react`](packages/react/src) | Identity card, check list, relay evidence, QR | |
 | [`apps/web`](apps/web/src) | Create, profile and pay, lab, sign-in approval page | act as an identity server |
 | [`apps/rp`](apps/rp) | Example relying party, run as Fieldnote and Stall | trust Cachet |
@@ -84,7 +84,7 @@ Choices worth knowing:
 ## Status
 
 Verified here: everything in `npm test`, and the full create → sign in to two apps → withdraw → revoked flow in a browser against a local relay.
-Not yet verified: real-wallet pairing (Cashonize, Paytaca, Zapit, Electron Cash), WizardConnect payment from Selene, publishing to public relays. Results go in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+Not yet verified: real-wallet pairing and WalletConnect payment (Paytaca, Cashonize, Zapit, Electron Cash), WizardConnect payment from Selene, publishing to public relays. Results go in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ## Deploy
 

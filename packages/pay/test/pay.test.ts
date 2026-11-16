@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 import { binToHex, encodeTransaction, hexToBin, secp256k1 } from '@bitauth/libauth';
+import { parseExtendedJson } from '@wizardconnect/core';
 import { addressFromPublicKey } from '@cachet/core';
-import { DUST_SATS, ElectrumClient, ensureBroadcast, formatBch, lockingBytecodeOf, parseBch, paymentUri, planPayment, scanHdWallet, scripthashOf, watchAddress } from '../src/index.ts';
+import { DUST_SATS, ElectrumClient, InsufficientFundsError, ensureBroadcast, formatBch, lockingBytecodeOf, parseBch, paymentUri, planPayment, scanAddressWallet, scanHdWallet, scripthashOf, toWcTransactionRequest, watchAddress } from '../src/index.ts';
 
 const addr = 'bitcoincash:qqehccy89v7ftlfgr9v0zvhjzyy7eatdkqt05lt3nw';
 
@@ -63,7 +64,32 @@ describe('planPayment', () => {
   it('refuses dust payments and insufficient funds', () => {
     expect(() => planPayment({ utxos: [utxo(10000n, 1)], to, sats: DUST_SATS - 1n, changeTo: to })).toThrow();
     expect(() => planPayment({ utxos: [utxo(1000n, 1)], to, sats: 1000n, changeTo: to })).toThrow(/Not enough/);
+    try {
+      planPayment({ utxos: [utxo(1000n, 1), utxo(700n, 2)], to, sats: 2000n, changeTo: to });
+      expect.unreachable();
+    } catch (e) {
+      expect(e).toBeInstanceOf(InsufficientFundsError);
+      const err = e as InsufficientFundsError;
+      expect(err.available).toBe(1700n);
+      // 2000 sats + (10 + 2×148 + 34) bytes at 1 sat/byte
+      expect(err.required).toBe(2340n);
+      expect(err.shortfall).toBe(640n);
+    }
+    expect(() => planPayment({ utxos: [], to, sats: 1000n, changeTo: to })).toThrow(InsufficientFundsError);
     expect(hexToBin('00')).toHaveLength(1);
+  });
+
+  it('serializes plans in extended JSON for wc2-bch-bcr and WizardConnect relays', () => {
+    const plan = planPayment({ utxos: [utxo(200000n, 2)], to, sats: 100000n, changeTo: to });
+    const req = toWcTransactionRequest({ plan, broadcast: true, userPrompt: 'Pay 0.001 BCH to alice' });
+    const wire = JSON.stringify(req);
+    expect(wire).toContain('<bigint: 100000n>');
+    expect(wire).toContain('<Uint8Array: 0x');
+    const decoded = parseExtendedJson(wire) as typeof plan & { broadcast: boolean; userPrompt: string };
+    expect(decoded.broadcast).toBe(true);
+    expect(decoded.userPrompt).toBe('Pay 0.001 BCH to alice');
+    expect(decoded.transaction.outputs[0]?.valueSatoshis).toBe(100000n);
+    expect(decoded.sourceOutputs[0]?.lockingBytecode).toEqual(to);
   });
 });
 
@@ -312,5 +338,32 @@ describe('scanHdWallet', () => {
     expect(res.utxos).toHaveLength(1);
     expect(res.utxos[0]?.path).toEqual(['receive', 34]);
     expect(res.changeAddress).toBe(addrAt(1, 2));
+  });
+});
+
+describe('scanAddressWallet', () => {
+  it('loads spendable UTXOs for WalletConnect addresses, skips CashTokens, and deduplicates q/z forms', async () => {
+    const sk = new Uint8Array(32);
+    sk[31] = 7;
+    const pk = secp256k1.derivePublicKeyCompressed(sk) as Uint8Array;
+    const qAddr = addressFromPublicKey(pk, 'mainnet', false);
+    const zAddr = addressFromPublicKey(pk, 'mainnet', true);
+    const client = new ElectrumClient([]);
+    vi.spyOn(client, 'request').mockImplementation(async (method, hash) => {
+      if (method === 'blockchain.scripthash.listunspent' && hash === scripthashOf(qAddr)) {
+        return [
+          { tx_hash: '33'.repeat(32), tx_pos: 0, value: 15000, height: 100 },
+          { tx_hash: '44'.repeat(32), tx_pos: 1, value: 800, height: 100, token_data: { category: 'aa'.repeat(32) } },
+        ];
+      }
+      throw new Error(`unexpected ${method}`);
+    });
+
+    const res = await scanAddressWallet(client, [qAddr, zAddr]);
+    expect(res.balance).toBe(15000n);
+    expect(res.utxos).toHaveLength(1);
+    expect(res.utxos[0]?.txid).toBe('33'.repeat(32));
+    expect(res.changeAddress).toBe(qAddr);
+    await expect(scanAddressWallet(client, [])).rejects.toThrow(/no BCH addresses/);
   });
 });

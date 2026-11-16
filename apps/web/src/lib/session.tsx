@@ -119,6 +119,20 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  // A remote wallet can switch accounts or end the session at any time. Listen for as
+  // long as it is the active signer, not just while the screen that connected it is mounted.
+  const liveSigner = bch?.signer;
+  useEffect(() => {
+    if (!liveSigner) return;
+    const offs = [
+      liveSigner.onAddressesChanged?.((addresses) =>
+        setBchState((b) => (b?.signer === liveSigner ? { ...b, label: liveSigner.label, addresses } : b)),
+      ),
+      liveSigner.onDisconnect?.(() => setBchState((b) => (b?.signer === liveSigner ? undefined : b))),
+    ];
+    return () => offs.forEach((off) => off?.());
+  }, [liveSigner]);
+
   const sandboxBch = useCallback(() => {
     const wif = store.get(KEYS.sandboxBch);
     if (wif) {

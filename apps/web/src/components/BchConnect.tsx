@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { isAddressError, normalizeCashAddrInput } from '@cachet/core';
 import { IconChevron, IconKey, IconPen, IconWallet, Note } from '@cachet/react';
 import { config } from '../config.ts';
 import { useSession } from '../lib/session.tsx';
-import { WalletConnectDialog } from './WalletConnectDialog.tsx';
-
-type WcSigner = Parameters<React.ComponentProps<typeof WalletConnectDialog>['onConnected']>[0];
+import { WalletConnectDialog, type WcSigner } from './WalletConnectDialog.tsx';
 
 export const BchConnect = () => {
   const { setBch, sandboxBch } = useSession();
@@ -13,23 +11,11 @@ export const BchConnect = () => {
   const [manual, setManual] = useState(false);
   const [input, setInput] = useState('');
   const [error, setError] = useState<string>();
-  const unsubscribe = useRef<(() => void)[]>([]);
 
-  const onConnected = useCallback(
-    (signer: WcSigner, addresses: string[]) => {
-      setWcOpen(false);
-      // The signer is shared across connections; drop listeners from an earlier one.
-      unsubscribe.current.forEach((u) => u());
-      setBch({ kind: 'walletconnect', label: signer.label, signer, addresses });
-      unsubscribe.current = [
-        signer.onAddressesChanged((next) => setBch({ kind: 'walletconnect', label: signer.label, signer, addresses: next })),
-        signer.onDisconnect(() => setBch(undefined)),
-      ];
-    },
-    [setBch],
-  );
-
-  useEffect(() => () => unsubscribe.current.forEach((u) => u()), []);
+  const onConnected = (signer: WcSigner, addresses: string[]) => {
+    setWcOpen(false);
+    setBch({ kind: 'walletconnect', label: signer.label, signer, addresses });
+  };
 
   const useManual = (e: React.FormEvent) => {
     e.preventDefault();

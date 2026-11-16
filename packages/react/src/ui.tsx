@@ -77,6 +77,22 @@ export const CopyChip = ({ value, label, title }: { value: string; label?: React
   );
 };
 
+/** A regular button that copies `value`; the label stays, the icon confirms. */
+export const CopyButton = ({ value, label, className = 'c-btn c-btn--secondary c-btn--sm' }: { value: string; label: string; className?: string }) => {
+  const { copied, copy } = useCopy();
+  return (
+    <button type="button" className={`${className} c-copy-btn`} data-copied={copied} onClick={() => void copy(value)}>
+      {label}
+      <span className="c-copy-btn__icon" aria-hidden>
+        {copied ? <IconCheck size={13} strokeWidth={2.2} /> : <IconCopy size={13} />}
+      </span>
+      <span className="sr-only" aria-live="polite">
+        {copied ? 'Copied' : ''}
+      </span>
+    </button>
+  );
+};
+
 export const CopyIcon = ({ value, title = 'Copy' }: { value: string; title?: string }) => {
   const { copied, copy } = useCopy();
   return (

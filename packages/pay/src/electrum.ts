@@ -281,6 +281,36 @@ export const scanHdWallet = async (
 };
 
 /**
+ * Loads spendable non-token UTXOs for explicit CashAddr addresses returned by
+ * a WalletConnect v2 wallet (Paytaca, Cashonize, Zapit) via `bch_getAddresses`.
+ */
+export const scanAddressWallet = async (client: ElectrumClient, addresses: string[]): Promise<HdScanResult> => {
+  const unique = [...new Set(addresses.map((a) => a.trim()).filter(Boolean))];
+  const slots = unique.map((address, i) => ({
+    address,
+    lockingBytecode: lockingBytecodeOf(address),
+    scripthash: scripthashOf(address),
+    path: ['receive', i] as [string, number],
+  }));
+  if (!slots.length) throw new Error('The wallet shared no BCH addresses.');
+  const lists = await Promise.all(
+    slots.map((s) => client.request<Utxo[]>('blockchain.scripthash.listunspent', s.scripthash).then((u) => ({ s, u }))),
+  );
+  const seen = new Set<string>();
+  const utxos: SpendableUtxo[] = lists.flatMap(({ s, u }) =>
+    u.flatMap((x) => {
+      if (x.token_data) return [];
+      const outpoint = `${x.tx_hash}:${x.tx_pos}`;
+      if (seen.has(outpoint)) return [];
+      seen.add(outpoint);
+      return [{ txid: x.tx_hash, vout: x.tx_pos, sats: BigInt(x.value), lockingBytecode: s.lockingBytecode, path: s.path }];
+    }),
+  );
+  const balance = utxos.reduce((n, u) => n + u.sats, 0n);
+  return { utxos, changeAddress: slots[0]!.address, balance };
+};
+
+/**
  * Calls `onPayment` for every transaction that pays `cashaddr` after watching starts.
  * Returns a stop function.
  */

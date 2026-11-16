@@ -31,6 +31,7 @@ import { downloadJson } from '../lib/download.ts';
 import { usePageTitle } from '../lib/usePageTitle.ts';
 import { Cachet, CachetBack, CachetBackCard, type CachetStage, type CachetVerdict } from '../components/Cachet.tsx';
 import { PayPanel } from '../components/PayPanel.tsx';
+import { SearchBox } from '../components/SearchBox.tsx';
 import { ShareButton } from '../components/ShareButton.tsx';
 
 const OVERPRINT: Partial<Record<BindingState, string>> = {
@@ -46,6 +47,12 @@ const NOT_PAYABLE: Partial<Record<BindingState, string>> = {
 };
 
 const RENEW_WINDOW = 7 * 86400;
+
+/** Parser reasons are fragments ("not a valid npub"); show them as sentences. */
+const sentence = (text: string) => {
+  const t = text.trim();
+  return t ? `${t.charAt(0).toUpperCase()}${t.slice(1)}${/[.!?]$/.test(t) ? '' : '.'}` : t;
+};
 
 interface WithdrawnReceipt {
   accepted: number;
@@ -265,10 +272,13 @@ export const Profile = ({ id }: { id: string }) => {
     return (
       <div className="wrap page">
         <div className="empty">
-          <h2>Nothing to show</h2>
-          <p>{state.message}</p>
-          <Link className="c-btn c-btn--secondary" href="/">
-            Back
+          <h2>No identity to show</h2>
+          <p>{sentence(state.message)}</p>
+          <div className="empty__search">
+            <SearchBox />
+          </div>
+          <Link className="c-btn c-btn--ghost" href="/">
+            Home
           </Link>
         </div>
       </div>

@@ -302,8 +302,14 @@ const SessionCard = ({ session, onChange }: { session: SessionInfo; onChange: (s
   );
 };
 
+/** Enough to follow one sign-in and one revocation; the rest is a click away. */
+const LOG_PREVIEW = 8;
+
 const ServerLog = ({ tick }: { tick: number }) => {
   const [entries, setEntries] = useState<LogEntry[]>([]);
+  const [expanded, setExpanded] = useState(false);
+  const hidden = Math.max(0, entries.length - LOG_PREVIEW);
+  const shown = expanded ? entries : entries.slice(0, LOG_PREVIEW);
   useEffect(() => {
     let live = true;
     const load = () => void getLog().then((e) => live && setEntries(e)).catch(() => {});
@@ -323,7 +329,7 @@ const ServerLog = ({ tick }: { tick: number }) => {
         </p>
       ) : (
         <ul>
-          {entries.map((e, i) => (
+          {shown.map((e, i) => (
             <li key={`${e.t}-${i}`} data-tone={e.tone}>
               <span className="log__t mono">{new Date(e.t * 1000).toLocaleTimeString([], { hour12: false })}</span>
               <span className="log__dot" />
@@ -332,6 +338,11 @@ const ServerLog = ({ tick }: { tick: number }) => {
             </li>
           ))}
         </ul>
+      )}
+      {hidden > 0 && (
+        <button type="button" className="c-link log__more" onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>
+          {expanded ? 'Show recent only' : `Show ${hidden} earlier`}
+        </button>
       )}
     </section>
   );

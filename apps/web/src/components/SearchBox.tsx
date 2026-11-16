@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { parseIdentityInput } from '@cachet/discovery';
-import { IconCheck, IconPaste, IconSearch } from '@cachet/react';
+import { IconArrowRight, IconCheck, IconPaste, IconSearch } from '@cachet/react';
 
 const KIND_LABELS = {
   pubkey: 'npub',
@@ -133,8 +133,9 @@ export const SearchBox = ({ autoFocus }: { autoFocus?: boolean }) => {
           <IconCheck size={11} strokeWidth={2.4} /> {validBadge}
         </span>
       )}
-      <button className="c-btn" type="submit">
-        Look up
+      <button className="c-btn" type="submit" aria-label="Look up">
+        <span className="search__go-label">Look up</span>
+        <IconArrowRight size={16} className="search__go-icon" />
       </button>
       {error && (
         <div className="search__error" id="search-error" role="alert">

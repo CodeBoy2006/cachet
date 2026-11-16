@@ -1221,6 +1221,17 @@ textarea.c-input {
   color: var(--accent);
 }
 
+.c-copy-btn__icon {
+  display: inline-grid;
+  color: var(--ink-3);
+  transition: color 140ms;
+}
+
+.c-copy-btn[data-copied='true'] .c-copy-btn__icon {
+  color: var(--accent);
+  animation: c-pop 180ms var(--ease) both;
+}
+
 .c-copy-icon {
   position: relative;
 }

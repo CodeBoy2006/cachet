@@ -26,7 +26,7 @@ const PITCH_SLIDES: readonly Slide[] = [
   {
     kicker: 'Pay a person',
     title: 'Look up a person, verify in-browser, pay with instant 0-conf.',
-    body: 'Every profile page re-runs all cryptographic checks in your tab, renders a BIP21 QR or builds an unsigned P2PKH transaction for Selene via WizardConnect, and watches Fulcrum live.',
+    body: 'Every profile page re-runs all cryptographic checks in your tab, renders a BIP21 QR or builds an unsigned P2PKH transaction for Paytaca (WalletConnect) or Selene (WizardConnect), and watches Fulcrum live.',
     callout: 'Mainnet 0-conf receipts lock in live within a second.',
   },
   {

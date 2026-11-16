@@ -3,7 +3,7 @@
  * Inputs carry empty unlocking bytecode; the wallet fills them in.
  * Token-carrying UTXOs are never selected, so a payment cannot burn CashTokens.
  */
-import { hexToBin, type Input, type Output, type TransactionCommon } from '@bitauth/libauth';
+import { hexToBin, stringify, type Input, type Output, type TransactionCommon } from '@bitauth/libauth';
 
 export const DUST_SATS = 546n;
 const INPUT_BYTES = 148n; // P2PKH input, ECDSA worst case
@@ -29,6 +29,23 @@ export interface PaymentPlan {
 
 export const estimateFee = (inputs: number, outputs: number, satsPerByte = 1n) =>
   (OVERHEAD_BYTES + INPUT_BYTES * BigInt(inputs) + OUTPUT_BYTES * BigInt(outputs)) * satsPerByte;
+
+/** The wallet's spendable coins cannot cover the amount plus the cheapest fee. */
+export class InsufficientFundsError extends Error {
+  constructor(
+    /** Sum of the spendable, token-free coins offered. */
+    readonly available: bigint,
+    /** Amount plus the fee of spending every coin into a single output. */
+    readonly required: bigint,
+  ) {
+    super('Not enough BCH in this wallet for the payment and network fee');
+    this.name = 'InsufficientFundsError';
+  }
+
+  get shortfall() {
+    return this.required - this.available;
+  }
+}
 
 export const planPayment = (input: {
   utxos: SpendableUtxo[];
@@ -58,7 +75,7 @@ export const planPayment = (input: {
       if (!best || cand.fee < best.fee) best = cand;
     }
   }
-  if (!best) throw new Error('Not enough BCH in this wallet for the payment and network fee');
+  if (!best) throw new InsufficientFundsError(total, input.sats + estimateFee(Math.max(pool.length, 1), 1, rate));
   const chosen = pool.slice(0, best.count);
   const { fee, change } = best;
 
@@ -79,3 +96,29 @@ export const planPayment = (input: {
     change,
   };
 };
+
+export interface WcTransactionRequest {
+  transaction: TransactionCommon;
+  sourceOutputs: (Input & Output)[];
+  broadcast?: boolean;
+  userPrompt?: string;
+}
+
+/**
+ * Encodes `bigint` (`<bigint: ...n>`) and `Uint8Array` (`<Uint8Array: 0x...>`)
+ * in libauth extended JSON, the wire format shared by wc2-bch-bcr (Paytaca,
+ * Cashonize, Zapit) and WizardConnect (Selene).
+ */
+export const toWcTransactionRequest = (input: {
+  plan: Pick<PaymentPlan, 'transaction' | 'sourceOutputs'>;
+  broadcast?: boolean;
+  userPrompt?: string;
+}): WcTransactionRequest =>
+  JSON.parse(
+    stringify({
+      transaction: input.plan.transaction,
+      sourceOutputs: input.plan.sourceOutputs,
+      ...(input.broadcast !== undefined ? { broadcast: input.broadcast } : {}),
+      ...(input.userPrompt !== undefined ? { userPrompt: input.userPrompt } : {}),
+    }),
+  ) as WcTransactionRequest;

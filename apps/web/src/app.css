@@ -223,7 +223,9 @@
     gap: 12px;
   }
   .me-chip {
-    padding: 0 3px;
+    width: 34px;
+    padding: 0;
+    justify-content: center;
   }
   .me-chip .mono {
     display: none;
@@ -490,6 +492,7 @@ main {
   padding-left: 40px;
   padding-right: 144px;
   border-radius: 12px;
+  text-overflow: ellipsis;
   -webkit-appearance: none;
   appearance: none;
 }
@@ -1660,6 +1663,26 @@ button.tile:hover .tile__go svg {
   gap: 8px;
 }
 
+/* Phone: identity and share on one line, the two decisions side by side below. */
+@media (max-width: 560px) {
+  .owner-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px 8px 8px 14px;
+  }
+  .owner-bar__actions {
+    display: contents;
+  }
+  .owner-bar__actions .share-btn {
+    grid-row: 1;
+    grid-column: 2;
+  }
+  .owner-bar__actions > :not(.share-btn) {
+    grid-row: 2;
+  }
+}
+
 .legacy {
   width: 100%;
   max-width: 540px;
@@ -1683,6 +1706,11 @@ button.tile:hover .tile__go svg {
 }
 
 .pay {
+  display: grid;
+  gap: 16px;
+}
+
+.pay__main {
   display: grid;
   gap: 16px;
 }
@@ -1792,16 +1820,25 @@ button.tile:hover .tile__go svg {
 }
 
 .amount-input {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
   animation: c-fade 160ms ease both;
 }
 
 .amount-input .c-input {
-  width: 130px;
-  height: 34px;
+  width: 148px;
+  height: 36px;
+  padding-right: 46px;
   font-variant-numeric: tabular-nums;
+}
+
+.amount-input__unit {
+  position: absolute;
+  right: 12px;
+  font-size: 13px;
+  color: var(--ink-3);
+  pointer-events: none;
 }
 
 .watch {
@@ -2013,45 +2050,251 @@ button.tile:hover .tile__go svg {
   background: var(--line);
 }
 
-.wizard {
+.pay__wallets {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-.wizard__head {
+@media (max-width: 440px) {
+  .pay__wallets {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Brand logos sit on a light tile in both themes: they are drawn for white. */
+.wallet-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  box-shadow: 0 1px 2px rgb(15 15 14 / 0.04);
+}
+
+.wallet-mark:not([data-brand]) {
+  background: var(--surface);
+}
+
+.wallet-mark img {
+  display: block;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+
+.wallet-mark[data-brand='paytaca'] img {
+  width: 20px;
+  height: 22px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .wallet-mark[data-brand] {
+    background: #f4f3ef;
+    border-color: transparent;
+  }
+}
+
+:root[data-theme='dark'] .wallet-mark[data-brand] {
+  background: #f4f3ef;
+  border-color: transparent;
+}
+
+.pay-wallet {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 12px 10px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms var(--ease),
+    background 160ms var(--ease),
+    box-shadow 160ms var(--ease),
+    opacity 160ms;
+}
+
+.pay-wallet:hover:not(:disabled) {
+  border-color: var(--line-2);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.pay-wallet:active:not(:disabled) {
+  scale: 0.99;
+}
+
+.pay-wallet:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.pay-wallet:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pay-wallet__body {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pay-wallet__body strong {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.pay-wallet__body small {
+  font-size: 12px;
+  color: var(--ink-3);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pay-wallet__go {
+  color: var(--ink-3);
+  transition:
+    translate 160ms var(--ease),
+    color 160ms;
+}
+
+.pay-wallet:hover:not(:disabled) .pay-wallet__go {
+  translate: 2px 0;
+  color: var(--ink);
+}
+
+/* One frame for every wallet state: connecting, paying, sent. */
+.wallet-card {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  animation: c-fade 180ms ease both;
+}
+
+.wallet-card__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 13.5px;
+  gap: 11px;
+  min-width: 0;
 }
 
-.wizard__line {
-  font-size: 13.5px;
-}
-
-.wizard__stack {
+.wallet-card__id {
   display: grid;
-  gap: 8px;
-  justify-items: start;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
 }
 
-.wizard__fee {
+.wallet-card__id strong {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.wallet-card__id small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wallet-card__id small .c-spinner {
+  width: 11px;
+  height: 11px;
+}
+
+.wallet-card__balance {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.wallet-card__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+.wallet-card__refresh[data-spin] svg {
+  animation: c-spin 900ms linear infinite;
+}
+
+.wallet-card__body {
+  display: grid;
+  gap: 10px;
+}
+
+.wallet-card__send {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Waiting on a balance or an amount reads as inert; waiting on the wallet keeps its colour. */
+.wallet-card__send:disabled:not([data-busy]) {
+  opacity: 1;
+  background: var(--sunken);
+  border-color: transparent;
+  color: var(--ink-3);
+}
+
+.wallet-card__send[data-busy] {
+  opacity: 0.86;
+}
+
+.wallet-card__fee {
   font-size: 12.5px;
   font-weight: 400;
-  opacity: 0.8;
+  opacity: 0.78;
   padding-left: 10px;
   margin-left: 2px;
   border-left: 1px solid color-mix(in srgb, currentColor 30%, transparent);
 }
 
-.wizard__sent {
+.wallet-card__sent {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
+  min-height: 44px;
+  padding: 0 4px 0 6px;
   font-size: 13.5px;
+}
+
+.wallet-card__sent .signed-line a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12.5px;
+  color: inherit;
 }
 
 .kv {
@@ -2140,6 +2383,18 @@ button.tile:hover .tile__go svg {
   align-items: start;
 }
 
+@property --fade-top {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-bottom {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 32px;
+}
+
 .scenarios {
   display: grid;
   gap: 2px;
@@ -2149,8 +2404,35 @@ button.tile:hover .tile__go svg {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  padding: 2px;
+  padding: 2px 2px 32px;
   margin: -2px;
+  /* Twelve cases rarely fit: fade the edge that has more to scroll to. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent);
+}
+
+@supports (animation-timeline: scroll()) {
+  .scenarios {
+    animation: scenarios-edges linear both;
+    animation-timeline: scroll(self);
+  }
+}
+
+@keyframes scenarios-edges {
+  0% {
+    --fade-top: 0px;
+    --fade-bottom: 32px;
+  }
+  8% {
+    --fade-top: 32px;
+  }
+  92% {
+    --fade-bottom: 32px;
+  }
+  100% {
+    --fade-top: 32px;
+    --fade-bottom: 0px;
+  }
 }
 
 .scenario {
@@ -2239,6 +2521,9 @@ button.tile:hover .tile__go svg {
     display: flex;
     gap: 8px;
     max-height: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+    animation: none;
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
@@ -2475,12 +2760,37 @@ button.tile:hover .tile__go svg {
   .lab__editor {
     padding-inline: 16px;
   }
+  /* Icon-only submit leaves room for the full placeholder and the paste button. */
   .search .c-input,
   .search[data-has-badge='true'] .c-input {
-    padding-right: 96px;
+    padding-right: 52px;
+  }
+  .search .c-input:placeholder-shown {
+    padding-right: 84px;
+  }
+  .search__tools {
+    right: 46px;
   }
   .search__badge {
     display: none;
+  }
+  .search .c-btn {
+    --h: 36px;
+    width: 36px;
+    padding: 0;
+  }
+  .search__go-label {
+    display: none;
+  }
+}
+
+.search__go-icon {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .search__go-icon {
+    display: block;
   }
 }
 
@@ -2949,19 +3259,21 @@ button.tile:hover .tile__go svg {
 .pay__qr-corners {
   pointer-events: none;
   position: absolute;
-  inset: -3px;
-  border-radius: 18px;
+  inset: -5px;
+  border-radius: 21px;
+  border: 1.5px solid var(--accent);
   opacity: 0;
   transition: opacity 280ms var(--ease);
-  background:
-    linear-gradient(var(--accent), var(--accent)) left 0 top 0 / 14px 2px no-repeat,
-    linear-gradient(var(--accent), var(--accent)) left 0 top 0 / 2px 14px no-repeat,
-    linear-gradient(var(--accent), var(--accent)) right 0 top 0 / 14px 2px no-repeat,
-    linear-gradient(var(--accent), var(--accent)) right 0 top 0 / 2px 14px no-repeat,
-    linear-gradient(var(--accent), var(--accent)) left 0 bottom 0 / 14px 2px no-repeat,
-    linear-gradient(var(--accent), var(--accent)) left 0 bottom 0 / 2px 14px no-repeat,
-    linear-gradient(var(--accent), var(--accent)) right 0 bottom 0 / 14px 2px no-repeat,
-    linear-gradient(var(--accent), var(--accent)) right 0 bottom 0 / 2px 14px no-repeat;
+  /* Keep only the four corners of a ring that follows the frame's radius. */
+  --arm: 24px;
+  -webkit-mask:
+    linear-gradient(to right, #000 var(--arm), transparent var(--arm) calc(100% - var(--arm)), #000 calc(100% - var(--arm))),
+    linear-gradient(to bottom, #000 var(--arm), transparent var(--arm) calc(100% - var(--arm)), #000 calc(100% - var(--arm)));
+  -webkit-mask-composite: source-in;
+  mask:
+    linear-gradient(to right, #000 var(--arm), transparent var(--arm) calc(100% - var(--arm)), #000 calc(100% - var(--arm))),
+    linear-gradient(to bottom, #000 var(--arm), transparent var(--arm) calc(100% - var(--arm)), #000 calc(100% - var(--arm)));
+  mask-composite: intersect;
 }
 
 .pay__qr-code[data-live] .pay__qr-corners {

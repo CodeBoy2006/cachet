@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { finalizeEvent, generateSecretKey } from 'nostr-tools/pure';
 import { encodePrivateKeyWif, secp256k1 } from '@bitauth/libauth';
 import { addressFromPublicKey, bindMessage, createStatement, recoverSigner } from '@cachet/core';
 import { LocalBchSigner, LocalNostrSigner, Nip07Signer, acceptSignedEvent, assertSignedBy } from '../src/index.ts';
+import { WalletConnectBchSigner } from '../src/walletconnect.ts';
 
 describe('signer output is checked, not trusted', () => {
   const template = { kind: 10011, created_at: 1_700_000_000, tags: [['i', 'github:x', 'y']], content: '' };
@@ -66,5 +67,48 @@ describe('signer output is checked, not trusted', () => {
     const signature = await signer.signMessage('uncompressed key', address);
     expect(assertSignedBy('uncompressed key', signature, address)).toBe(signature);
     expect(recoverSigner('uncompressed key', signer.signRaw('uncompressed key'))).toMatchObject({ ok: true, compressed: false });
+  });
+
+  it('signs wc2-bch-bcr transactions and rejects declined or stale WalletConnect responses', async () => {
+    const handlers = new Map<string, ((arg: unknown) => void)[]>();
+    const wallet = LocalBchSigner.generate();
+    const session = {
+      topic: 'topic-paytaca',
+      peer: { metadata: { name: 'Paytaca', icons: ['https://paytaca.com/icon.png'] } },
+      namespaces: { bch: { accounts: [`bch:bitcoincash:${wallet.address().split(':')[1]}`] } },
+    };
+    const request = vi.fn();
+    const client = {
+      on: (ev: string, cb: (arg: unknown) => void) => handlers.set(ev, [...(handlers.get(ev) ?? []), cb]),
+      session: { getAll: () => [session] },
+      request,
+      disconnect: vi.fn(async () => {}),
+    };
+    const signer = WalletConnectBchSigner.fromClient(client as never, 'mainnet');
+    expect(signer.connected).toBe(true);
+    expect(signer.label).toBe('Paytaca');
+
+    request.mockResolvedValueOnce({
+      signedTransaction: '<Uint8Array: 0x02000000AA>',
+      signedTransactionHash: '0xBBCC',
+    });
+    await expect(signer.signTransaction({ broadcast: true })).resolves.toEqual({
+      signedTransaction: '02000000aa',
+      signedTransactionHash: 'bbcc',
+    });
+    expect(request).toHaveBeenCalledWith({
+      topic: 'topic-paytaca',
+      chainId: 'bch:bitcoincash',
+      request: { method: 'bch_signTransaction', params: { broadcast: true } },
+    });
+
+    request.mockResolvedValueOnce(undefined);
+    await expect(signer.signTransaction({})).rejects.toThrow(/declined/);
+
+    request.mockImplementationOnce(async () => {
+      handlers.get('session_event')?.forEach((cb) => cb({ topic: 'topic-paytaca', params: { event: { name: 'addressesChanged', data: [] } } }));
+      return { signedTransaction: '02000000' };
+    });
+    await expect(signer.signTransaction({})).rejects.toThrow(/session changed/);
   });
 });

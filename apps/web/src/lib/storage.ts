@@ -45,7 +45,33 @@ export const KEYS = {
   sandboxBch: 'cachet.sandbox.wif',
   nostrMode: 'cachet.nostr.mode',
   pendingSign: 'cachet.pending-sign',
+  /** Written by @wizardconnect/react to resume a Selene session. */
+  wizardSession: 'cachet-wizardconnect',
   snapshot: (pk: string) => `cachet.snapshot.${pk}`,
+};
+
+/** A WalletConnect session persisted by the SignClient (`wc@2:client:<version>//session`). */
+export const hasSavedWalletConnectSession = (): boolean => {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k?.startsWith('wc@2:client:') || !k.endsWith('//session')) continue;
+      const raw = localStorage.getItem(k);
+      if (raw && raw !== '[]') return true;
+    }
+  } catch {
+    /* storage blocked: nothing to resume */
+  }
+  return false;
+};
+
+export const hasSavedWizardSession = (): boolean => {
+  try {
+    const raw = store.get(KEYS.wizardSession);
+    return Boolean(raw && (JSON.parse(raw) as { walletPublicKey?: unknown } | null)?.walletPublicKey);
+  } catch {
+    return false;
+  }
 };
 
 export interface PendingSign {

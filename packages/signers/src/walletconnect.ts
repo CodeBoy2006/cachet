@@ -1,15 +1,23 @@
 /**
- * BCH WalletConnect v2 (wc2-bch-bcr): bch_getAddresses + bch_signMessage.
- * Tested against the spec and Cashonize's implementation; real-wallet results
+ * BCH WalletConnect v2 (wc2-bch-bcr): bch_getAddresses, bch_signMessage + bch_signTransaction.
+ * Tested against the spec and Cashonize / Paytaca conventions; real-wallet results
  * are recorded in docs/COMPATIBILITY.md, separately from automated tests.
  */
 import type SignClient from '@walletconnect/sign-client';
 import type { SessionTypes } from '@walletconnect/types';
 import { normalizeCashAddrInput, isAddressError, type Network } from '@cachet/core';
-import { assertSignedBy, type BchSigner } from './bch.ts';
+import { assertSignedBy, type BchSigner, type SignedTransactionResult } from './bch.ts';
 
 const CHAIN: Record<Network, string> = { mainnet: 'bch:bitcoincash', chipnet: 'bch:bchtest' };
 const METHODS = ['bch_getAddresses', 'bch_signTransaction', 'bch_signMessage'];
+
+const unwrapHex = (raw: unknown): string | undefined => {
+  if (typeof raw !== 'string') return undefined;
+  const trimmed = raw.trim();
+  const ext = /^<Uint8Array:\s*0x([0-9a-fA-F]*)>$/.exec(trimmed);
+  const hex = ext ? ext[1]! : trimmed.replace(/^0x/i, '');
+  return hex.length > 0 && hex.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(hex) ? hex.toLowerCase() : undefined;
+};
 
 export interface WalletConnectOptions {
   projectId: string;
@@ -61,7 +69,11 @@ export class WalletConnectBchSigner implements BchSigner {
         icons: [],
       },
     });
-    const signer = new WalletConnectBchSigner(client, opts.network ?? 'mainnet');
+    return WalletConnectBchSigner.fromClient(client, opts.network ?? 'mainnet');
+  }
+
+  static fromClient(client: SignClient, network: Network = 'mainnet') {
+    const signer = new WalletConnectBchSigner(client, network);
     const chain = CHAIN[signer.network];
     signer.session = client.session.getAll().find((s) => s.namespaces.bch?.accounts.some((a) => a.startsWith(`${chain}:`)));
     return signer;
@@ -96,12 +108,12 @@ export class WalletConnectBchSigner implements BchSigner {
 
   onAddressesChanged(l: Listener) {
     this.listeners.add(l);
-    return () => this.listeners.delete(l);
+    return () => void this.listeners.delete(l);
   }
 
   onDisconnect(l: () => void) {
     this.disconnectListeners.add(l);
-    return () => this.disconnectListeners.delete(l);
+    return () => void this.disconnectListeners.delete(l);
   }
 
   private request<T>(method: string, params: unknown): Promise<T> {
@@ -143,6 +155,19 @@ export class WalletConnectBchSigner implements BchSigner {
     });
     if (epoch !== this.epoch) throw new Error('Wallet addresses changed while signing. Please sign again.');
     return assertSignedBy(message, signature, address);
+  }
+
+  async signTransaction(transaction: unknown): Promise<SignedTransactionResult> {
+    const epoch = this.epoch;
+    const res = await this.request<unknown>('bch_signTransaction', transaction);
+    if (epoch !== this.epoch) throw new Error('Wallet session changed while signing. Please try again.');
+    if (!res || typeof res !== 'object') throw new Error('The wallet declined the transaction.');
+    const record = res as { signedTransaction?: unknown; signedTransactionHash?: unknown; error?: unknown };
+    if (typeof record.error === 'string' && record.error) throw new Error(record.error);
+    const signedTransaction = unwrapHex(record.signedTransaction);
+    if (!signedTransaction) throw new Error('Wallet returned an invalid signed transaction.');
+    const signedTransactionHash = unwrapHex(record.signedTransactionHash);
+    return signedTransactionHash ? { signedTransaction, signedTransactionHash } : { signedTransaction };
   }
 
   async disconnect() {

@@ -14,6 +14,11 @@ import {
   type Network,
 } from './util.ts';
 
+export interface SignedTransactionResult {
+  signedTransaction: string;
+  signedTransactionHash?: string;
+}
+
 export interface BchSigner {
   readonly type: 'walletconnect' | 'local';
   readonly label: string;
@@ -21,6 +26,11 @@ export interface BchSigner {
   getAddresses(): Promise<string[]>;
   /** Returns a Base64 compact signature, already checked against `address`. */
   signMessage(message: string, address: string): Promise<string>;
+  signTransaction?(transaction: unknown): Promise<SignedTransactionResult>;
+  /** Remote wallets: the account list changed in the wallet. Returns an unsubscribe function. */
+  onAddressesChanged?(listener: (addresses: string[]) => void): () => void;
+  /** Remote wallets: the wallet ended or expired the session. Returns an unsubscribe function. */
+  onDisconnect?(listener: () => void): () => void;
   disconnect?(): Promise<void>;
 }
 

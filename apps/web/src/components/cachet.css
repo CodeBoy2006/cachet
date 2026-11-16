@@ -46,8 +46,6 @@
   --draft-ink: color-mix(in srgb, var(--ink) 22%, transparent);
   --nostr-ink: #7c3aed;
   --bch-ink: #087a55;
-  --stripe-bg: linear-gradient(90deg, #151513 0%, #232320 52%, #141412 100%);
-  --stripe-ink: #f2f0ea;
 
   container-type: inline-size;
   position: relative;
@@ -86,8 +84,6 @@
     --draft-ink: color-mix(in srgb, #edece7 22%, transparent);
     --nostr-ink: #a78bfa;
     --bch-ink: #34d399;
-    --stripe-bg: linear-gradient(90deg, #070706 0%, #121210 52%, #060605 100%);
-    --stripe-ink: #edece7;
   }
 }
 
@@ -121,8 +117,6 @@
   --draft-ink: color-mix(in srgb, #edece7 22%, transparent);
   --nostr-ink: #a78bfa;
   --bch-ink: #34d399;
-  --stripe-bg: linear-gradient(90deg, #070706 0%, #121210 52%, #060605 100%);
-  --stripe-ink: #edece7;
 }
 
 /* ---------- Stationary Ground Shadow (Decoupled from Rotating Card) ---------- */
@@ -224,6 +218,7 @@
 }
 
 .cachet__face--back-flat {
+  display: grid;
   aspect-ratio: 600 / 378;
   min-height: 252px;
 }
@@ -246,6 +241,7 @@
 }
 
 .cachet[data-flat] .vesica__ring,
+.cachet[data-flat] .vesica__addr-ring,
 .cachet[data-flat] .vesica__lens,
 .cachet[data-flat] .vesica__center,
 .cachet[data-flat] .vesica__pt,
@@ -436,6 +432,49 @@
 .cachet[data-verdict='void'] .vesica__ring--bch {
   stroke: var(--danger);
   opacity: 0.88;
+}
+
+/* Curved cryptographic addresses revealed beneath the rings around the pointer */
+.vesica__addr-ring {
+  transition:
+    transform 680ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 360ms var(--ease);
+}
+
+.vesica__addr-ring--nostr {
+  color: var(--nostr-ink);
+}
+
+.vesica__addr-ring--bch {
+  color: var(--bch-ink);
+}
+
+.cachet[data-verdict='void'] .vesica__addr-ring--bch {
+  color: var(--danger);
+}
+
+.cachet[data-verdict='muted'] .vesica__addr-ring {
+  color: var(--ink-3);
+}
+
+.vesica__rail {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.65;
+  opacity: 0.34;
+}
+
+.vesica__pole {
+  fill: currentColor;
+  opacity: 0.45;
+}
+
+.vesica__ring-text {
+  fill: currentColor;
+  font-family: var(--font-mono);
+  font-size: 9.3px;
+  font-weight: 580;
+  font-feature-settings: 'zero';
 }
 
 .vesica__lens {
@@ -1016,102 +1055,92 @@
   color: var(--accent-ink);
 }
 
-/* ---------- Back Face: Brushed Obsidian Stripe & Recessed Signature Window ---------- */
+/* ---------- Back Face: Same Grid, Statement on the Plate, Signatures on the Datum ---------- */
 
 .cachet-back {
   position: relative;
   z-index: 2;
   height: 100%;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 10px;
-  padding: 15px 0 14px;
-}
-
-.cachet-back__stripe {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 34px;
-  padding: 0 22px;
-  background: var(--stripe-bg);
-  color: var(--stripe-ink);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.08),
-    inset 0 -1px 0 rgb(0 0 0 / 0.45);
-}
-
-.cachet-back__title {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  opacity: 0.9;
+  grid-template-rows: 14.021% minmax(0, 1fr) 14.021%;
 }
 
 .cachet-back__size {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  opacity: 0.9;
+  gap: 6px;
+}
+
+/* Same type as the front serial, but a byte count carries no verdict strike or focus tint. */
+.cachet-back__size-v {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-shadow: var(--etch-shadow);
 }
 
 .cachet-back__size .c-copy-icon {
-  width: 22px;
-  height: 22px;
-  color: inherit;
+  width: 24px;
+  height: 24px;
+  margin: -6px -6px -6px -2px;
+  opacity: 0.62;
 }
 
-.cachet-back__panel {
-  margin: 0 22px;
+.cachet-back__size .c-copy-icon:hover {
+  opacity: 1;
+}
+
+/* The header hugs the top edge, so the copied tip drops below instead of clipping. */
+.cachet-back__size .c-copy-icon__tip {
+  top: calc(100% + 4px);
+  bottom: auto;
+}
+
+.cachet-back__body {
+  position: relative;
+  z-index: 3;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  padding: 12px 24px;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--card-rule) transparent;
+  /* Soft edges inside the padding: invisible when it fits, a quiet fade when it has to scroll. */
+  mask-image: linear-gradient(transparent, #000 10px, #000 calc(100% - 10px), transparent);
 }
 
 .cachet-back__msg {
-  margin: 0;
-  padding: 9px 12px;
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  border-radius: 7px;
-  background:
-    repeating-linear-gradient(
-      0deg,
-      transparent 0px,
-      transparent 17px,
-      color-mix(in srgb, var(--ink) 3%, transparent) 17px,
-      color-mix(in srgb, var(--ink) 3%, transparent) 18px
-    ),
-    color-mix(in srgb, var(--sunken) 84%, transparent);
-  border: 1px solid var(--card-rule);
-  box-shadow: inset 0 1.5px 3px rgb(0 0 0 / 0.06);
+  margin: auto 0;
   font-family: var(--font-mono);
   font-size: 10.5px;
-  line-height: 1.55;
+  font-feature-settings: 'zero';
+  line-height: 1.62;
   color: var(--ink-2);
   white-space: pre-wrap;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  text-shadow: var(--etch-shadow);
   cursor: text;
 }
 
-.cachet-back__msg--empty {
-  display: flex;
-  align-items: center;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: var(--ink-3);
-  word-break: normal;
-  cursor: default;
+.cachet-back__h {
+  display: inline-block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--ink);
 }
 
-.cachet-back__h {
-  color: var(--ink);
-  font-weight: 600;
+.cachet-back__k,
+.cachet-back__p {
+  color: var(--ink-3);
+}
+
+.cachet-back__p {
+  opacity: 0.7;
 }
 
 .cachet-back__n {
@@ -1120,60 +1149,95 @@
 
 .cachet-back__b {
   color: var(--bch-ink);
-  font-weight: 500;
+  font-weight: 560;
 }
 
 .cachet-back__x {
   color: var(--danger);
   background: var(--danger-soft);
+  border-radius: 2px;
   font-weight: 600;
 }
 
-.cachet-back__foot {
-  margin: 0 22px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.cachet-back__rows {
-  margin: 0;
-  flex: 1;
-  min-width: 0;
+.cachet-back__empty {
+  margin: auto 0;
   display: grid;
-  gap: 2px;
-  font-size: 11px;
-}
-
-.cachet-back__rows > div {
-  display: grid;
-  grid-template-columns: 94px minmax(0, 1fr);
-  gap: 8px;
-  align-items: baseline;
-}
-
-.cachet-back__rows dt {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.06em;
+  gap: 9px;
+  font-size: 13px;
   color: var(--ink-3);
 }
 
-.cachet-back__rows dd {
+.cachet-back__foot {
+  gap: 20px;
+}
+
+.cachet-back__sigs {
+  flex: 1;
+  min-width: 0;
   margin: 0;
-  font-size: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.cachet-back__sigs > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cachet-back__sigs dt {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+}
+
+.cachet-back__sigs dd {
+  min-width: 0;
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   color: var(--ink-2);
-  white-space: nowrap;
+  text-shadow: var(--etch-shadow);
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* A miniature of the front's Vesica: rings in ring ink, lens lit only by a sealed verdict. */
 .cachet-back__hallmark {
   flex: none;
-  display: inline-flex;
-  align-items: center;
-  color: var(--ink-2);
+  overflow: visible;
+}
+
+.cachet-back__hallmark circle {
+  fill: none;
+  stroke: var(--ring-ink);
+  stroke-width: 1.7;
+  opacity: 0.9;
+}
+
+.cachet-back__hallmark-lens {
+  fill: color-mix(in srgb, var(--ink) 7%, transparent);
+  transition: fill 320ms var(--ease);
+}
+
+.cachet[data-verdict='valid'] .cachet-back__hallmark-lens {
+  fill: var(--lens-mid);
+}
+
+.cachet[data-verdict='void'] .cachet-back__hallmark-lens {
+  fill: color-mix(in srgb, var(--danger) 18%, transparent);
+}
+
+.cachet[data-verdict='void'] .cachet-back__hallmark circle:last-of-type {
+  stroke: var(--danger);
+}
+
+.cachet[data-verdict='muted'] .cachet-back__hallmark circle {
+  opacity: 0.3;
 }
 
 /* ---------- Frameless Swiss Verification Index (Ledger) ---------- */
@@ -1379,12 +1443,11 @@
   .cachet__addr {
     font-size: 13.5px;
   }
-  .cachet-back__stripe {
+  .cachet-back__body {
     padding-inline: 18px;
   }
-  .cachet-back__panel,
-  .cachet-back__foot {
-    margin-inline: 18px;
+  .cachet-back__sigs {
+    gap: 12px;
   }
 }
 
@@ -1415,8 +1478,31 @@
   .cachet__kicker {
     font-size: 8.5px;
   }
+  /* The scheme names would run under the rings; the key type stays readable. */
+  .cachet__scheme {
+    display: none;
+  }
   .cachet__domain {
     display: none;
+  }
+  .cachet-back {
+    grid-template-rows: 40px minmax(0, 1fr) 40px;
+  }
+  .cachet-back__body {
+    padding: 10px 15px;
+  }
+  .cachet-back__msg {
+    font-size: 9.5px;
+    line-height: 1.55;
+  }
+  .cachet-back__sigs {
+    gap: 10px;
+  }
+  .cachet-back__sigs dt {
+    font-size: 8px;
+  }
+  .cachet-back__sigs dd {
+    font-size: 9.5px;
   }
   .cachet-back__hallmark {
     display: none;

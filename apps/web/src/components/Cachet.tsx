@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useCallback,
   useEffect,
   useId,
@@ -8,6 +9,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type RefObject,
 } from 'react';
 import { npubEncode, type Check, type CheckId } from '@cachet/core';
 import { Avatar, CopyIcon, IconCheck, IconX, formatDate, shortMiddle } from '@cachet/react';
@@ -64,6 +66,23 @@ const CY = 189;
 const R = 124;
 const HALF_D = 57.2;
 const CURVE_SCALE = 2.2;
+const RING_HALF = 5.75;
+const SPOT_R = 102;
+/** Lowercase + digit optical midpoint sits ~0.26em above alphabetic baseline (~2.42px at 9.3px). */
+const TEXT_R_OFFSET = 2.42;
+/** Antipodal axis through the Euclidean Vesica apexes: atan2(dy, -HALF_D) ≈ 117.5° and 297.5°. */
+const POLE_DEG = 117.5;
+
+const polar = (r: number, deg: number) => {
+  const rad = deg * DEG;
+  return `${f(CX + r * Math.cos(rad))} ${f(CY + r * Math.sin(rad))}`;
+};
+
+const RING_ARC_CW = `M${polar(R - TEXT_R_OFFSET, POLE_DEG + 2)}A${f(R - TEXT_R_OFFSET)} ${f(R - TEXT_R_OFFSET)} 0 0 1 ${polar(R - TEXT_R_OFFSET, POLE_DEG + 178)}`;
+const RING_ARC_CCW = `M${polar(R + TEXT_R_OFFSET, POLE_DEG - 2)}A${f(R + TEXT_R_OFFSET)} ${f(R + TEXT_R_OFFSET)} 0 0 0 ${polar(R + TEXT_R_OFFSET, POLE_DEG - 178)}`;
+const POLE_A = { x: f(CX + R * Math.cos(POLE_DEG * DEG)), y: f(CY + R * Math.sin(POLE_DEG * DEG)) };
+const POLE_B = { x: f(CX + R * Math.cos((POLE_DEG + 180) * DEG)), y: f(CY + R * Math.sin((POLE_DEG + 180) * DEG)) };
+const ringTrack = (n: number) => (n > 1 ? f(Math.min(2.1, Math.max(0.02, (348 - n * 5.56) / (n - 1)))) : '0');
 
 const stageGap = (stage: CachetStage, verdict: CachetVerdict): number => {
   if (stage === 'sealed') {
@@ -163,17 +182,28 @@ const VesicaMonument = ({
   verdict,
   p,
   q,
+  npub,
+  cashaddr,
+  svgRef,
+  cutSpotRef,
+  showSpotRef,
 }: {
   uid: string;
   stage: CachetStage;
   verdict: CachetVerdict;
   p?: CurvePoint;
   q?: CurvePoint;
+  npub?: string;
+  cashaddr?: string;
+  svgRef?: RefObject<SVGSVGElement | null>;
+  cutSpotRef?: RefObject<SVGCircleElement | null>;
+  showSpotRef?: RefObject<SVGCircleElement | null>;
 }) => {
   const { up, down } = useMemo(curvePaths, []);
   const sealed = stage === 'sealed';
   const voided = sealed && verdict === 'void';
-  const inked = !(sealed && verdict === 'muted');
+  const muted = sealed && verdict === 'muted';
+  const inked = !muted;
   const keys = reached(stage, 'keys');
   const bchSigned = inked && reached(stage, 'bch');
   const nostrSigned = inked && reached(stage, 'nostr');
@@ -183,7 +213,18 @@ const VesicaMonument = ({
   const cx1 = CX - d;
   const cx2 = CX + d;
   const dy = Math.sqrt(Math.max(0, R * R - d * d));
-  const lensD = dy > 0 ? `M${f(CX)} ${f(CY - dy)}A${R} ${R} 0 0 1 ${f(CX)} ${f(CY + dy)}A${R} ${R} 0 0 1 ${f(CX)} ${f(CY - dy)}Z` : '';
+  const halfRing = muted ? 4.25 : RING_HALF;
+  const rLens = R - (halfRing - 0.15);
+  const dyLens = Math.sqrt(Math.max(0, rLens * rLens - d * d));
+  const lensD =
+    dyLens > 0
+      ? `M${f(CX)} ${f(CY - dyLens)}A${f(rLens)} ${f(rLens)} 0 0 1 ${f(CX)} ${f(CY + dyLens)}A${f(rLens)} ${f(rLens)} 0 0 1 ${f(CX)} ${f(CY - dyLens)}Z`
+      : '';
+
+  const showNostr = keys && Boolean(npub);
+  const showBch = keys && Boolean(cashaddr);
+  const nostrSpacing = npub ? ringTrack(npub.length) : '0';
+  const bchSpacing = cashaddr ? ringTrack(cashaddr.length) : '0';
 
   const px = p ? CX + p.X * CURVE_SCALE : undefined;
   const py = p ? CY + p.Y * CURVE_SCALE : undefined;
@@ -255,7 +296,7 @@ const VesicaMonument = ({
   );
 
   return (
-    <svg viewBox="0 0 600 378" preserveAspectRatio="xMidYMid slice" className="vesica" aria-hidden>
+    <svg ref={svgRef} viewBox="0 0 600 378" preserveAspectRatio="xMidYMid slice" className="vesica" aria-hidden>
       <defs>
         <clipPath id={`${uid}-chamber`}>
           <rect x="0" y="53" width="600" height="272" />
@@ -273,6 +314,38 @@ const VesicaMonument = ({
         <pattern id={`${uid}-void-hatch`} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="0" y1="0" x2="0" y2="7" className="vesica__hatch-line" />
         </pattern>
+        {(showNostr || showBch) && (
+          <>
+            <path id={`${uid}-arc-cw`} d={RING_ARC_CW} />
+            <path id={`${uid}-arc-ccw`} d={RING_ARC_CCW} />
+            <radialGradient id={`${uid}-grad-cut`}>
+              <stop offset="0%" stopColor="#000" stopOpacity="1" />
+              <stop offset="60%" stopColor="#000" stopOpacity="1" />
+              <stop offset="78%" stopColor="#000" stopOpacity="0.52" />
+              <stop offset="94%" stopColor="#000" stopOpacity="0" />
+            </radialGradient>
+            <radialGradient id={`${uid}-grad-show`}>
+              <stop offset="0%" stopColor="#fff" stopOpacity="1" />
+              <stop offset="56%" stopColor="#fff" stopOpacity="1" />
+              <stop offset="76%" stopColor="#fff" stopOpacity="0.45" />
+              <stop offset="90%" stopColor="#fff" stopOpacity="0" />
+            </radialGradient>
+            <mask id={`${uid}-ring-cut`} maskUnits="userSpaceOnUse" x="-40" y="0" width="680" height="378">
+              <rect x="-40" y="0" width="680" height="378" fill="#fff" />
+              <circle ref={cutSpotRef} cx="-999" cy="-999" r={SPOT_R} fill={`url(#${uid}-grad-cut)`} opacity="0" />
+            </mask>
+            <mask id={`${uid}-addr-show`} maskUnits="userSpaceOnUse" x="-40" y="0" width="680" height="378">
+              <rect x="-40" y="0" width="680" height="378" fill="#000" />
+              <circle ref={showSpotRef} cx="-999" cy="-999" r={SPOT_R} fill={`url(#${uid}-grad-show)`} opacity="0" />
+            </mask>
+            {showNostr && showBch && dy > 0 && (
+              <mask id={`${uid}-nostr-cross`} maskUnits="userSpaceOnUse" x="-40" y="0" width="680" height="378">
+                <rect x="-40" y="0" width="680" height="378" fill="#fff" />
+                <circle cx={f(cx2)} cy={CY} r={R} fill="none" stroke="#000" strokeWidth={halfRing * 2 + 1} />
+              </mask>
+            )}
+          </>
+        )}
       </defs>
 
       <g clipPath={`url(#${uid}-chamber)`}>
@@ -290,20 +363,67 @@ const VesicaMonument = ({
 
         {lensD && sealed && verdict === 'valid' && <g clipPath={`url(#${uid}-lens)`}>{renderMathLayer(true)}</g>}
 
-        <circle
-          className="vesica__ring vesica__ring--nostr"
-          cx={CX}
-          cy={CY}
-          r={R}
-          style={{ transform: `translateX(${f(-d)}px)` }}
-        />
-        <circle
-          className="vesica__ring vesica__ring--bch"
-          cx={CX}
-          cy={CY}
-          r={R}
-          style={{ transform: `translateX(${f(d)}px)` }}
-        />
+        {(showNostr || showBch) && (
+          <g className="vesica__reveal" mask={`url(#${uid}-addr-show)`}>
+            {showNostr && (
+              <g mask={showBch && dy > 0 ? `url(#${uid}-nostr-cross)` : undefined}>
+                <g className="vesica__addr-ring vesica__addr-ring--nostr" style={{ transform: `translateX(${f(-d)}px)` }}>
+                  <circle className="vesica__rail" cx={CX} cy={CY} r={R - halfRing} />
+                  <circle className="vesica__rail" cx={CX} cy={CY} r={R + halfRing} />
+                  <circle className="vesica__pole" cx={POLE_A.x} cy={POLE_A.y} r={1.05} />
+                  <circle className="vesica__pole" cx={POLE_B.x} cy={POLE_B.y} r={1.05} />
+                  <text className="vesica__ring-text" style={{ letterSpacing: `${nostrSpacing}px` }}>
+                    <textPath href={`#${uid}-arc-cw`} startOffset="50%" textAnchor="middle">
+                      {npub}
+                    </textPath>
+                  </text>
+                  <text className="vesica__ring-text" style={{ letterSpacing: `${nostrSpacing}px` }}>
+                    <textPath href={`#${uid}-arc-ccw`} startOffset="50%" textAnchor="middle">
+                      {npub}
+                    </textPath>
+                  </text>
+                </g>
+              </g>
+            )}
+            {showBch && (
+              <g className="vesica__addr-ring vesica__addr-ring--bch" style={{ transform: `translateX(${f(d)}px)` }}>
+                <circle className="vesica__rail" cx={CX} cy={CY} r={R - halfRing} />
+                <circle className="vesica__rail" cx={CX} cy={CY} r={R + halfRing} />
+                <circle className="vesica__pole" cx={POLE_A.x} cy={POLE_A.y} r={1.05} />
+                <circle className="vesica__pole" cx={POLE_B.x} cy={POLE_B.y} r={1.05} />
+                <text className="vesica__ring-text" style={{ letterSpacing: `${bchSpacing}px` }}>
+                  <textPath href={`#${uid}-arc-cw`} startOffset="50%" textAnchor="middle">
+                    {cashaddr}
+                  </textPath>
+                </text>
+                <text className="vesica__ring-text" style={{ letterSpacing: `${bchSpacing}px` }}>
+                  <textPath href={`#${uid}-arc-ccw`} startOffset="50%" textAnchor="middle">
+                    {cashaddr}
+                  </textPath>
+                </text>
+              </g>
+            )}
+          </g>
+        )}
+
+        <g mask={showNostr ? `url(#${uid}-ring-cut)` : undefined}>
+          <circle
+            className="vesica__ring vesica__ring--nostr"
+            cx={CX}
+            cy={CY}
+            r={R}
+            style={{ transform: `translateX(${f(-d)}px)` }}
+          />
+        </g>
+        <g mask={showBch ? `url(#${uid}-ring-cut)` : undefined}>
+          <circle
+            className="vesica__ring vesica__ring--bch"
+            cx={CX}
+            cy={CY}
+            r={R}
+            style={{ transform: `translateX(${f(d)}px)` }}
+          />
+        </g>
 
         <path
           className="vesica__center"
@@ -350,6 +470,12 @@ interface PhysicsState {
   tiltY: number;
   goalTiltX: number;
   goalTiltY: number;
+  spot: number;
+  goalSpot: number;
+  spotX: number;
+  spotY: number;
+  goalSpotX: number;
+  goalSpotY: number;
   dragging: boolean;
   pointerId: number;
   startX: number;
@@ -388,6 +514,9 @@ export const Cachet = ({
 }: CachetProps) => {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const ref = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const cutSpotRef = useRef<SVGCircleElement>(null);
+  const showSpotRef = useRef<SVGCircleElement>(null);
   const rafRef = useRef<number>(0);
   const phys = useRef<PhysicsState>({
     angle: flipped ? 180 : 0,
@@ -397,6 +526,12 @@ export const Cachet = ({
     tiltY: 0,
     goalTiltX: 0,
     goalTiltY: 0,
+    spot: 0,
+    goalSpot: 0,
+    spotX: -999,
+    spotY: -999,
+    goalSpotX: -999,
+    goalSpotY: -999,
     dragging: false,
     pointerId: -1,
     startX: 0,
@@ -467,6 +602,20 @@ export const Cachet = ({
     el.style.setProperty('--turn-glow', sinA.toFixed(3));
   }, []);
 
+  const applySpot = useCallback(() => {
+    const s = phys.current;
+    const vis = s.spot > 0.004;
+    const cx = vis ? s.spotX.toFixed(1) : '-999';
+    const cy = vis ? s.spotY.toFixed(1) : '-999';
+    const op = vis ? s.spot.toFixed(3) : '0';
+    for (const node of [cutSpotRef.current, showSpotRef.current]) {
+      if (!node) continue;
+      node.setAttribute('cx', cx);
+      node.setAttribute('cy', cy);
+      node.setAttribute('opacity', op);
+    }
+  }, []);
+
   const startLoop = useCallback(() => {
     if (rafRef.current) return;
     let prev = performance.now();
@@ -475,38 +624,61 @@ export const Cachet = ({
       prev = now;
       const s = phys.current;
 
-      // Smooth damped pointer tilt
-      const tiltLerp = 1 - Math.exp(-14 * dt);
-      s.tiltX += (s.goalTiltX - s.tiltX) * tiltLerp;
-      s.tiltY += (s.goalTiltY - s.tiltY) * tiltLerp;
+      const spotLerp = 1 - Math.exp(-15 * dt);
+      const posLerp = 1 - Math.exp(-26 * dt);
+      s.spot += (s.goalSpot - s.spot) * spotLerp;
+      s.spotX += (s.goalSpotX - s.spotX) * posLerp;
+      s.spotY += (s.goalSpotY - s.spotY) * posLerp;
+      applySpot();
 
-      if (!s.dragging) {
-        // Underdamped-near-critical spring for weighty machined titanium feel
-        const stiffness = 115;
-        const damping = 18.5;
-        const force = (s.target - s.angle) * stiffness - s.vel * damping;
-        s.vel += force * dt;
-        s.angle += s.vel * dt;
+      let settledCard = true;
+      if (!flat) {
+        // Smooth damped pointer tilt
+        const tiltLerp = 1 - Math.exp(-14 * dt);
+        s.tiltX += (s.goalTiltX - s.tiltX) * tiltLerp;
+        s.tiltY += (s.goalTiltY - s.tiltY) * tiltLerp;
+
+        if (!s.dragging) {
+          // Underdamped-near-critical spring for weighty machined titanium feel
+          const stiffness = 115;
+          const damping = 18.5;
+          const force = (s.target - s.angle) * stiffness - s.vel * damping;
+          s.vel += force * dt;
+          s.angle += s.vel * dt;
+        }
+
+        applyTransform();
+
+        const settledFlip = s.dragging ? false : Math.abs(s.target - s.angle) < 0.06 && Math.abs(s.vel) < 0.4;
+        const settledTilt = Math.abs(s.goalTiltX - s.tiltX) < 0.03 && Math.abs(s.goalTiltY - s.tiltY) < 0.03;
+        settledCard = settledFlip && settledTilt;
+        if (settledCard) {
+          s.angle = s.target;
+          s.vel = 0;
+          s.tiltX = s.goalTiltX;
+          s.tiltY = s.goalTiltY;
+          applyTransform();
+        }
       }
 
-      applyTransform();
+      const settledSpot =
+        Math.abs(s.goalSpot - s.spot) < 0.005 &&
+        (s.goalSpot === 0 || (Math.abs(s.goalSpotX - s.spotX) < 0.3 && Math.abs(s.goalSpotY - s.spotY) < 0.3));
 
-      const settledFlip = s.dragging ? false : Math.abs(s.target - s.angle) < 0.06 && Math.abs(s.vel) < 0.4;
-      const settledTilt = Math.abs(s.goalTiltX - s.tiltX) < 0.03 && Math.abs(s.goalTiltY - s.tiltY) < 0.03;
-
-      if (settledFlip && settledTilt) {
-        s.angle = s.target;
-        s.vel = 0;
-        s.tiltX = s.goalTiltX;
-        s.tiltY = s.goalTiltY;
-        applyTransform();
+      if (settledCard && settledSpot) {
+        s.spot = s.goalSpot;
+        if (s.goalSpot > 0) {
+          s.spotX = s.goalSpotX;
+          s.spotY = s.goalSpotY;
+        }
+        applySpot();
         rafRef.current = 0;
         return;
       }
       rafRef.current = requestAnimationFrame(step);
     };
     rafRef.current = requestAnimationFrame(step);
-  }, [applyTransform]);
+  }, [flat, applyTransform, applySpot]);
 
   useEffect(() => {
     if (flat || prevFlipped.current === flipped) return;
@@ -533,12 +705,51 @@ export const Cachet = ({
   }, [flipped, applyTransform, startLoop]);
 
   useEffect(() => {
-    if (flat) return;
-    applyTransform();
+    if (!flat) applyTransform();
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = 0;
+      }
     };
   }, [flat, applyTransform]);
+
+  const trackSpot = (clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const sr = svg.getBoundingClientRect();
+    if (!sr.width || !sr.height) return;
+    const s = phys.current;
+    const scale = Math.max(sr.width / 600, sr.height / 378);
+    const sx = (clientX - sr.left - (sr.width - 600 * scale) / 2) / scale;
+    const sy = (clientY - sr.top - (sr.height - 378 * scale) / 2) / scale;
+    if (s.spot < 0.02) {
+      s.spotX = sx;
+      s.spotY = sy;
+    }
+    s.goalSpotX = sx;
+    s.goalSpotY = sy;
+    s.goalSpot = 1;
+    if (prefersReducedMotion()) {
+      s.spot = 1;
+      s.spotX = sx;
+      s.spotY = sy;
+      applySpot();
+    } else {
+      startLoop();
+    }
+  };
+
+  const clearSpot = () => {
+    const s = phys.current;
+    s.goalSpot = 0;
+    if (prefersReducedMotion()) {
+      s.spot = 0;
+      applySpot();
+    } else {
+      startLoop();
+    }
+  };
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!canFlip || e.button !== 0) return;
@@ -558,6 +769,9 @@ export const Cachet = ({
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse' && !flipped) {
+      trackSpot(e.clientX, e.clientY);
+    }
     const el = ref.current;
     if (!el || prefersReducedMotion()) return;
     const s = phys.current;
@@ -649,6 +863,7 @@ export const Cachet = ({
   const onPointerLeave = (e: ReactPointerEvent<HTMLDivElement>) => {
     const el = ref.current;
     const s = phys.current;
+    clearSpot();
     if (!s.dragging) {
       s.pointerId = -1;
       if (el) delete el.dataset.live;
@@ -663,7 +878,18 @@ export const Cachet = ({
   const frontContent = (
     <>
       <div className="cachet__monument" data-zone="seal">
-        <VesicaMonument uid={uid} stage={stage} verdict={verdict} p={p} q={q} />
+        <VesicaMonument
+          uid={uid}
+          stage={stage}
+          verdict={verdict}
+          p={p}
+          q={q}
+          npub={npub || undefined}
+          cashaddr={cashaddr}
+          svgRef={svgRef}
+          cutSpotRef={cutSpotRef}
+          showSpotRef={showSpotRef}
+        />
       </div>
 
       <header className="cachet__head">
@@ -690,7 +916,9 @@ export const Cachet = ({
         <div className="cachet__reg" data-zone="nostr">
           <div className="cachet__kicker">
             <span className="cachet__idx">01</span>
-            <span>NOSTR · BIP-340</span>
+            <span>
+              NOSTR<span className="cachet__scheme"> · BIP-340</span>
+            </span>
             <span className="cachet__mark" data-on={nostrSigned || undefined} aria-hidden>
               <IconCheck size={10} strokeWidth={2.5} />
             </span>
@@ -716,7 +944,9 @@ export const Cachet = ({
         <div className="cachet__reg" data-zone="bch">
           <div className="cachet__kicker">
             <span className="cachet__idx">02</span>
-            <span>BITCOIN CASH · {bchParity ? `ECDSA (${bchParity})` : 'ECDSA'}</span>
+            <span>
+              BITCOIN CASH<span className="cachet__scheme"> · {bchParity ? `ECDSA (${bchParity})` : 'ECDSA'}</span>
+            </span>
             {tokenAware && <span className="cachet__chip-tag">TOKENS</span>}
             <span className="cachet__mark" data-on={bchSigned || (sealed && verdict === 'void') || undefined} aria-hidden>
               {sealed && verdict === 'void' ? <IconX size={10} strokeWidth={2.6} /> : <IconCheck size={10} strokeWidth={2.5} />}
@@ -768,6 +998,10 @@ export const Cachet = ({
         data-stage={stage}
         data-verdict={sealed ? verdict : undefined}
         data-focus={focus}
+        onPointerMove={(e) => {
+          if (e.pointerType === 'mouse') trackSpot(e.clientX, e.clientY);
+        }}
+        onPointerLeave={clearSpot}
       >
         <article className="cachet__face cachet__face--front" aria-label="Identity">
           {frontContent}
@@ -869,7 +1103,56 @@ export interface CachetBackProps {
   emptyNote?: string;
 }
 
-/** The back of the bank card: brushed carbon magnetic stripe, recessed signature window, and engraved security mark. */
+/** One canonical-JSON token: a key string, a value string, structural punctuation, or a bare literal. */
+const JSON_TOKEN = /("(?:[^"\\]|\\.)*")(?=:)|("(?:[^"\\]|\\.)*")|([{}[\],:])|([^"{}[\],:]+)/g;
+
+/** Values at least this long (hex nonces, keys, addresses) may start on a fresh line rather than split. */
+const LONG_VALUE = 24;
+
+/**
+ * The exact signed JSON, tinted so structure recedes and values read. Soft breaks after each comma
+ * and before long values let lines wrap at field boundaries without changing a byte of the text.
+ */
+const StatementJson = ({ json, addr, tampered }: { json: string; addr?: string; tampered?: boolean }) => {
+  const tokens = [...json.matchAll(JSON_TOKEN)];
+  return (
+    <>
+      {tokens.map(([, key, str, punct, literal], i) => {
+        if (key) return <span key={i} className="cachet-back__k">{key}</span>;
+        if (punct) {
+          const next = tokens[i + 1]?.[2];
+          const softBreak = punct === ',' || (punct === ':' && next !== undefined && next.length >= LONG_VALUE);
+          return (
+            <Fragment key={i}>
+              <span className="cachet-back__p">{punct}</span>
+              {softBreak && <wbr />}
+            </Fragment>
+          );
+        }
+        if (str && addr && str === `"${addr}"`) {
+          return (
+            <Fragment key={i}>
+              "<span className={tampered ? 'cachet-back__x' : 'cachet-back__b'}>{addr}</span>"
+            </Fragment>
+          );
+        }
+        return <Fragment key={i}>{str ?? literal}</Fragment>;
+      })}
+    </>
+  );
+};
+
+const BACK_SIGS = [
+  { key: 'eventId', label: 'EVENT ID', title: 'Nostr event ID (SHA-256)' },
+  { key: 'nostrSig', label: 'NOSTR SIG', title: 'Schnorr signature (BIP-340)' },
+  { key: 'bchSig', label: 'BCH SIG', title: 'ECDSA signature (Bitcoin Signed Message)' },
+] as const;
+
+/**
+ * The reverse of the card, drawn on the same grid as the front: header and footer bands at the
+ * 14% datum, the exact signed statement set directly on the plate, and the three signatures that
+ * seal it filed along the footer beside a miniature of the front's Vesica.
+ */
 export const CachetBack = ({
   message,
   bchSig,
@@ -882,74 +1165,69 @@ export const CachetBack = ({
   const [head = '', intro = '', json = ''] = (message ?? '').split('\n');
   const npubAt = intro.lastIndexOf('npub1');
   const addr = json.match(/"cashaddr":"([^"]+)"/)?.[1];
-  const [jsonA, jsonB] = addr ? json.split(addr) : [json, ''];
+  const sigs = { eventId, nostrSig, bchSig };
 
   return (
     <div className="cachet-back">
-      <header className="cachet-back__stripe">
-        <span className="cachet-back__title">SIGNED STATEMENT · SHA-256D</span>
-        <span className="cachet-back__size cachet__mono">
-          {message ? (
-            <>
-              {message.length} B
-              <CopyIcon value={message} title="Copy signed message" />
-            </>
-          ) : (
-            '— B'
-          )}
+      <header className="cachet__head cachet-back__head">
+        <span className="cachet__brand">
+          <span className="cachet__word">STATEMENT</span>
+          <span className="cachet__spec">/ SHA-256D</span>
+        </span>
+        <span className="cachet-back__size">
+          <span className="cachet__no">BYTES</span>
+          <span className="cachet-back__size-v">{message ? message.length : '···'}</span>
+          {message && <CopyIcon value={message} title="Copy signed message" />}
         </span>
       </header>
-      <div className="cachet-back__panel">
+
+      <div className="cachet-back__body">
         {message ? (
           <pre className="cachet-back__msg">
             <span className="cachet-back__h">{head}</span>
             {'\n'}
-            {intro.slice(0, npubAt)}
-            <span className="cachet-back__n">{intro.slice(npubAt)}</span>
+            {npubAt >= 0 ? (
+              <>
+                {intro.slice(0, npubAt)}
+                <span className="cachet-back__n">{intro.slice(npubAt)}</span>
+              </>
+            ) : (
+              intro
+            )}
             {'\n'}
-            {jsonA}
-            {addr && <span className={tampered ? 'cachet-back__x' : 'cachet-back__b'}>{addr}</span>}
-            {jsonB}
+            <StatementJson json={json} addr={addr} tampered={tampered} />
           </pre>
         ) : loading ? (
-          <div className="cachet-back__msg cachet-back__msg--empty">
-            <span className="c-skel" style={{ width: '76%', height: 14 }} />
+          <div className="cachet-back__empty">
+            <span className="c-skel" style={{ width: '72%', height: 12 }} />
+            <span className="c-skel" style={{ width: '88%', height: 12 }} />
+            <span className="c-skel" style={{ width: '54%', height: 12 }} />
           </div>
         ) : (
-          <div className="cachet-back__msg cachet-back__msg--empty">
-            {emptyNote ?? 'No signed statement published.'}
-          </div>
+          <div className="cachet-back__empty">{emptyNote ?? 'No signed statement published.'}</div>
         )}
       </div>
-      <div className="cachet-back__foot">
-        <dl className="cachet-back__rows">
-          <div>
-            <dt>BCH · ECDSA</dt>
-            <dd className="cachet__mono" title={bchSig}>
-              {loading && !bchSig ? <span className="c-skel" style={{ width: 132, height: 11 }} /> : (bchSig || '—')}
-            </dd>
-          </div>
-          <div>
-            <dt>NOSTR · ID</dt>
-            <dd className="cachet__mono" title={eventId}>
-              {loading && !eventId ? <span className="c-skel" style={{ width: 132, height: 11 }} /> : (eventId || '—')}
-            </dd>
-          </div>
-          <div>
-            <dt>SCHNORR · SIG</dt>
-            <dd className="cachet__mono" title={nostrSig}>
-              {loading && !nostrSig ? <span className="c-skel" style={{ width: 132, height: 11 }} /> : (nostrSig || '—')}
-            </dd>
-          </div>
+
+      <footer className="cachet__foot cachet-back__foot">
+        <dl className="cachet-back__sigs">
+          {BACK_SIGS.map(({ key, label, title }) => {
+            const value = sigs[key];
+            return (
+              <div key={key} title={value ? `${title}\n${value}` : title}>
+                <dt>{label}</dt>
+                <dd className="cachet__mono">
+                  {value ? shortMiddle(value, 8, 6) : loading ? <span className="c-skel" style={{ width: 84, height: 10 }} /> : '—'}
+                </dd>
+              </div>
+            );
+          })}
         </dl>
-        <div className="cachet-back__hallmark" aria-hidden title="Dual-signed secp256k1 credential">
-          <svg width="28" height="18" viewBox="0 0 28 18" fill="none">
-            <circle cx="11" cy="9" r="6.8" stroke="currentColor" strokeWidth="1.4" opacity="0.55" />
-            <circle cx="17" cy="9" r="6.8" stroke="currentColor" strokeWidth="1.4" opacity="0.55" />
-            <path d="M14 2.9A6.8 6.8 0 0 1 14 15.1A6.8 6.8 0 0 1 14 2.9Z" fill="var(--lens-mid)" opacity="0.85" />
-          </svg>
-        </div>
-      </div>
+        <svg className="cachet-back__hallmark" width="30" height="20" viewBox="0 0 30 20" aria-hidden>
+          <path className="cachet-back__hallmark-lens" d="M15 3.25A7.6 7.6 0 0 1 15 16.75A7.6 7.6 0 0 1 15 3.25Z" />
+          <circle cx="11.5" cy="10" r="7.6" />
+          <circle cx="18.5" cy="10" r="7.6" />
+        </svg>
+      </footer>
     </div>
   );
 };

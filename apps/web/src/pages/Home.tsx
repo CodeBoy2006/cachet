@@ -410,7 +410,7 @@ export const Home = () => {
               <IconWallet />
             </span>
             <h3>Pay a person, not a string</h3>
-            <p>Look up an npub, check the BCH signature in your browser, then pay by QR or from Selene over WizardConnect.</p>
+            <p>Look up an npub, check the BCH signature in your browser, then pay by QR, from Paytaca over WalletConnect, or from Selene over WizardConnect.</p>
             <span className="tile__go">
               {config.featured ? 'Tip 1,000 sats on mainnet' : 'Open your profile'} <IconArrowRight size={14} />
             </span>
@@ -421,7 +421,7 @@ export const Home = () => {
               <IconWallet />
             </span>
             <h3>Pay a person, not a string</h3>
-            <p>Make a payable profile with sandbox keys, then pay it by QR or from Selene over WizardConnect.</p>
+            <p>Make a payable profile with sandbox keys, then pay it by QR, from Paytaca over WalletConnect, or from Selene over WizardConnect.</p>
             <span className="tile__go">
               Make a profile in one click <IconArrowRight size={14} />
             </span>
