@@ -579,11 +579,17 @@ main {
   animation: c-rise 460ms 60ms var(--ease) backwards;
 }
 
+/* closest-side: the glow reaches transparent before any edge of its box, so it never shows a rectangle. */
 .hero__card::before {
   content: '';
   position: absolute;
-  inset: -32px -24px;
-  background: radial-gradient(ellipse at 68% 36%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 64%);
+  inset: -56px -48px -24px;
+  background: radial-gradient(
+    closest-side at 58% 34%,
+    color-mix(in srgb, var(--accent) 11%, transparent),
+    color-mix(in srgb, var(--accent) 4%, transparent) 55%,
+    transparent
+  );
   pointer-events: none;
   z-index: -1;
 }
@@ -776,7 +782,7 @@ button.tile:hover .tile__go svg {
 
 .tile__links {
   display: flex;
-  gap: 8px;
+  gap: 18px;
   flex-wrap: wrap;
 }
 
@@ -790,6 +796,20 @@ button.tile:hover .tile__go svg {
 
 .tile__go svg {
   transition: translate 180ms var(--ease);
+}
+
+.tile__go--link {
+  text-decoration: none;
+  border-radius: 4px;
+  transition: color 140ms;
+}
+
+.tile__go--link:hover {
+  color: var(--ink);
+}
+
+.tile__go--link:hover svg {
+  translate: 2px -2px;
 }
 
 @media (max-width: 820px) {
@@ -1444,13 +1464,26 @@ button.tile:hover .tile__go svg {
   margin-left: auto;
 }
 
+/* Same weight as the share button beside it. */
+.done-card__actions .c-btn--ghost {
+  --h: 28px;
+  padding: 0 8px;
+  font-size: 12.5px;
+}
+
 @media (max-width: 560px) {
   .done-card {
     padding: 18px;
   }
+  /* Primary action full width; the two quiet ones share a row beneath it. */
   .done-card__actions {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .done-card__actions > :first-child {
+    grid-column: 1 / -1;
+    margin-bottom: 4px;
   }
   .done-card__proof {
     margin-left: 0;
@@ -1564,6 +1597,11 @@ button.tile:hover .tile__go svg {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Optical alignment: a trailing ghost button's label lines up with the card's content edge. */
+.panel__head > .c-btn--ghost:last-child {
+  margin-right: -12px;
 }
 
 .panel__body {
@@ -2743,6 +2781,9 @@ button.tile:hover .tile__go svg {
   resize: vertical;
   color: var(--ink-2);
   tab-size: 2;
+  /* Long escaped proof strings continue on the quote's line instead of jumping to column 0. */
+  overflow-wrap: anywhere;
+  word-break: break-all;
   transition: background 160ms;
 }
 
@@ -3259,13 +3300,14 @@ button.tile:hover .tile__go svg {
 .pay__qr-corners {
   pointer-events: none;
   position: absolute;
-  inset: -5px;
-  border-radius: 21px;
+  /* Sits on the frame's own border so the corners read as part of it, not as loose arcs. */
+  inset: -1px;
+  border-radius: 16px;
   border: 1.5px solid var(--accent);
   opacity: 0;
   transition: opacity 280ms var(--ease);
   /* Keep only the four corners of a ring that follows the frame's radius. */
-  --arm: 24px;
+  --arm: 30px;
   -webkit-mask:
     linear-gradient(to right, #000 var(--arm), transparent var(--arm) calc(100% - var(--arm)), #000 calc(100% - var(--arm))),
     linear-gradient(to bottom, #000 var(--arm), transparent var(--arm) calc(100% - var(--arm)), #000 calc(100% - var(--arm)));

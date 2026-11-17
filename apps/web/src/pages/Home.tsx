@@ -435,8 +435,8 @@ export const Home = () => {
           <p>Fieldnote unlocks member notes. Stall pays sellers at their verified address. Withdraw the link once and both stop accepting it.</p>
           <span className="tile__links">
             {config.apps.map((a) => (
-              <a key={a.id} className="c-btn c-btn--sm c-btn--secondary" href={a.url} target="_blank" rel="noreferrer">
-                {a.name} <IconArrowUpRight size={13} />
+              <a key={a.id} className="tile__go tile__go--link" href={a.url} target="_blank" rel="noreferrer">
+                Open {a.name} <IconArrowUpRight size={13} />
               </a>
             ))}
           </span>

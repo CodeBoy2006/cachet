@@ -919,14 +919,14 @@ export const Cachet = ({
             <span>
               NOSTR<span className="cachet__scheme"> · BIP-340</span>
             </span>
-            <span className="cachet__mark" data-on={nostrSigned || undefined} aria-hidden>
-              <IconCheck size={10} strokeWidth={2.5} />
-            </span>
           </div>
           {npubTarget ? (
             <div className="cachet__field">
               <span className="cachet__addr cachet__mono" title={npub}>
                 npub1{npubText}
+              </span>
+              <span className="cachet__mark" data-on={nostrSigned || undefined} aria-hidden>
+                <IconCheck size={11} strokeWidth={2.5} />
               </span>
               <CopyIcon value={npub} title="Copy npub" />
             </div>
@@ -948,14 +948,14 @@ export const Cachet = ({
               BITCOIN CASH<span className="cachet__scheme"> · {bchParity ? `ECDSA (${bchParity})` : 'ECDSA'}</span>
             </span>
             {tokenAware && <span className="cachet__chip-tag">TOKENS</span>}
-            <span className="cachet__mark" data-on={bchSigned || (sealed && verdict === 'void') || undefined} aria-hidden>
-              {sealed && verdict === 'void' ? <IconX size={10} strokeWidth={2.6} /> : <IconCheck size={10} strokeWidth={2.5} />}
-            </span>
           </div>
           {addrTarget ? (
             <div className="cachet__field">
               <span className="cachet__addr cachet__mono" title={cashaddr}>
                 <Diff shown={addrText} target={addrTarget} sealed={sealedAddr} />
+              </span>
+              <span className="cachet__mark" data-on={bchSigned || (sealed && verdict === 'void') || undefined} aria-hidden>
+                {sealed && verdict === 'void' ? <IconX size={11} strokeWidth={2.6} /> : <IconCheck size={11} strokeWidth={2.5} />}
               </span>
               <CopyIcon value={cashaddr!} title="Copy address" />
             </div>
@@ -971,7 +971,8 @@ export const Cachet = ({
         </div>
 
         <div className="cachet__domain cachet__mono" aria-hidden>
-          secp256k1 · y² = x³ + 7 · 2²⁵⁶−2³²−977
+          <span>secp256k1 · y² = x³ + 7</span>
+          <span>p = 2²⁵⁶ − 2³² − 977</span>
         </div>
       </div>
 

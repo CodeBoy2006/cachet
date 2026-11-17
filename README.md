@@ -16,7 +16,7 @@ Built for **BCH BLAZE 2026** (Paytaca decentralized identity bounty, mainnet tra
 2. **Quick sandbox test** on the home page (or **Create** with your own wallet) → *Sign* → *Publish*. You get a profile page that anyone can verify.
 3. On the profile, **Pay**: default `1,000 sats`, scan the QR with any BCH wallet, or connect **Paytaca** over WalletConnect or **Selene** over WizardConnect. Incoming payments and supporter receipts update live via Fulcrum.
 4. Open **Fieldnote** and **Stall** (two separate apps with their own origins). *Sign in with Cachet* to unlock member articles on Fieldnote and open verified BCH seller checkout on Stall; share your `?seller=npub…` storefront URL so any buyer can verify it live from relays.
-5. Back on your profile, **Withdraw**. Stall's public `?seller=` storefront closes on refresh immediately, and pressing *Re-check link* in Fieldnote or Stall ends the active session.
+5. Back on your profile, **Withdraw**. Stall's public `?seller=` storefront closes on refresh immediately, and pressing *Re-check* in Fieldnote or Stall ends the active session.
 6. **Lab**: twelve attacks (stolen address, replayed proof, mirrored key, cached-verification bypass, unverified 30078…) and the exact check each one fails.
 
 ## Run locally

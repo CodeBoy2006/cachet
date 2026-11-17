@@ -138,6 +138,7 @@ const SignIn = ({ onSession }: { onSession: (s: SessionInfo) => void }) => {
         </button>
         <button type="button" className="c-btn c-btn--lg c-btn--secondary" onClick={viaExtension} disabled={busy || !hasExt} title={hasExt ? '' : 'No NIP-07 extension detected'}>
           Browser extension
+          {!hasExt && <span className="signin__ext-note">not detected</span>}
         </button>
       </div>
       {flow && (
@@ -283,7 +284,7 @@ const SessionCard = ({ session, onChange }: { session: SessionInfo; onChange: (s
       </dl>
       <div className="row session__actions">
         <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={() => void check(false)} disabled={busy}>
-          {busy ? <Spinner /> : <IconRefresh size={14} />} {autoChecking ? 'Checking…' : 'Re-check link'}
+          {busy ? <Spinner /> : <IconRefresh size={14} />} {autoChecking ? 'Checking…' : 'Re-check'}
         </button>
         <a
           className="c-btn c-btn--ghost c-btn--sm"

@@ -839,9 +839,12 @@
   color: var(--ink-2);
 }
 
+/* The verdict sits beside the value it vouches for, which also keeps the kicker clear of the rings. */
 .cachet__mark {
   display: inline-grid;
   place-items: center;
+  flex: none;
+  margin-left: 4px;
   opacity: 0;
   scale: 0.5;
   color: var(--bch-ink);
@@ -923,15 +926,17 @@
   color: var(--danger);
 }
 
+/* Two engraved lines so the microprint stops short of the left ring instead of running under it. */
 .cachet__domain {
+  display: grid;
+  gap: 1px;
   margin-top: 2px;
   font-size: 9px;
+  line-height: 1.45;
   letter-spacing: 0.04em;
   color: var(--ink-3);
   opacity: 0.78;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ---------- Bottom Architectural Datum Bar (Exact 14.021% = y:325) ---------- */
@@ -1473,7 +1478,14 @@
     gap: 9px;
   }
   .cachet__addr {
-    font-size: 12.5px;
+    font-size: 12px;
+  }
+  /* Value, verdict and copy icon must all stop short of the left ring on phone-width cards. */
+  .cachet__mark {
+    margin-left: 0;
+  }
+  .cachet__field .c-copy-icon {
+    width: 20px;
   }
   .cachet__kicker {
     font-size: 8.5px;

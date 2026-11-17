@@ -398,10 +398,10 @@ export const Create = () => {
                     {npub && <ShareButton url={`${window.location.origin}/p/${npub}`} title="My Cachet identity" label="Share profile" />}
                     <button
                       type="button"
-                      className="c-btn c-btn--ghost done-card__proof"
+                      className="c-btn c-btn--ghost c-btn--sm done-card__proof"
                       onClick={() => downloadJson(`cachet-${shortNpub(nostr!.pubkey)}.json`, published.event)}
                     >
-                      <IconDownload size={15} /> Proof JSON
+                      <IconDownload size={14} /> Proof JSON
                     </button>
                   </div>
                   <div className="done-apps">
@@ -412,7 +412,7 @@ export const Create = () => {
                         </span>
                         <span className="done-app__body">
                           <strong>Sign in to {app.name}</strong>
-                          <small>{app.id === 'a' ? 'Unlock members-only articles' : 'Open verified BCH checkout'}</small>
+                          <small>{app.id === 'a' ? 'Unlock member notes' : 'Verified BCH checkout'}</small>
                         </span>
                         <IconArrowUpRight size={15} className="done-app__arrow" />
                       </a>
