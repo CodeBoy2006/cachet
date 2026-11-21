@@ -34,6 +34,7 @@ export const WalletConnectDialog = ({
   const [phase, setPhase] = useState<Phase>('init');
   const [error, setError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
+  const pairAgainRequested = useRef(false);
   // Pairing must not restart because a parent re-rendered with a new callback.
   const connected = useRef(onConnected);
   useEffect(() => {
@@ -50,6 +51,11 @@ export const WalletConnectDialog = ({
       try {
         const signer = await getWalletConnectSigner();
         if (cancelled) return;
+        if (pairAgainRequested.current) {
+          pairAgainRequested.current = false;
+          await signer.disconnect();
+          if (cancelled) return;
+        }
         if (!signer.connected) {
           const { uri, approved } = await signer.connect();
           // If the dialog closed while the wallet was still deciding, do not leave a dangling session.
@@ -62,11 +68,11 @@ export const WalletConnectDialog = ({
         if (cancelled) return;
         setPhase('addresses');
         const addresses = await signer.getAddresses();
-        if (cancelled) return;
+        if (cancelled || pairAgainRequested.current) return;
         if (!addresses.length) throw new Error('The wallet shared no BCH addresses.');
         connected.current(signer, addresses);
       } catch (e) {
-        if (cancelled) return;
+        if (cancelled || pairAgainRequested.current) return;
         setPhase('error');
         setError(e instanceof Error ? e.message : String(e));
       }
@@ -98,12 +104,27 @@ export const WalletConnectDialog = ({
           </button>
         </div>
       ) : (
-        <div className="wc-status soft" role="status">
-          <div className="row">
+        <div className="wc-status soft">
+          <div className="row" role="status">
             <span className="c-spinner" aria-hidden="true" />
             {phase === 'addresses' ? 'Reading BCH addresses…' : 'Starting WalletConnect…'}
           </div>
-          {phase === 'addresses' && <p>Keep your wallet open.</p>}
+          {phase === 'addresses' && (
+            <>
+              <p>Keep your wallet open.</p>
+              <button
+                type="button"
+                className="c-link wc-status__pair"
+                onClick={(event) => {
+                  pairAgainRequested.current = true;
+                  event.currentTarget.closest<HTMLElement>('[role="dialog"]')?.focus();
+                  setAttempt((n) => n + 1);
+                }}
+              >
+                Pair again
+              </button>
+            </>
+          )}
         </div>
       )}
     </Dialog>

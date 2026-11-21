@@ -1624,6 +1624,12 @@ main {
   font-size: 14px;
 }
 
+.wc-status__pair {
+  min-height: 24px;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
 /* ---------- Profile ---------- */
 
 .profile {
