@@ -9,6 +9,12 @@ Built for **BCH BLAZE 2026** (Mainnet Track & Paytaca Decentralized Identity Bou
 | Live demo | [cachet-three.vercel.app](https://cachet-three.vercel.app) |
 | EMBER2026 address | `bitcoincash:zzq4hd7sk4x32sxnusd7ch82d5c35fnwcg3ytwteug` |
 
+
+
+https://github.com/user-attachments/assets/d92f23e2-682e-49c9-9a56-cbce287b3c39
+
+
+
 ![Cachet’s engraved seal: two interlocking rings with an emerald foil center](docs/assets/readme-hero.png)
 
 ## Try it
