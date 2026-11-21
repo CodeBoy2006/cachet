@@ -570,6 +570,7 @@ export const Cachet = ({
   const p = useMemo(() => (pubkey ? nostrPoint(pubkey) : undefined), [pubkey]);
   const q = useMemo(() => bchPoint(bchKey), [bchKey]);
   const bchParity = bchKey && /^0[23]/.test(bchKey) ? bchKey.slice(0, 2) : undefined;
+  const ringOverhang = 300 - (CX - HALF_D - stageGap(stage, verdict) - R - RING_HALF);
   const canFlip = !flat && Boolean(onFlip && back);
 
   const [pressKey, setPressKey] = useState(0);
@@ -907,7 +908,7 @@ export const Cachet = ({
         </span>
       </header>
 
-      <div className="cachet__body">
+      <div className="cachet__body" style={{ '--ring-overhang': ringOverhang } as CSSProperties}>
         {name && hasKeys && (
           <div className="cachet__holder">
             <Avatar pubkey={pubkey} picture={picture} size={18} />
@@ -946,11 +947,12 @@ export const Cachet = ({
         </div>
 
         <div className="cachet__reg" data-zone="bch">
-          <div className="cachet__kicker">
-            <span className="cachet__idx">02</span>
-            <span>
-              BITCOIN CASH<span className="cachet__scheme"> · {bchParity ? `ECDSA (${bchParity})` : 'ECDSA'}</span>
+          <div className="cachet__kicker cachet__kicker--bch">
+            <span className="cachet__kicker-title">
+              <span className="cachet__idx">02</span>
+              BITCOIN CASH
             </span>
+            <span className="cachet__scheme">· {bchParity ? `ECDSA (${bchParity})` : 'ECDSA'}</span>
             {tokenAware && <span className="cachet__chip-tag">TOKENS</span>}
           </div>
           {addrTarget ? (
