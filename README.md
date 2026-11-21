@@ -7,7 +7,7 @@ Built for **BCH BLAZE 2026** (Paytaca decentralized identity bounty, mainnet tra
 | | |
 |---|---|
 | Slides | _add link_ |
-| Live demo | _add link_ |
+| Live demo | [cachet-three.vercel.app](https://cachet-three.vercel.app) |
 | EMBER2026 address | `bitcoincash:zzq4hd7sk4x32sxnusd7ch82d5c35fnwcg3ytwteug` |
 
 ## Try it
@@ -15,8 +15,8 @@ Built for **BCH BLAZE 2026** (Paytaca decentralized identity bounty, mainnet tra
 1. Open the site. The card on the right is a real binding made and verified in your tab.
 2. **Sandbox demo** on the home page signs and publishes in one click (or **Create** with your own wallet → *Sign* → *Publish*). You get a profile page that anyone can verify. The *Try the whole loop* steps under the hero tick off as you go.
 3. On the profile, **Pay**: default `1,000 sats`, scan the QR with any BCH wallet, or connect **Paytaca** over WalletConnect or **Selene** over WizardConnect. Incoming payments and supporter receipts update live via Fulcrum.
-4. Open **Fieldnote** and **Stall** (two separate apps with their own origins). *Sign in with Cachet* to unlock member articles on Fieldnote and open verified BCH seller checkout on Stall; share your `?seller=npub…` storefront URL so any buyer can verify it live from relays.
-5. Back on your profile, **Withdraw**. Stall's public `?seller=` storefront closes on refresh immediately, and pressing *Re-check* in Fieldnote or Stall ends the active session.
+4. If you're running the example apps locally, open **Fieldnote** and **Stall**. *Sign in with Cachet* to unlock member articles on Fieldnote and open verified BCH seller checkout on Stall; share your `?seller=npub…` storefront URL so any buyer can verify it live from relays.
+5. Back on your profile, **Withdraw**, then refresh the public profile to see its new state. If you signed in to the example apps, Stall's public `?seller=` storefront closes on refresh and pressing *Re-check* in either app ends the active session.
 6. **Lab**: one honest binding and eleven attacks (stolen address, replayed proof, mirrored key, cached-verification bypass, unverified 30078…), each with the exact check it fails.
 
 ## Run locally
@@ -88,7 +88,15 @@ Not yet verified: real-wallet pairing and WalletConnect payment (Paytaca, Cashon
 
 ## Deploy
 
-**Vercel:** Import the GitHub repository with the project root set to `.`. The root `vercel.json` installs from the workspace lockfile, builds Cachet, and makes shared profile links work on direct visits. Use Node 22 or newer. Set `VITE_WC_PROJECT_ID` if you want WalletConnect.
+**Vercel:** The live demo deploys the compiled frontend without connecting the private repository to Vercel. From a clean export of the repository root (no `.git` or local `.env` files), use Node 22 and the Vercel CLI:
+
+```bash
+vercel pull --yes --environment=production --project cachet --scope codeboy2006s-projects
+VERCEL=1 vercel build --prod
+vercel deploy --prebuilt --prod
+```
+
+The root `vercel.json` builds the web workspace and routes direct profile visits to the frontend. Set `VITE_WC_PROJECT_ID` in the Vercel project to enable WalletConnect.
 
 Fieldnote and Stall keep login challenges and sessions in memory. Run them on a persistent Node host, then set `VITE_RP_A_URL` and `VITE_RP_B_URL` on Vercel and redeploy to expose their links. Without those URLs, the hosted demo uses the public profile to demonstrate verification and withdrawal.
 
