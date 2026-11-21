@@ -10,6 +10,8 @@ Built for **BCH BLAZE 2026** (Paytaca decentralized identity bounty, mainnet tra
 | Live demo | [cachet-three.vercel.app](https://cachet-three.vercel.app) |
 | EMBER2026 address | `bitcoincash:zzq4hd7sk4x32sxnusd7ch82d5c35fnwcg3ytwteug` |
 
+![Cachet’s engraved seal: two interlocking rings with an emerald foil center](docs/assets/readme-hero.png)
+
 ## Try it
 
 1. Open the site. The card on the right is a real binding made and verified in your tab.
@@ -52,6 +54,8 @@ Configuration: copy `apps/web/.env.example` to `apps/web/.env`. `VITE_WC_PROJECT
 
 ## How it works
 
+![Two signets stamp one statement, relays carry it, and a storefront verifies the seal locally](docs/assets/readme-flow.png)
+
 ```
 BCH wallet ──signs M──▶ statement {cashaddr, nostr_pubkey, network, issued_at, expires_at, nonce}
                               │
@@ -82,6 +86,8 @@ Choices worth knowing:
 - **Logins** use NIP-98 over the exact body plus a server nonce tied to the browser, consumed atomically. RPs keep their own sessions and re-check relays.
 
 ## Status
+
+![Eleven ring proofs crossed out in red beside one intact emerald seal](docs/assets/readme-security.png)
 
 Verified here: everything in `npm test`, and the full create → sign in to two apps → withdraw → revoked flow in a browser against a local relay.
 Not yet verified: real-wallet pairing and WalletConnect payment (Paytaca, Cashonize, Zapit, Electron Cash), WizardConnect payment from Selene, publishing to public relays. Results go in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
