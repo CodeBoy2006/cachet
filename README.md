@@ -6,7 +6,7 @@ Built for **BCH BLAZE 2026** (Mainnet Track & Paytaca Decentralized Identity Bou
 
 | | |
 |---|---|
-| Slides | _add link_ |
+| Slides | [Cachet — BCH BLAZE 2026](https://docs.google.com/presentation/d/1eBx1boJnAuorJ8h_vhQUPTP328sCf-claV7veXzOp8o/view) |
 | Live demo | [cachet-three.vercel.app](https://cachet-three.vercel.app) |
 | EMBER2026 address | `bitcoincash:zzq4hd7sk4x32sxnusd7ch82d5c35fnwcg3ytwteug` |
 
