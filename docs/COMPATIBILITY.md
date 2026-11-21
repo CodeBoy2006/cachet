@@ -1,6 +1,6 @@
 # Compatibility & Verification
 
-Cachet is verified across live BCH mainnet wallets, public Nostr relays, independent relying-party servers, and a 157-test automated suite.
+Cachet is verified across live BCH mainnet wallets, public Nostr relays, independent relying-party servers, and a 160-test automated suite.
 
 ## BCH wallets (mainnet)
 
@@ -8,12 +8,12 @@ Cachet is verified across live BCH mainnet wallets, public Nostr relays, indepen
 |---|---|---|---|---|---|---|
 | **Paytaca** | ✓ Verified | — | ✓ Verified | ✓ Verified | — | `wc2-bch-bcr` (`bch_getAddresses`, `bch_signMessage`, `bch_signTransaction`); legacy `kind 30078` announcements detected as unverified with 1-click upgrade |
 | **Selene** | — | — | ✓ Verified | — | ✓ Verified | `@wizardconnect/react` xpub pairing; BIP44 `receive` + `change` gap-limit scan (`gapLimit = 20`, up to 200 addresses) |
-| **Cashonize** | ✓ Verified | ✓ Verified | ✓ Verified | ✓ Verified | — | `wc2-bch-bcr` message & tx signing; native `q…` and token-aware `z…` CashTokens addresses (addresses Cashonize `#405`) |
+| **Cashonize** | ✓ Verified | ✓ Verified | ✓ Verified | ✓ Verified | ✓ Verified | `wc2-bch-bcr` message & tx signing + WizardConnect HD checkout ([mainnet tx `9b4d73bf…ecff245`](https://blockchair.com/bitcoin-cash/transaction/9b4d73bf06591a02c3787d820ef06feec695f34a1b659b7447bedd863ecff245)); native `q…` and token-aware `z…` CashTokens addresses (addresses Cashonize `#405`) |
 | **Electron Cash** | — | ✓ Verified | ✓ Verified | — | — | Reference Bitcoin Signed Message (`Sign/Verify message`) implementation |
 | **Zapit** | ✓ Verified (`wc2-bch-bcr`) | — | ✓ Verified | ✓ Verified (`wc2-bch-bcr`) | — | Shares the `wc2-bch-bcr` `bch:bitcoincash` namespace and extended-JSON wire format |
 | **Sandbox key (built-in)** | ✓ Built-in | — | ✓ Receives | — | — | Real mainnet key in `localStorage` for 1-click wallet-free evaluation; prompts for WIF backup before funding |
 
-WalletConnect (`wc2-bch-bcr`) covers both binding creation (`bch_signMessage`) and transaction checkout (`bch_signTransaction`). WizardConnect exposes HD extended public keys and transaction signing, powering direct balance discovery and checkout in Selene.
+WalletConnect (`wc2-bch-bcr`) covers both binding creation (`bch_signMessage`) and transaction checkout (`bch_signTransaction`). WizardConnect exposes HD extended public keys and transaction signing, powering direct balance discovery, unused change-address rotation, and checkout in Selene and Cashonize (exercised on BCH mainnet in [`9b4d73bf…ecff245`](https://blockchair.com/bitcoin-cash/transaction/9b4d73bf06591a02c3787d820ef06feec695f34a1b659b7447bedd863ecff245) paying [`npub1jphw3…zlxs5x`](https://cachet-three.vercel.app/p/npub1jphw36087g88e3spq8ycuumn2z3amruppx8zjakcgr6gkmsevghqzlxs5x)).
 
 ## Nostr signers, relays & live infrastructure
 
@@ -25,7 +25,7 @@ WalletConnect (`wc2-bch-bcr`) covers both binding creation (`bch_signMessage`) a
 | **Fulcrum WebSocket cluster** | `bch.imaginary.cash`, `electroncash.dk`, `bch.loping.net`, `fulcrum.greyh.at` | Fastest-handshake server racing, `scripthash` subscriptions for live `0-conf` → confirmed receipts, `ensureBroadcast` txid verification |
 | **Relying parties (`apps/rp`)** | Fieldnote & Stall | Independent relay verification, cookie-bound atomic login challenges, live session termination and seller-checkout closure on withdrawal |
 
-## Automated suite (`npm test` · 157 tests)
+## Automated suite (`npm test` · 160 tests)
 
 | Area | Coverage |
 |---|---|

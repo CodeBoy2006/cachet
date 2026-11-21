@@ -13,9 +13,9 @@ Built for **BCH BLAZE 2026** (Mainnet Track & Paytaca Decentralized Identity Bou
 
 ## Try it
 
-1. Open [Cachet](https://cachet-three.vercel.app). The card on the right is a real binding made and verified in your tab.
+1. Open [Cachet](https://cachet-three.vercel.app). The card on the right resolves a live mainnet binding ([`npub1jphw3…zlxs5x`](https://cachet-three.vercel.app/p/npub1jphw36087g88e3spq8ycuumn2z3amruppx8zjakcgr6gkmsevghqzlxs5x)) from public Nostr relays and verifies it in your tab.
 2. **Sandbox demo** on the home page signs and publishes in one click (or **Create** with your own wallet → *Sign* → *Publish*). You get a profile page that anyone can verify. The *Try the whole loop* steps under the hero tick off as you go.
-3. On the profile, **Pay**: default `1,000 sats`, scan the QR with any BCH wallet, or connect **Paytaca** over WalletConnect or **Selene** over WizardConnect. Incoming payments and supporter receipts update live via Fulcrum.
+3. On the profile, **Pay**: default `1,000 sats`, scan the QR with any BCH wallet, or connect **Paytaca** / **Cashonize** over WalletConnect or **Selene** / **Cashonize** over WizardConnect. Incoming payments and supporter receipts update live via Fulcrum.
 4. Open [Fieldnote](https://cachet-fieldnote.vercel.app) or [Stall](https://cachet-stall.vercel.app) and choose **Sign in with Cachet**. Fieldnote unlocks member articles; Stall opens a verified BCH seller checkout. Share your `?seller=npub…` storefront URL so any buyer can verify it directly from relays.
 5. Back on your profile, **Withdraw**, then refresh the public profile to see its new state. If you signed in to the example apps, Stall's public `?seller=` storefront closes on refresh and pressing *Re-check* in either app ends the active session.
 6. **Lab**: one honest binding and eleven attacks (stolen address, replayed proof, mirrored key, cached-verification bypass, unverified 30078…), each with the exact check it fails.
@@ -92,13 +92,13 @@ Choices worth knowing:
 Exercised live across BCH mainnet and public Nostr relays, with automated coverage described in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md):
 
 - **Dual-key binding & discovery**: `bch_signMessage` over WalletConnect (Paytaca, Cashonize), manual Bitcoin Signed Message (Electron Cash), NIP-07 extensions (Alby, nos2x), and sandbox keys; published to public relays with two-wave NIP-65 discovery and Paytaca `kind 30078` upgrade detection.
-- **Mainnet BCH checkout**: direct payments via **Paytaca** and **Cashonize** (WalletConnect `wc2-bch-bcr`), **Selene** (WizardConnect HD scanning), and standard **BIP21 QR / URI**, with live `0-conf` mempool and block-confirmation receipts over Fulcrum WebSockets.
+- **Mainnet BCH checkout**: direct payments via **Paytaca** and **Cashonize** (WalletConnect `wc2-bch-bcr`), **Selene** and **Cashonize** (WizardConnect HD scanning — mainnet proof [`9b4d73bf…ecff245`](https://blockchair.com/bitcoin-cash/transaction/9b4d73bf06591a02c3787d820ef06feec695f34a1b659b7447bedd863ecff245) to [`npub1jphw3…zlxs5x`](https://cachet-three.vercel.app/p/npub1jphw36087g88e3spq8ycuumn2z3amruppx8zjakcgr6gkmsevghqzlxs5x)), and standard **BIP21 QR / URI**, with live `0-conf` mempool and block-confirmation receipts over Fulcrum WebSockets.
 - **Cross-app sign-in & instant revocation**: independent relying parties (**Fieldnote** and **Stall**) resolve relays directly, enforce atomic NIP-98 challenges, and end active sessions and seller checkouts as soon as a link is withdrawn.
 - **Automated & adversarial checks**: `mainnet-js` / Electron Cash signature vectors, `fast-check` property invariants, relay fault injection, concurrent login-replay races across RP instances, offline CLI verification, and 11 forgery cases in the Lab.
 
 ## Deploy
 
-**Vercel:** The live demo deploys the compiled frontend without connecting the private repository to Vercel. From a clean export of the repository root (no `.git` or local `.env` files), use Node 22 and the Vercel CLI:
+**Vercel:** The live demo deploys the compiled frontend directly via the Vercel CLI. From a clean export of the repository root (no `.git` or local `.env` files), use Node 22:
 
 ```bash
 vercel pull --yes --environment=production --project cachet --scope codeboy2006s-projects
@@ -118,7 +118,7 @@ VITE_SIBLING_URL=https://cachet-stall.vercel.app VITE_CACHET_URL=https://cachet-
 npm run build:vercel -w @cachet/rp -- /absolute/path/to/linked-project/.vercel/output
 ```
 
-In the linked deployment directory, run `vercel deploy --prebuilt --prod`. Verify both `/api/health` endpoints before setting `VITE_RP_A_URL` and `VITE_RP_B_URL` and rebuilding Cachet. Set `VITE_REPO_URL` on Cachet to show the Source link; the link does not grant access to a private repository.
+In the linked deployment directory, run `vercel deploy --prebuilt --prod`. Verify both `/api/health` endpoints before setting `VITE_RP_A_URL` and `VITE_RP_B_URL` and rebuilding Cachet. Set `VITE_REPO_URL` on Cachet to show the Source link in the top banner.
 
 **Persistent Node host:** The standalone demo and gateway still keep their app state in memory.
 

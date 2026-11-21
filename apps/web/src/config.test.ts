@@ -20,3 +20,23 @@ describe('example app links', () => {
     expect(config.apps.map((app) => app.url)).toEqual(urls);
   });
 });
+
+describe('featured home identity', () => {
+  it('defaults to the live mainnet npub on public production hosts', async () => {
+    vi.stubEnv('DEV', false);
+    vi.stubEnv('VITE_FEATURED_NPUB', undefined);
+    vi.stubEnv('VITE_RELAYS', undefined);
+    vi.stubGlobal('location', { hostname: 'cachet-three.vercel.app' });
+    const { config, DEFAULT_FEATURED_NPUB } = await import('./config.ts');
+    expect(config.featured).toBe(DEFAULT_FEATURED_NPUB);
+  });
+
+  it('stays unset on localhost or custom relays unless explicitly configured', async () => {
+    vi.stubEnv('DEV', false);
+    vi.stubEnv('VITE_FEATURED_NPUB', undefined);
+    vi.stubEnv('VITE_RELAYS', 'ws://127.0.0.1:7777');
+    vi.stubGlobal('location', { hostname: 'cachet-three.vercel.app' });
+    const { config } = await import('./config.ts');
+    expect(config.featured).toBeUndefined();
+  });
+});
