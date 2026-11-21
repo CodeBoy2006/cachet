@@ -59,8 +59,8 @@ export class WalletConnectBchSigner implements BchSigner {
   }
 
   static async init(opts: WalletConnectOptions) {
-    const { default: Client } = await import('@walletconnect/sign-client');
-    const client = await Client.init({
+    const { SignClient } = await import('@walletconnect/sign-client');
+    const client = await SignClient.init({
       projectId: opts.projectId,
       metadata: opts.metadata ?? {
         name: 'Cachet',

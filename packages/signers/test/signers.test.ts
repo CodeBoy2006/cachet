@@ -69,6 +69,20 @@ describe('signer output is checked, not trusted', () => {
     expect(recoverSigner('uncompressed key', signer.signRaw('uncompressed key'))).toMatchObject({ ok: true, compressed: false });
   });
 
+  it('initializes WalletConnect when the SDK default export is wrapped', async () => {
+    const init = vi.fn().mockResolvedValue({ on: vi.fn(), session: { getAll: () => [] } });
+    const SignClient = { init };
+    vi.doMock('@walletconnect/sign-client', () => ({ SignClient, default: { default: SignClient, SignClient } }));
+    try {
+      const metadata = { name: 'Cachet', description: 'Test app', url: 'https://cachet.example', icons: [] };
+      const signer = await WalletConnectBchSigner.init({ projectId: 'local-test', metadata });
+      expect(init).toHaveBeenCalledWith({ projectId: 'local-test', metadata });
+      expect(signer.connected).toBe(false);
+    } finally {
+      vi.doUnmock('@walletconnect/sign-client');
+    }
+  });
+
   it('signs wc2-bch-bcr transactions and rejects declined or stale WalletConnect responses', async () => {
     const handlers = new Map<string, ((arg: unknown) => void)[]>();
     const wallet = LocalBchSigner.generate();
