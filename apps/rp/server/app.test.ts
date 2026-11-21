@@ -5,6 +5,7 @@ import { makeBinding, makeIdentity } from '../../../packages/core/test/helpers.t
 import { BRANDS } from '../shared/brands.ts';
 import { createApp, type ResolvedBinding } from './app.ts';
 import { createGateway } from './gateway.ts';
+import { memoryState } from './state.ts';
 
 const ORIGIN = 'http://localhost:5174';
 
@@ -82,6 +83,26 @@ describe('relying party login', () => {
     const results = await Promise.all(Array.from({ length: 5 }, () => verify(app, ch.cookie, body, auth).then((r: Response) => r.json() as Promise<Record<string, any>>)));
     expect(results.filter((r: Record<string, any>) => r.ok)).toHaveLength(1);
     expect(results.filter((r: Record<string, any>) => r.code === 'challenge_used')).toHaveLength(4);
+  });
+
+  it('consumes a challenge and reads the resulting isolated session across instances', async () => {
+    const { b, fromResolution } = setup();
+    const now = () => b.now;
+    const state = memoryState(now);
+    const config = { brand: BRANDS.a, origin: ORIGIN, resolve: async () => fromResolution(), now, state };
+    const a = createApp(config);
+    const bNode = createApp(config);
+    const ch = await challenge(a, b.id.nostrPubkey);
+    const body = JSON.stringify({ challenge_id: ch.json.challenge_id, nonce: ch.json.nonce, binding_id: ch.json.binding.binding_id });
+    const auth = signedVerify(b.id.nostrSecret, body);
+    const responses = await Promise.all([verify(bNode, ch.cookie, body, auth), verify(a, ch.cookie, body, auth)]);
+    expect(responses.map((r) => r.status).sort()).toEqual([200, 401]);
+    const cookie = cookieOf(responses.find((r) => r.ok)!, 'rp_a_sid');
+    const session = await a.request('/api/session', { headers: { cookie } });
+    expect(session.headers.get('cache-control')).toBe('no-store');
+    expect(await session.json()).toMatchObject({ ok: true, session: { pubkey: b.id.nostrPubkey } });
+    await bNode.request('/api/logout', { method: 'POST', headers: { cookie } });
+    expect((await a.request('/api/session', { headers: { cookie } })).status).toBe(401);
   });
 
   it('rejects wrong URL, body, key or browser session without burning the challenge', async () => {
@@ -323,17 +344,19 @@ describe('relying party login', () => {
       relays: [],
     };
     let finish!: (v: ResolvedBinding) => void;
+    let started!: () => void;
+    const recheckStarted = new Promise<void>((resolve) => { started = resolve; });
     let slow = false;
     const app = createApp({
       brand: BRANDS.b,
       origin: 'http://localhost:5175',
-      resolve: () => (slow ? new Promise((r) => (finish = r)) : Promise.resolve(active)),
+      resolve: () => (slow ? new Promise((r) => { finish = r; started(); }) : Promise.resolve(active)),
       now: () => b.now,
     });
     const sid = await signIn(app, b, 'b');
     slow = true;
     const inflight = app.request('/api/session/recheck', { method: 'POST', headers: { cookie: sid } });
-    await Promise.resolve();
+    await recheckStarted;
     await app.request('/api/logout', { method: 'POST', headers: { cookie: sid } });
     finish(active);
     expect((await inflight).status).toBe(401);

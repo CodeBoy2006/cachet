@@ -90,12 +90,12 @@ Choices worth knowing:
 
 ![Eleven ring proofs crossed out in red beside one intact emerald seal](docs/assets/readme-security.png)
 
-Exercised live across BCH mainnet, public Nostr relays, and a 157-test automated suite ([docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)):
+Exercised live across BCH mainnet and public Nostr relays, with automated coverage described in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md):
 
 - **Dual-key binding & discovery**: `bch_signMessage` over WalletConnect (Paytaca, Cashonize), manual Bitcoin Signed Message (Electron Cash), NIP-07 extensions (Alby, nos2x), and sandbox keys; published to public relays with two-wave NIP-65 discovery and Paytaca `kind 30078` upgrade detection.
 - **Mainnet BCH checkout**: direct payments via **Paytaca** and **Cashonize** (WalletConnect `wc2-bch-bcr`), **Selene** (WizardConnect HD scanning), and standard **BIP21 QR / URI**, with live `0-conf` mempool and block-confirmation receipts over Fulcrum WebSockets.
 - **Cross-app sign-in & instant revocation**: independent relying parties (**Fieldnote** and **Stall**) resolve relays directly, enforce atomic NIP-98 challenges, and end active sessions and seller checkouts as soon as a link is withdrawn.
-- **157 automated & adversarial checks**: `mainnet-js` / Electron Cash signature vectors, `fast-check` property invariants, relay fault injection, concurrent login-replay races, offline CLI verification, and 11 live forgery cases in the Lab.
+- **Automated & adversarial checks**: `mainnet-js` / Electron Cash signature vectors, `fast-check` property invariants, relay fault injection, concurrent login-replay races across RP instances, offline CLI verification, and 11 forgery cases in the Lab.
 
 ## Deploy
 
@@ -109,7 +109,19 @@ vercel deploy --prebuilt --prod
 
 The root `vercel.json` builds the web workspace and routes direct profile visits to the frontend. Set `VITE_WC_PROJECT_ID` in the Vercel project to enable WalletConnect.
 
-Fieldnote and Stall keep login challenges and sessions in memory. Run them on a persistent Node host, then set `VITE_RP_A_URL` and `VITE_RP_B_URL` on Vercel and redeploy to expose their links. Without those URLs, the hosted demo uses the public profile to demonstrate verification and withdrawal.
+**Fieldnote and Stall on Vercel:** Create a separate Vercel project for each app and connect the same Upstash Redis database to both production environments. The functions read `KV_REST_API_URL` and `KV_REST_API_TOKEN` (or `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`) at runtime. Challenges, sessions, logs and verified relay snapshots are isolated by app origin. Never use `VITE_` for Redis credentials.
+
+From the repository root, build each app's static frontend and compiled API into an otherwise empty, Vercel-linked deployment directory. For example, for Fieldnote (`a`; swap the two app origins and use `b` for Stall):
+
+```bash
+VITE_RP=a RP_VERCEL_ORIGIN=https://cachet-fieldnote.vercel.app \
+VITE_SIBLING_URL=https://cachet-stall.vercel.app VITE_CACHET_URL=https://cachet-three.vercel.app \
+npm run build:vercel -w @cachet/rp -- /absolute/path/to/linked-project/.vercel/output
+```
+
+In the linked deployment directory, run `vercel deploy --prebuilt --prod`. Verify both `/api/health` endpoints before setting `VITE_RP_A_URL` and `VITE_RP_B_URL` and rebuilding Cachet. Set `VITE_REPO_URL` on Cachet to show the Source link; the link does not grant access to a private repository.
+
+**Persistent Node host:** The standalone demo and gateway still keep their app state in memory.
 
 Set frontend origin variables (`VITE_CACHET_URL`, `VITE_RP_A_URL`, `VITE_RP_B_URL`) at build time so cross-origin sign-in links point to your live domains:
 

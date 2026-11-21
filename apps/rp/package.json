@@ -8,6 +8,7 @@
     "dev:a": "concurrently -k -n api,ui \"RP=a tsx watch --conditions=@cachet/source server/main.ts\" \"VITE_RP=a vite --config web/vite.config.ts --port 5174 --strictPort\"",
     "dev:b": "concurrently -k -n api,ui \"RP=b tsx watch --conditions=@cachet/source server/main.ts\" \"VITE_RP=b vite --config web/vite.config.ts --port 5175 --strictPort\"",
     "build": "VITE_RP=a vite build --config web/vite.config.ts --outDir ../dist/a && VITE_RP=b vite build --config web/vite.config.ts --outDir ../dist/b",
+    "build:vercel": "node scripts/build-vercel.mjs",
     "start:a": "RP=a NODE_ENV=production tsx --conditions=@cachet/source server/main.ts",
     "start:b": "RP=b NODE_ENV=production tsx --conditions=@cachet/source server/main.ts",
     "start:gateway": "NODE_ENV=production tsx --conditions=@cachet/source server/gateway.ts"

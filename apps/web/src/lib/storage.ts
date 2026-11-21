@@ -138,7 +138,7 @@ export const readPendingSign = (nowMs = Date.now()): PendingSign | null => {
  * an older copy cannot roll this browser back, the others so a removed claim reads as
  * "withdrawn" rather than "not found".
  */
-export const browserCache: SnapshotCache = {
+export const browserCache = {
   get(pubkey) {
     try {
       const raw = JSON.parse(store.get(KEYS.snapshot(pubkey)) ?? '[]');
@@ -158,4 +158,4 @@ export const browserCache: SnapshotCache = {
       );
     store.set(KEYS.snapshot(pubkey), JSON.stringify([...list, event].sort(compareSnapshots).slice(0, 3)));
   },
-};
+} satisfies SnapshotCache;

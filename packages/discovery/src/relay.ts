@@ -110,7 +110,7 @@ const parse = (data: unknown): unknown[] | null => {
   }
 };
 
-export const queryRelay = (url: string, filters: Filter[], opts: { timeout?: number; maxEvents?: number } = {}) =>
+export const queryRelay = (url: string, filters: Filter[], opts: { timeout?: number; maxEvents?: number; socket?: (url: string) => SocketLike } = {}) =>
   new Promise<RelayQueryResult>((resolve) => {
     const started = clock();
     const id = subId();
@@ -131,7 +131,7 @@ export const queryRelay = (url: string, filters: Filter[], opts: { timeout?: num
     };
     const timer = setTimeout(() => done('timeout'), opts.timeout ?? 4500);
     try {
-      ws = openSocket(url);
+      ws = (opts.socket ?? openSocket)(url);
     } catch (e) {
       clearTimeout(timer);
       resolve({ url, status: 'error', events, ms: 0, message: String(e) });

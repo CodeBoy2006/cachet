@@ -19,7 +19,7 @@ import {
   type NostrEvent,
   type Resolution,
 } from '@cachet/core';
-import { isPublicRelayUrl, publishToRelay, queryRelay, uniqueRelays, type PublishResult, type RelayQueryResult } from './relay.ts';
+import { isPublicRelayUrl, publishToRelay, queryRelay, uniqueRelays, type PublishResult, type RelayQueryResult, type SocketLike } from './relay.ts';
 
 export * from './relay.ts';
 
@@ -82,15 +82,15 @@ export interface Profile {
 }
 
 export interface SnapshotCache {
-  get(pubkey: string): unknown[];
-  put(pubkey: string, event: NostrEvent): void;
+  get(pubkey: string): unknown[] | Promise<unknown[]>;
+  put(pubkey: string, event: NostrEvent): void | Promise<void>;
 }
 
 /**
  * Keeps the few newest snapshots per author. The newest stops rollback; the older
  * ones let a resolver say "withdrawn" (seen, then removed) instead of "not found".
  */
-export const memoryCache = (keep = 3): SnapshotCache => {
+export const memoryCache = (keep = 3) => {
   const store = new Map<string, NostrEvent[]>();
   return {
     get: (pk) => store.get(pk) ?? [],
@@ -98,7 +98,7 @@ export const memoryCache = (keep = 3): SnapshotCache => {
       const list = (store.get(pk) ?? []).filter((x) => x.id !== e.id);
       store.set(pk, [...list, e].sort(compareSnapshots).slice(0, keep));
     },
-  };
+  } satisfies SnapshotCache;
 };
 
 export interface LegacyAnnouncement {
@@ -193,6 +193,8 @@ export interface LookupOptions {
   allowRelay?: (url: string) => Promise<boolean> | boolean;
   /** Permit non-public (`ws://` / loopback) URLs in hints and NIP-65; defaults to true only when `relays` itself uses a local URL. */
   allowPrivateRelays?: boolean;
+  /** Server socket factory can enforce address policy on the actual connection. */
+  socket?: (url: string) => SocketLike;
   cashaddr?: string;
   cache?: SnapshotCache;
   timeout?: number;
@@ -228,21 +230,21 @@ export const lookupIdentity = async (pubkey: string, opts: LookupOptions = {}): 
       opts.onRelay?.(r);
       return r;
     });
-  const results = await Promise.all(firstWave.map((url) => track(queryRelay(url, filters, { timeout }))));
+  const results = await Promise.all(firstWave.map((url) => track(queryRelay(url, filters, { timeout, socket: opts.socket }))));
 
   const relayListEvent = latestValid(results.flatMap((r) => r.events), pubkey, KIND_RELAY_LIST);
   const relayList = readRelayList(relayListEvent);
   const secondWave = await admitUntrusted(relayList.write.filter((u) => !firstWave.includes(u)), 4);
   if (secondWave.length) {
     const more = await Promise.all(
-      secondWave.map((url) => track(queryRelay(url, [{ authors: [pubkey], kinds: [KIND_METADATA, KIND_EXTERNAL_IDENTITIES], limit: 6 }, legacyFilter], { timeout }))),
+      secondWave.map((url) => track(queryRelay(url, [{ authors: [pubkey], kinds: [KIND_METADATA, KIND_EXTERNAL_IDENTITIES], limit: 6 }, legacyFilter], { timeout, socket: opts.socket }))),
     );
     results.push(...more);
   }
 
   const all = results.flatMap((r) => r.events.map((event) => ({ event, relay: r.url })));
   const snapshots = all.filter((x) => (x.event as { kind?: number })?.kind === KIND_EXTERNAL_IDENTITIES);
-  const cached = (opts.cache?.get(pubkey) ?? []).map((event) => ({ event, relay: 'cache' }));
+  const cached = ((await opts.cache?.get(pubkey)) ?? []).map((event) => ({ event, relay: 'cache' }));
   const resolution = resolveSnapshots({
     pubkey,
     events: [...snapshots, ...cached],
@@ -250,12 +252,12 @@ export const lookupIdentity = async (pubkey: string, opts: LookupOptions = {}): 
     ...(opts.cashaddr ? { cashaddr: opts.cashaddr } : {}),
     ...(opts.now ? { now: opts.now } : {}),
   });
-  if (resolution.latest) opts.cache?.put(pubkey, resolution.latest);
+  if (resolution.latest) await opts.cache?.put(pubkey, resolution.latest);
   // Remember a snapshot that still carried a claim the latest one dropped.
   for (const c of resolution.claims) if (c.state === 'withdrawn') {
     const seen = snapshots.find((x) => (x.event as { id?: string })?.id === c.eventId);
     const r = seen ? rebuildEvent(seen.event) : null;
-    if (r?.ok) opts.cache?.put(pubkey, r.event);
+    if (r?.ok) await opts.cache?.put(pubkey, r.event);
   }
   const usedCache = !!resolution.snapshots[0] && resolution.snapshots[0].relays.length === 1 && resolution.snapshots[0].relays[0] === 'cache';
 
