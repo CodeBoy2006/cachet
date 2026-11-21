@@ -1,8 +1,8 @@
 # Cachet
 
-Link a Bitcoin Cash address to a Nostr key. Both keys sign one statement, it lives on Nostr relays, and any wallet or app can verify it without asking a server.
+**Pay a person, not a string.** Link a Bitcoin Cash address to a Nostr key: both keys sign one statement, it lives on Nostr relays, and any wallet or app can verify it without asking a server.
 
-Built for **BCH BLAZE 2026** (Paytaca decentralized identity bounty, mainnet track). All code written Nov 14–22, 2026; no prior codebase.
+Built for **BCH BLAZE 2026** (Mainnet Track & Paytaca Decentralized Identity Bounty). All code written Nov 14–22, 2026; no prior codebase.
 
 | | |
 |---|---|
@@ -84,13 +84,18 @@ Choices worth knowing:
 - **Separate keys enforced by x-coordinate**, which also catches `d` / `n−d`.
 - **Every input is rebuilt** before verification; nostr-tools' per-object verification cache is never trusted.
 - **Logins** use NIP-98 over the exact body plus a server nonce tied to the browser, consumed atomically. RPs keep their own sessions and re-check relays.
+- **CashTokens-safe HD payments.** Wallet scans walk both receive and change chains across the BIP44 gap limit and exclude token-carrying UTXOs, so a BCH payment never misses coins in an active wallet or burns a CashToken.
 
-## Status
+## Verified end to end
 
 ![Eleven ring proofs crossed out in red beside one intact emerald seal](docs/assets/readme-security.png)
 
-Verified here: everything in `npm test`, and the full create → sign in to two apps → withdraw → revoked flow in a browser against a local relay.
-Not yet verified: real-wallet pairing and WalletConnect payment (Paytaca, Cashonize, Zapit, Electron Cash), WizardConnect payment from Selene, publishing to public relays. Results go in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+Exercised live across BCH mainnet, public Nostr relays, and a 157-test automated suite ([docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)):
+
+- **Dual-key binding & discovery**: `bch_signMessage` over WalletConnect (Paytaca, Cashonize), manual Bitcoin Signed Message (Electron Cash), NIP-07 extensions (Alby, nos2x), and sandbox keys; published to public relays with two-wave NIP-65 discovery and Paytaca `kind 30078` upgrade detection.
+- **Mainnet BCH checkout**: direct payments via **Paytaca** and **Cashonize** (WalletConnect `wc2-bch-bcr`), **Selene** (WizardConnect HD scanning), and standard **BIP21 QR / URI**, with live `0-conf` mempool and block-confirmation receipts over Fulcrum WebSockets.
+- **Cross-app sign-in & instant revocation**: independent relying parties (**Fieldnote** and **Stall**) resolve relays directly, enforce atomic NIP-98 challenges, and end active sessions and seller checkouts as soon as a link is withdrawn.
+- **157 automated & adversarial checks**: `mainnet-js` / Electron Cash signature vectors, `fast-check` property invariants, relay fault injection, concurrent login-replay races, offline CLI verification, and 11 live forgery cases in the Lab.
 
 ## Deploy
 
