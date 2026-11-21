@@ -13,8 +13,8 @@ export const config = {
   indexers: clean(env.VITE_RELAYS) ? [] : INDEXER_RELAYS,
   electrum: DEFAULT_ELECTRUM,
   apps: [
-    { id: 'a', name: 'Fieldnote', url: clean(env.VITE_RP_A_URL) ?? (local ? 'http://localhost:5174' : undefined), blurb: 'Members-only notes', accent: '#9a3412' },
-    { id: 'b', name: 'Stall', url: clean(env.VITE_RP_B_URL) ?? (local ? 'http://localhost:5175' : undefined), blurb: 'Seller dashboard', accent: '#1d4ed8' },
+    { id: 'a', name: 'Fieldnote', url: clean(env.VITE_RP_A_URL) ?? (local ? 'http://localhost:5174' : undefined), blurb: 'Members-only notes' },
+    { id: 'b', name: 'Stall', url: clean(env.VITE_RP_B_URL) ?? (local ? 'http://localhost:5175' : undefined), blurb: 'Seller dashboard' },
   ].flatMap(({ url, ...app }) => (url ? [{ ...app, url }] : [])),
   banner: {
     slides: clean(env.VITE_SLIDES_URL),

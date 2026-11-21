@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { KIND_HTTP_AUTH, fromBase64Url, isLowerHex, npubEncode, nowSeconds, toBase64Url, type EventTemplate } from '@cachet/core';
-import { Avatar, IconArrowRight, IconCheck, IconZap, Logo, Note, Spinner, StatePill, shortCashaddr, shortNpub } from '@cachet/react';
+import { Avatar, IconArrowRight, IconCheck, IconZap, Wordmark, Note, Spinner, StatePill, shortCashaddr, shortNpub } from '@cachet/react';
 import { config } from '../config.ts';
 import { useSession } from '../lib/session.tsx';
 import { savePendingSign } from '../lib/storage.ts';
@@ -62,8 +62,8 @@ const parseRequest = (): Request | { error: string } => {
   }
   if (tag('method')[0]?.[1] !== 'POST') return { error: 'Only POST sign-in requests are signed.' };
   if (!isLowerHex(tag('payload')[0]?.[1], 32)) return { error: 'The sign-in request does not commit to its body.' };
-  const app = (q.get('app') ?? '').replace(/[^\p{L}\p{N} ._-]/gu, '').slice(0, 40) || returnUrl.host;
-  return { app, returnUrl: returnUrl.toString(), origin: returnUrl.origin, template: { kind: t.kind, created_at: t.created_at, tags: t.tags, content: '' } };
+  const label = (q.get('app') ?? '').replace(/[^\p{L}\p{N} ._-]/gu, '').slice(0, 40) || returnUrl.host;
+  return { app: knownApp(returnUrl.origin)?.name ?? label, returnUrl: returnUrl.toString(), origin: returnUrl.origin, template: { kind: t.kind, created_at: t.created_at, tags: t.tags, content: '' } };
 };
 
 export const SignRequest = () => {
@@ -118,9 +118,7 @@ export const SignRequest = () => {
     return (
       <div className="signer">
         <div className="c-card signer__card">
-          <div className="signer__brand">
-            <Logo size={20} /> cachet
-          </div>
+          <Wordmark />
           <h1>{request.error === 'missing' ? 'Sign-in page' : 'Cannot sign this request'}</h1>
           <p className="soft" style={{ margin: 0 }}>
             {request.error === 'missing' ? 'Apps send you here when you choose “Sign in with Cachet”. It signs one login request for that app.' : request.error}
@@ -134,7 +132,6 @@ export const SignRequest = () => {
   }
 
   const claim = result?.resolution.primary;
-  const accent = knownApp(request.origin)?.accent;
 
   const quickMintSandbox = () => {
     savePendingSign({ app: request.app, search: location.search });
@@ -144,32 +141,15 @@ export const SignRequest = () => {
 
   return (
     <div className="signer">
-      <div className="c-card signer__card" data-phase={phase}>
-        <div className="signer__bridge" aria-hidden>
-          <span className="signer__node signer__node--cachet">
-            <Logo size={20} />
-          </span>
-          <span className="signer__beam" data-phase={phase}>
-            <span className="signer__beam-tag mono">NIP-98</span>
-          </span>
-          <span className="signer__node signer__node--app" style={accent ? { background: accent, color: '#fff', borderColor: accent } : undefined}>
-            {request.app.slice(0, 1).toUpperCase()}
-          </span>
+      <div className="c-card signer__card">
+        <header className="signer__masthead">
+          <Wordmark />
+          <span>One-time login</span>
+        </header>
+        <div className="signer__request">
+          <h1>{phase === 'done' ? `Signed in to ${request.app}` : `Sign in to ${request.app}?`}</h1>
+          <div className="signer__origin mono" dir="ltr">{request.origin}</div>
         </div>
-
-        <div className="signer__origin">
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 600 }}>{request.app}</div>
-            <div className="mono muted" style={{ fontSize: 12.5 }}>
-              {request.origin}
-            </div>
-          </div>
-          <span className="c-tag" style={{ marginLeft: 'auto' }}>
-            One-time login
-          </span>
-        </div>
-
-        <h1>{phase === 'done' ? `Signed in to ${request.app}` : `Sign in to ${request.app}?`}</h1>
 
         {restoring ? (
           <div className="row muted">
@@ -215,8 +195,7 @@ export const SignRequest = () => {
               </Note>
             )}
             <p className="muted signer__fine">
-              {request.app} receives your npub and one signed login request, valid only at {new URL(request.origin).host}. It checks your BCH link on
-              the relays itself.
+              {request.app} receives your npub and a signed NIP-98 request for this site only. It checks your BCH link on the relays.
             </p>
             {error && <Note tone="danger">{error}</Note>}
             {phase === 'done' ? (

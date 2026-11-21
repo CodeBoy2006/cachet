@@ -2980,8 +2980,11 @@ main {
 }
 
 .signer__card {
-  width: min(420px, 100%);
-  padding: 26px;
+  width: min(448px, 100%);
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
+  padding: 28px;
   display: grid;
   gap: 18px;
   animation: c-pop 320ms var(--ease) both;
@@ -2997,41 +3000,39 @@ main {
   }
 }
 
-.signer__brand {
-  display: inline-flex;
+.signer__masthead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  gap: 6px 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.signer__masthead > span:last-child {
+  font-size: 13px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.signer__request {
+  display: grid;
+  gap: 6px;
+  padding-block: 4px;
 }
 
 .signer__origin {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-}
-
-.signer__origin .favicon {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  display: grid;
-  place-items: center;
-  font-weight: 600;
-  background: var(--ink);
-  color: var(--surface);
-  flex: none;
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 .signer h1 {
-  font-size: 19px;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.5rem, 4vw, 1.875rem);
+  letter-spacing: -0.035em;
   margin: 0;
-  line-height: 1.3;
+  line-height: 1.16;
 }
 
 .signer__who {
@@ -3515,96 +3516,6 @@ main {
 
 .scenario__audit-dot[data-ok='true'] {
   background: var(--accent-soft);
-  color: var(--accent-ink);
-}
-
-/* SignRequest cryptographic handshake bridge */
-.signer__bridge {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 40px;
-  align-items: center;
-  gap: 10px;
-}
-
-.signer__node {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  font-weight: 650;
-  font-size: 15px;
-  border: 1px solid var(--line-2);
-  background: var(--surface-2);
-  color: var(--ink);
-  transition:
-    transform 260ms var(--ease-spring),
-    border-color 240ms,
-    box-shadow 240ms;
-}
-
-.signer__card[data-phase='done'] .signer__node {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
-}
-
-.signer__beam {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 24px;
-}
-
-.signer__beam::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1.5px;
-  background: var(--line-2);
-}
-
-.signer__beam::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 2px;
-  background: var(--accent);
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform 280ms var(--ease);
-}
-
-.signer__beam[data-phase='signing']::after {
-  transform: scaleX(0.55);
-}
-
-.signer__beam[data-phase='done']::after {
-  transform: scaleX(1);
-}
-
-.signer__beam-tag {
-  position: relative;
-  z-index: 1;
-  padding: 2px 7px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  color: var(--ink-3);
-  transition:
-    color 200ms,
-    border-color 200ms,
-    background 200ms;
-}
-
-.signer__beam[data-phase='done'] .signer__beam-tag {
-  background: var(--accent-soft);
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
   color: var(--accent-ink);
 }
 
