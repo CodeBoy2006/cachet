@@ -14,7 +14,7 @@ Built for **BCH BLAZE 2026** (Mainnet Track & Paytaca Decentralized Identity Bou
 
 ## Try it
 
-1. Open the site. The card on the right is a real binding made and verified in your tab.
+1. Open [Cachet](https://cachet-three.vercel.app). The card on the right is a real binding made and verified in your tab.
 2. **Sandbox demo** on the home page signs and publishes in one click (or **Create** with your own wallet → *Sign* → *Publish*). You get a profile page that anyone can verify. The *Try the whole loop* steps under the hero tick off as you go.
 3. On the profile, **Pay**: default `1,000 sats`, scan the QR with any BCH wallet, or connect **Paytaca** over WalletConnect or **Selene** over WizardConnect. Incoming payments and supporter receipts update live via Fulcrum.
 4. Open [Fieldnote](https://cachet-fieldnote.vercel.app) or [Stall](https://cachet-stall.vercel.app) and choose **Sign in with Cachet**. Fieldnote unlocks member articles; Stall opens a verified BCH seller checkout. Share your `?seller=npub…` storefront URL so any buyer can verify it directly from relays.
