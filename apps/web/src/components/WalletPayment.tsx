@@ -63,6 +63,7 @@ type Send = { kind: 'idle' } | { kind: 'signing' } | { kind: 'sent'; txid: strin
 export const WalletPayment = ({
   brand,
   name,
+  addresses,
   electrum,
   to,
   sats,
@@ -74,6 +75,7 @@ export const WalletPayment = ({
 }: {
   brand?: WalletBrand;
   name: string;
+  addresses?: readonly string[];
   electrum: ElectrumClient;
   to: string;
   sats: bigint;
@@ -184,6 +186,14 @@ export const WalletPayment = ({
         </>
       }
     >
+      {!!addresses?.length && (
+        <details className="wallet-card__addresses soft">
+          <summary>{addresses.length === 1 ? 'Wallet address' : `Wallet addresses (${addresses.length})`}</summary>
+          <ul className="mono">
+            {addresses.map((address) => <li key={address}>{address}</li>)}
+          </ul>
+        </details>
+      )}
       {coins.error && !coins.result ? (
         <Note tone="danger">
           {coins.error}{' '}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { loadWalletConnect } from '@cachet/signers';
-import { CopyChip, Dialog, Note, Qr, Spinner } from '@cachet/react';
+import { CopyChip, Dialog, Note, Qr } from '@cachet/react';
 import { config } from '../config.ts';
 
 export type WcSigner = Awaited<ReturnType<Awaited<ReturnType<typeof loadWalletConnect>>['init']>>;
@@ -85,7 +85,9 @@ export const WalletConnectDialog = ({
           <a href={uri} className="wc-pair__qr" aria-label="Open in a wallet on this device">
             <Qr value={uri} size={248} label="WalletConnect pairing code" />
           </a>
-          <p className="soft">Scan with Paytaca or Zapit, or paste the pairing link into Cashonize.</p>
+          <p className="soft">
+            Scan with Paytaca or Zapit, or paste the pairing link into Cashonize. Approve the connection in your wallet.
+          </p>
           <CopyChip value={uri} label="Copy pairing link" title="Copy WalletConnect pairing URI" />
         </div>
       ) : phase === 'error' ? (
@@ -96,8 +98,12 @@ export const WalletConnectDialog = ({
           </button>
         </div>
       ) : (
-        <div className="row muted" style={{ justifyContent: 'center', padding: '40px 0' }}>
-          <Spinner /> {phase === 'addresses' ? 'Reading addresses from the wallet…' : 'Starting WalletConnect…'}
+        <div className="wc-status soft" role="status">
+          <div className="row">
+            <span className="c-spinner" aria-hidden="true" />
+            {phase === 'addresses' ? 'Reading BCH addresses…' : 'Starting WalletConnect…'}
+          </div>
+          {phase === 'addresses' && <p>Keep your wallet open.</p>}
         </div>
       )}
     </Dialog>

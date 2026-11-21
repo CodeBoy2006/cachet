@@ -84,6 +84,7 @@ export const WalletConnectPay = ({
       <WalletPayment
         brand={brandOf(name)}
         name={name}
+        addresses={active.addresses}
         electrum={electrum}
         to={to}
         sats={sats}

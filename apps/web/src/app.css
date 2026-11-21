@@ -1610,6 +1610,20 @@ main {
   animation: c-pop 260ms var(--ease) both;
 }
 
+.wc-status {
+  padding: 32px 0;
+  text-align: center;
+}
+
+.wc-status .row {
+  justify-content: center;
+}
+
+.wc-status p {
+  margin: 6px 0 0;
+  font-size: 14px;
+}
+
 /* ---------- Profile ---------- */
 
 .profile {
@@ -2426,6 +2440,20 @@ main {
 .wallet-card__body {
   display: grid;
   gap: 10px;
+}
+
+.wallet-card__addresses {
+  font-size: 13px;
+}
+
+.wallet-card__addresses summary {
+  cursor: pointer;
+}
+
+.wallet-card__addresses ul {
+  margin: 6px 0 0;
+  padding-inline-start: 16px;
+  overflow-wrap: anywhere;
 }
 
 .wallet-card__send {
