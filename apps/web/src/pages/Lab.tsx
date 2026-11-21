@@ -5,13 +5,9 @@ import { LocalBchSigner } from '@cachet/signers';
 import { CheckList, CopyIcon, IconCheck, IconPlay, IconRefresh, IconUndo, IconX, Note, Spinner } from '@cachet/react';
 import { SCENARIOS, type Built } from '../lib/scenarios.ts';
 import { usePageTitle } from '../lib/usePageTitle.ts';
+import { prefersReducedMotion, wait } from '../lib/motion.ts';
 
 const pretty = (v: unknown) => JSON.stringify(v, null, 2);
-
-const prefersReducedMotion = () =>
-  typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 interface AuditEntry {
   ok: boolean;
@@ -197,16 +193,16 @@ export const Lab = () => {
       <div className="page-head page-head--split">
         <div>
           <h1>Lab</h1>
-          <p>Each case is built in your browser with throwaway keys and checked by the same verifier wallets and apps use. Edit the event to try your own.</p>
+          <p>Each case is built in your browser with throwaway keys and checked by the same verifier wallets and apps use. Edit the event JSON to try your own attack.</p>
         </div>
         <div className="lab-head__actions">
           {auditDone && !sweeping && (
             <span className="lab-audit-pill mono" role="status">
-              <IconCheck size={12} strokeWidth={2.4} /> 12/12 invariants held · {totalMs.toFixed(1)} ms
+              <IconCheck size={12} strokeWidth={2.4} /> {SCENARIOS.length}/{SCENARIOS.length} as expected · {totalMs.toFixed(1)} ms
             </span>
           )}
           <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={() => void runAllCases()} disabled={sweeping}>
-            {sweeping ? <Spinner /> : <IconPlay size={12} />} {sweeping ? `Testing ${auditEntries.length}/${SCENARIOS.length}…` : 'Run all 12 cases'}
+            {sweeping ? <Spinner /> : <IconPlay size={12} />} {sweeping ? `Testing ${auditEntries.length}/${SCENARIOS.length}…` : `Run all ${SCENARIOS.length} cases`}
           </button>
         </div>
       </div>
@@ -251,11 +247,6 @@ export const Lab = () => {
                   {!edited && <div className="verdict__focus mono">{scenario.focus}</div>}
                 </div>
                 <div className="verdict__actions">
-                  {edited && (
-                    <button type="button" className="c-btn c-btn--ghost c-btn--sm" onClick={resetEdits} title="Undo your edits">
-                      <IconUndo size={14} /> Reset
-                    </button>
-                  )}
                   <button
                     type="button"
                     className="c-btn c-btn--ghost c-btn--sm"

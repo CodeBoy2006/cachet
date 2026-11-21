@@ -61,7 +61,7 @@ export const NostrConnect = ({ onDone }: { onDone?: () => void }) => {
             <strong>{existingSandbox ? 'Sandbox key in this browser' : 'Create a sandbox key'}</strong>
             <small>Kept in this browser only. Good for trying it; back it up before relying on it.</small>
           </span>
-          <span className="option__meta">{existingSandbox ? 'Saved' : 'Instant'}</span>
+          <span className="option__meta">{existingSandbox ? 'Saved' : 'This browser'}</span>
         </button>
       </div>
       {error && <Note tone="danger">{error}</Note>}

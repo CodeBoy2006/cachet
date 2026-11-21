@@ -13,45 +13,47 @@ interface Slide {
 const PITCH_SLIDES: readonly Slide[] = [
   {
     kicker: 'Problem',
-    title: 'Pasted addresses and single-key announcements prove nothing.',
-    body: 'People paste BCH addresses into chats, or announce an address in a Nostr profile. Neither proves the Nostr author actually controls that BCH wallet.',
-    callout: 'Anyone can copy your CashAddr into their profile—or swap yours in transit.',
+    title: 'An address in a profile proves nothing.',
+    body: 'People paste BCH addresses into chats or put one in a Nostr profile. Neither shows that the Nostr author controls that wallet, and either can be swapped on the way.',
+    callout: 'Anyone can copy your CashAddr into their own profile.',
   },
   {
     kicker: 'Cachet',
-    title: 'Your npub becomes a payable, verifiable BCH identity.',
-    body: 'Both keys sign one canonical statement. It lives on Nostr relays as a public NIP-39 kind 10011 claim—any wallet or app verifies it locally with zero Cachet server in the loop.',
+    title: 'Both keys sign one statement.',
+    body: 'The BCH wallet signs a statement naming the npub. The Nostr key signs the kind 10011 event that carries it. Wallets and apps verify it from relays; no Cachet server is involved.',
     code: 'BCH wallet ──signs M──▶ statement {cashaddr, nostr_pubkey, expires_at}\nNostr key  ──signs───▶ kind 10011 ["i", "bch:<addr>", "<JCS proof>"]',
   },
   {
     kicker: 'Pay a person',
-    title: 'Look up a person, verify in-browser, pay with instant 0-conf.',
-    body: 'Every profile page re-runs all cryptographic checks in your tab, renders a BIP21 QR or builds an unsigned P2PKH transaction for Paytaca (WalletConnect) or Selene (WizardConnect), and watches Fulcrum live.',
-    callout: 'Mainnet 0-conf receipts lock in live within a second.',
+    title: 'Look up a person, check the proof, pay.',
+    body: 'A profile page reruns every check in the browser, then offers a BIP21 QR, Paytaca over WalletConnect or Selene over WizardConnect. Fulcrum reports the payment when it reaches the mempool.',
+    callout: 'The receipt appears at 0-conf, on the page you paid from.',
   },
   {
-    kicker: 'Sign in anywhere',
-    title: 'One identity across independent servers—with instant revocation.',
-    body: 'Fieldnote (member articles) and Stall (verified seller checkout) run on separate origins and query relays themselves. Withdraw your link once and both immediately stop accepting it.',
-    callout: 'Try it live: Sign in → Withdraw on Profile → switch back to Fieldnote or Stall.',
+    kicker: 'Sign in',
+    title: 'One link, two independent apps, one withdrawal.',
+    body: 'Fieldnote (member notes) and Stall (seller checkout) run on separate origins and query relays themselves. Withdraw the link once and both refuse it on their next check.',
+    callout: config.apps.length
+      ? 'Try it: sign in, withdraw on your profile, then switch back to the app.'
+      : 'Run the example apps locally to try cross-app sign-in.',
   },
   {
     kicker: 'Why it holds',
-    title: 'Twelve adversarial vectors, each caught by a named invariant.',
-    body: 'Stolen address, cross-npub replay, d / n−d x-coordinate key mirroring, post-sign mutation, nostr-tools Symbol(verified) cache bypass, and unverified kind 30078 spoofing.',
-    callout: '130+ automated tests · property-based checks · standalone offline CLI.',
+    title: 'Eleven attacks, each stopped by a named check.',
+    body: 'A stolen address, a proof replayed under another npub, d / n−d key mirroring, edits after signing, a bypassed nostr-tools verification cache, and unsigned kind 30078 announcements.',
+    callout: 'Test vectors, property-based tests and an offline CLI verifier.',
   },
   {
     kicker: 'For wallets',
-    title: 'Paytaca & Cashonize can resolve npub → verified CashAddr in ~12 lines.',
-    body: 'Legacy Paytaca kind 30078 announcements are surfaced safely as unverified awareness, with a one-click upgrade path to dual-signed NIP-39.',
-    code: `const res = await lookupIdentity(npub, { relays });\nif (res.resolution.state === 'active') {\n  const { cashaddr } = res.resolution.primary!;\n  // Dual-key verified: safe to pay\n}`,
+    title: 'Resolve an npub to a verified CashAddr in a few lines.',
+    body: 'Existing Paytaca kind 30078 announcements are shown as unverified, with a path to upgrade them to a dual-signed NIP-39 link.',
+    code: `const r = await lookupIdentity(pubkey, { relays });\nif (r.resolution.state === 'active') {\n  const { cashaddr } = r.resolution.primary!;\n  // both keys signed for this address\n}`,
   },
   {
     kicker: 'Business',
-    title: 'Open protocol & MIT SDK. Hosted infrastructure for merchants.',
-    body: 'Free forever for wallets and self-hosted apps. Paid tier: high-availability verification API with relay redundancy, instant revocation webhooks for marketplaces, and white-label sign-in.',
-    callout: 'Built Nov 14–22, 2026 for BCH BLAZE · zero prior codebase.',
+    title: 'Open protocol and MIT SDK. Paid hosting for merchants.',
+    body: 'Wallets and self-hosted apps use it for free. A paid tier would run a verification API with relay redundancy, revocation webhooks for marketplaces and white-label sign-in.',
+    callout: 'Built Nov 14–22, 2026 for BCH BLAZE, with no prior codebase.',
   },
 ];
 
@@ -119,7 +121,7 @@ export const Banner = () => {
         )}
       </div>
 
-      <Dialog open={deckOpen} onClose={() => setDeckOpen(false)} title="Cachet — Pitch overview" width={560}>
+      <Dialog open={deckOpen} onClose={() => setDeckOpen(false)} title="Cachet" width={560}>
         {allView ? (
           <div className="deck-wrap">
             <ol className="deck">
@@ -166,7 +168,7 @@ export const Banner = () => {
             </div>
             <div className="deck-foot">
               <button type="button" className="c-btn c-btn--ghost c-btn--sm" onClick={() => setAllView(true)}>
-                All 7 slides
+                All {PITCH_SLIDES.length} slides
               </button>
               <div className="slide-deck__nav">
                 <button

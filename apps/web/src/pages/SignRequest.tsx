@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { KIND_HTTP_AUTH, fromBase64Url, isLowerHex, npubEncode, nowSeconds, toBase64Url, type EventTemplate } from '@cachet/core';
 import { Avatar, IconArrowRight, IconCheck, IconZap, Logo, Note, Spinner, StatePill, shortCashaddr, shortNpub } from '@cachet/react';
+import { config } from '../config.ts';
 import { useSession } from '../lib/session.tsx';
 import { savePendingSign } from '../lib/storage.ts';
 import { useLookup } from '../lib/useLookup.ts';
 import { usePageTitle } from '../lib/usePageTitle.ts';
+import { prefersReducedMotion } from '../lib/motion.ts';
 import { NostrConnect } from '../components/NostrConnect.tsx';
 
 /**
@@ -19,15 +21,15 @@ import { NostrConnect } from '../components/NostrConnect.tsx';
  */
 type Request = { app: string; returnUrl: string; origin: string; template: EventTemplate };
 
-const prefersReducedMotion = () =>
-  typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-const appAccent = (name: string): string | undefined => {
-  const lower = name.toLowerCase();
-  if (lower === 'fieldnote') return '#9a3412';
-  if (lower === 'stall') return '#1d4ed8';
-  return undefined;
-};
+/** One of the example apps this site was built with, matched by origin: a name in the URL proves nothing. */
+const knownApp = (origin: string) =>
+  config.apps.find((a) => {
+    try {
+      return new URL(a.url).origin === origin;
+    } catch {
+      return false;
+    }
+  });
 
 const parseRequest = (): Request | { error: string } => {
   const q = new URLSearchParams(location.search);
@@ -132,7 +134,7 @@ export const SignRequest = () => {
   }
 
   const claim = result?.resolution.primary;
-  const accent = appAccent(request.app);
+  const accent = knownApp(request.origin)?.accent;
 
   const quickMintSandbox = () => {
     savePendingSign({ app: request.app, search: location.search });
@@ -167,7 +169,7 @@ export const SignRequest = () => {
           </span>
         </div>
 
-        <h1>{phase === 'done' ? `Signed · returning to ${request.app}…` : `Sign in to ${request.app}?`}</h1>
+        <h1>{phase === 'done' ? `Signed in to ${request.app}` : `Sign in to ${request.app}?`}</h1>
 
         {restoring ? (
           <div className="row muted">
@@ -176,11 +178,11 @@ export const SignRequest = () => {
         ) : !nostr ? (
           <>
             <p className="soft" style={{ margin: 0, fontSize: 14 }}>
-              Choose the Nostr key to sign in with, or spin up an instant sandbox identity.
+              Choose the Nostr key to sign in with, or try it with sandbox keys.
             </p>
             <NostrConnect />
             <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={quickMintSandbox}>
-              <IconZap size={14} /> Mint instant sandbox link & continue
+              <IconZap size={14} /> Make a sandbox link and continue
             </button>
           </>
         ) : (
@@ -203,7 +205,7 @@ export const SignRequest = () => {
                 {request.app} will refuse this key: it has no active BCH link.{' '}
                 {nostr.signer.type === 'local' ? (
                   <button type="button" className="c-link" onClick={quickMintSandbox}>
-                    Mint sandbox link now <IconArrowRight size={12} />
+                    Make a sandbox link <IconArrowRight size={12} />
                   </button>
                 ) : (
                   <Link href="/new" onClick={() => savePendingSign({ app: request.app, search: location.search })}>
@@ -219,7 +221,7 @@ export const SignRequest = () => {
             {error && <Note tone="danger">{error}</Note>}
             {phase === 'done' ? (
               <div className="signed-line">
-                <IconCheck /> Login proof sealed · redirecting…
+                <IconCheck /> Signed. Returning to {request.app}…
               </div>
             ) : (
               <div className="signer__actions">

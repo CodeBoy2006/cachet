@@ -17,6 +17,7 @@ import {
   Spinner,
   StatePill,
   formatDateTime,
+  plural,
   relativeTime,
   relayRowsFromLookup,
   shortCashaddr,
@@ -29,21 +30,22 @@ import { useSession } from '../lib/session.tsx';
 import { withdrawBinding } from '../lib/publish.ts';
 import { downloadJson } from '../lib/download.ts';
 import { usePageTitle } from '../lib/usePageTitle.ts';
-import { Cachet, CachetBack, CachetBackCard, type CachetStage, type CachetVerdict } from '../components/Cachet.tsx';
+import { Cachet, CachetBack, CachetBackCard, STAMP_OF, type CachetStage, type CachetVerdict } from '../components/Cachet.tsx';
 import { PayPanel } from '../components/PayPanel.tsx';
 import { SearchBox } from '../components/SearchBox.tsx';
 import { ShareButton } from '../components/ShareButton.tsx';
-
-const OVERPRINT: Partial<Record<BindingState, string>> = {
-  invalid: 'VOID',
-  withdrawn: 'WITHDRAWN',
-  expired: 'EXPIRED',
-};
 
 const NOT_PAYABLE: Partial<Record<BindingState, string>> = {
   withdrawn: 'The owner removed this address from their profile. Do not pay it on the strength of this identity.',
   expired: 'This link has expired. Ask the owner to renew it before paying.',
   invalid: 'The published proof does not verify. Do not pay this address based on this identity.',
+};
+
+/** The same states, said to the owner: what payers now see and how to fix it. */
+const OWN_NOT_PAYABLE: Partial<Record<BindingState, string>> = {
+  withdrawn: 'You withdrew this address. Payers are told not to use it until you link an address again.',
+  expired: 'Your link has expired, so payers are told not to use it. Renew it to take payments again.',
+  invalid: 'Your published proof does not verify, so payers are told not to use it. Publish a new link.',
 };
 
 const RENEW_WINDOW = 7 * 86400;
@@ -295,6 +297,9 @@ export const Profile = ({ id }: { id: string }) => {
   const extraClaims = resolution?.claims.filter((c) => c !== claim) ?? [];
   const profileUrl = result ? `${window.location.origin}/p/${result.npub}` : '';
   const shareTitle = `${name} on Cachet`;
+  // With nothing published there is no statement to show: the explanation takes the back card's place.
+  const noLink = !!result && resolution?.state === 'not_found';
+  const answered = result?.relays.filter((r) => r.status === 'ok').length ?? 0;
 
   const cardStage: CachetStage =
     state.status !== 'done'
@@ -322,16 +327,12 @@ export const Profile = ({ id }: { id: string }) => {
           : undefined;
   const emptyStatementNote =
     claim?.state === 'withdrawn'
-      ? 'Withdrawn in a newer snapshot — previous statement removed from active profile.'
-      : resolution?.state === 'not_found'
-        ? legacy
-          ? 'Kind 30078 announcement only — no dual-signed NIP-39 statement.'
-          : 'No signed statement published on the relays checked.'
-        : resolution?.state === 'unavailable'
-          ? 'Relays unavailable — signed statement could not be fetched.'
-          : resolution?.state === 'invalid'
-            ? 'Published proof failed statement parsing — inspect Raw event below.'
-            : undefined;
+      ? 'Withdrawn. A newer snapshot dropped this address, so its statement is no longer part of the profile.'
+      : resolution?.state === 'unavailable'
+        ? 'Relays did not answer, so the statement could not be fetched.'
+        : resolution?.state === 'invalid'
+          ? 'The published proof could not be read as a statement. Open Raw event under Verification.'
+          : undefined;
 
   return (
     <div className="wrap page">
@@ -355,22 +356,26 @@ export const Profile = ({ id }: { id: string }) => {
             </span>
             <div className="revoked-banner__body">
               <strong>
-                Link withdrawn on {withdrawnReceipt.accepted} of {withdrawnReceipt.total} {withdrawnReceipt.total === 1 ? 'relay' : 'relays'}.
+                Link withdrawn on {withdrawnReceipt.accepted} of {withdrawnReceipt.total} {plural(withdrawnReceipt.total, 'relay')}.
               </strong>{' '}
-              <span>Switch to any signed-in app tab to see it revoke live:</span>
-              <span className="revoked-banner__apps">
-                {config.apps.map((app) => (
-                  <a
-                    key={app.id}
-                    href={app.id === 'b' ? `${app.url}/?seller=${encodeURIComponent(result.npub)}` : app.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="owner-bar__app"
-                  >
-                    {app.name} <IconArrowUpRight size={12} />
-                  </a>
-                ))}
-              </span>
+              {config.apps.length > 0 && (
+                <>
+                  <span>Switch to any signed-in app tab to see it revoke live:</span>
+                  <span className="revoked-banner__apps">
+                    {config.apps.map((app) => (
+                      <a
+                        key={app.id}
+                        href={app.id === 'b' ? `${app.url}/?seller=${encodeURIComponent(result.npub)}` : app.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="owner-bar__app"
+                      >
+                        {app.name} <IconArrowUpRight size={12} />
+                      </a>
+                    ))}
+                  </span>
+                </>
+              )}
             </div>
             <button type="button" className="c-icon-btn" onClick={() => setWithdrawnReceipt(undefined)} aria-label="Dismiss">
               <IconX size={14} />
@@ -392,7 +397,7 @@ export const Profile = ({ id }: { id: string }) => {
             serial={binding?.bindingId}
             bchKey={binding?.bchPublicKey}
             expiresAt={binding?.expiresAt}
-            overprint={resolution ? OVERPRINT[resolution.state] : undefined}
+            overprint={resolution ? STAMP_OF[resolution.state] : undefined}
             status={
               result ? (
                 <StatePill
@@ -404,16 +409,55 @@ export const Profile = ({ id }: { id: string }) => {
               )
             }
           />
-          <CachetBackCard sealed={!!result && !!claim} verdict={cardVerdict}>
-            <CachetBack
-              message={binding?.message}
-              bchSig={binding?.bchSignature}
-              eventId={binding?.eventId ?? claim?.eventId ?? resolution?.latest?.id}
-              nostrSig={claim?.result?.event?.sig ?? resolution?.latest?.sig}
-              loading={state.status !== 'done'}
-              emptyNote={emptyStatementNote}
-            />
-          </CachetBackCard>
+          {noLink ? (
+            <div className="c-card empty profile__nolink">
+              <h2>{legacy ? 'Announced address, not verified' : 'No BCH link yet'}</h2>
+              {legacy ? (
+                <div className="legacy">
+                  <Note tone="warn">
+                    <strong>Paytaca kind 30078 announcement.</strong> This Nostr key published{' '}
+                    <span className="mono">{shortCashaddr(legacy.cashaddr)}</span> without a BCH wallet signature proving control of it. Verified checkout and
+                    app sign-in stay off until both keys sign a NIP-39 link.
+                  </Note>
+                  <div className="row" style={{ justifyContent: 'center' }}>
+                    <CopyChip value={legacy.cashaddr} label={`Unverified: ${shortCashaddr(legacy.cashaddr)}`} />
+                    {isMe && (
+                      <Link className="c-btn c-btn--sm" href="/new">
+                        Upgrade to a verified link
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p>
+                    {isMe
+                      ? 'Link a BCH address to this npub so people can pay you and apps can sign you in.'
+                      : 'This npub has not published a BCH link on the relays checked.'}
+                  </p>
+                  {isMe && (
+                    <Link className="c-btn" href="/new">
+                      Link an address
+                    </Link>
+                  )}
+                </>
+              )}
+              <div className="empty__relays">
+                <RelayList rows={relayRowsFromLookup(result.relays, resolution)} />
+              </div>
+            </div>
+          ) : (
+            <CachetBackCard sealed={!!result && !!claim} verdict={cardVerdict}>
+              <CachetBack
+                message={binding?.message}
+                bchSig={binding?.bchSignature}
+                eventId={binding?.eventId ?? claim?.eventId ?? resolution?.latest?.id}
+                nostrSig={claim?.result?.event?.sig ?? resolution?.latest?.sig}
+                loading={state.status !== 'done'}
+                emptyNote={emptyStatementNote}
+              />
+            </CachetBackCard>
+          )}
         </div>
 
         {others.length > 0 && (
@@ -430,44 +474,7 @@ export const Profile = ({ id }: { id: string }) => {
 
         {state.status === 'loading' ? (
           <LoadingPanels state={state} />
-        ) : result && resolution!.state === 'not_found' ? (
-          <div className="c-card empty">
-            <h2>{legacy ? 'Announced address, not verified' : 'No BCH link yet'}</h2>
-            {legacy ? (
-              <div className="legacy">
-                <Note tone="warn">
-                  <strong>Paytaca kind 30078 announcement.</strong> This Nostr key published{' '}
-                  <span className="mono">{shortCashaddr(legacy.cashaddr)}</span> without a BCH wallet signature proving control of it. Verified checkout and
-                  app sign-in stay off until both keys sign a NIP-39 link.
-                </Note>
-                <div className="row" style={{ justifyContent: 'center' }}>
-                  <CopyChip value={legacy.cashaddr} label={`Unverified: ${shortCashaddr(legacy.cashaddr)}`} />
-                  {isMe && (
-                    <Link className="c-btn c-btn--sm" href="/new">
-                      Upgrade to a verified link
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <>
-                <p>
-                  {isMe
-                    ? 'Link a BCH address to this npub so people can pay you and apps can sign you in.'
-                    : 'This npub has not published a BCH link on the relays checked.'}
-                </p>
-                {isMe && (
-                  <Link className="c-btn" href="/new">
-                    Link an address
-                  </Link>
-                )}
-              </>
-            )}
-            <div className="empty__relays">
-              <RelayList rows={relayRowsFromLookup(result.relays, resolution)} />
-            </div>
-          </div>
-        ) : result ? (
+        ) : noLink ? null : result ? (
           <div className="profile__grid">
             <div className="c-card panel">
               <div className="panel__head">
@@ -489,8 +496,9 @@ export const Profile = ({ id }: { id: string }) => {
                   <PayPanel cashaddr={claim.cashaddr} payee={name} {...(requestedAmount ? { initialAmount: requestedAmount } : {})} />
                 )
               ) : (
-                <Note tone={resolution!.state === 'unavailable' ? 'warn' : 'danger'}>
-                  {NOT_PAYABLE[resolution!.state] ?? 'Relays did not answer, so this identity could not be checked. Try again shortly.'}
+                <Note tone={isMe || resolution!.state === 'unavailable' ? 'warn' : 'danger'}>
+                  {(isMe ? OWN_NOT_PAYABLE : NOT_PAYABLE)[resolution!.state] ??
+                    'Relays did not answer, so this identity could not be checked. Try again shortly.'}
                 </Note>
               )}
               {extraClaims.length > 0 && (
@@ -510,7 +518,7 @@ export const Profile = ({ id }: { id: string }) => {
         ) : null}
         {result && !isMe && resolution!.state === 'active' && (
           <p className="muted profile__fine">
-            Checked by this page against {result.relays.filter((r) => r.status === 'ok').length} relays. Nothing here came from a Cachet server.
+            Checked by this page against {answered} {plural(answered, 'relay')}. Nothing here came from a Cachet server.
           </p>
         )}
       </div>

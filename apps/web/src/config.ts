@@ -3,6 +3,7 @@ import { DEFAULT_ELECTRUM } from '@cachet/pay';
 
 const env = import.meta.env;
 const clean = (v?: string) => (v && v.trim() ? v.trim() : undefined);
+const local = env.DEV || /^(localhost|[\w.-]+\.localhost|127\.0\.0\.1|\[::1\])$/.test(globalThis.location?.hostname ?? '');
 
 export const config = {
   featured: clean(env.VITE_FEATURED_NPUB),
@@ -12,9 +13,9 @@ export const config = {
   indexers: clean(env.VITE_RELAYS) ? [] : INDEXER_RELAYS,
   electrum: DEFAULT_ELECTRUM,
   apps: [
-    { id: 'a', name: 'Fieldnote', url: clean(env.VITE_RP_A_URL) ?? 'http://localhost:5174', blurb: 'Members-only notes' },
-    { id: 'b', name: 'Stall', url: clean(env.VITE_RP_B_URL) ?? 'http://localhost:5175', blurb: 'Seller dashboard' },
-  ],
+    { id: 'a', name: 'Fieldnote', url: clean(env.VITE_RP_A_URL) ?? (local ? 'http://localhost:5174' : undefined), blurb: 'Members-only notes', accent: '#9a3412' },
+    { id: 'b', name: 'Stall', url: clean(env.VITE_RP_B_URL) ?? (local ? 'http://localhost:5175' : undefined), blurb: 'Seller dashboard', accent: '#1d4ed8' },
+  ].flatMap(({ url, ...app }) => (url ? [{ ...app, url }] : [])),
   banner: {
     slides: clean(env.VITE_SLIDES_URL),
     repo: clean(env.VITE_REPO_URL),

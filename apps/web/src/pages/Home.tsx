@@ -7,22 +7,23 @@ import {
   IconArrowRight,
   IconArrowUpRight,
   IconBeaker,
-  IconLock,
+  IconCheck,
   IconRefresh,
   IconUndo,
   IconWallet,
   IconZap,
   Spinner,
   StatePill,
+  plural,
   shortCashaddr,
   shortNpub,
 } from '@cachet/react';
 import { config } from '../config.ts';
 import { SearchBox } from '../components/SearchBox.tsx';
-import { Cachet, CachetBack, IconFlip, Ledger, ZONE_OF, useReveal, type CachetStage, type CachetZone } from '../components/Cachet.tsx';
-import { useLookup } from '../lib/useLookup.ts';
+import { Cachet, CachetBack, IconFlip, Ledger, STAMP_OF, ZONE_OF, useReveal, type CachetStage, type CachetZone } from '../components/Cachet.tsx';
+import { useLookup, type LookupState } from '../lib/useLookup.ts';
 import { makeExample, type Example } from '../lib/example.ts';
-import { prefersReducedMotion } from '../lib/useScramble.ts';
+import { prefersReducedMotion } from '../lib/motion.ts';
 import { useSession } from '../lib/session.tsx';
 
 const PayPanel = lazy(() => import('../components/PayPanel.tsx').then((m) => ({ default: m.PayPanel })));
@@ -35,16 +36,13 @@ const CAPTIONS: Record<Exclude<BindingState, 'active'>, string> = {
   unavailable: 'Relays did not answer.',
 };
 
-const OVERPRINT: Partial<Record<BindingState, string>> = { invalid: 'VOID', withdrawn: 'WITHDRAWN', expired: 'EXPIRED' };
-
 const HERO_CHECKS: CheckId[] = ['event', 'identity', 'time', 'bch_signature', 'key_separation'];
 const PENDING: Check[] = HERO_CHECKS.map((id) => ({ id, label: CHECK_LABELS[id], status: 'skip' }));
 const heroRows = (checks?: Check[]) => (checks ? checks.filter((c) => HERO_CHECKS.includes(c.id)) : PENDING);
 
 const fmtMs = (ms: number) => (ms < 0.1 ? '<0.1 ms' : ms < 10 ? `${ms.toFixed(1)} ms` : `${Math.round(ms)} ms`);
 
-const Featured = ({ id, own }: { id: string; own: boolean }) => {
-  const { state } = useLookup(id);
+const Featured = ({ state, own }: { state: LookupState; own: boolean }) => {
   const [payOpen, setPayOpen] = useState(false);
   const [flipped, setFlipped] = useState(false);
   const [hover, setHover] = useState<CachetZone>();
@@ -73,11 +71,11 @@ const Featured = ({ id, own }: { id: string; own: boolean }) => {
 
   const caption =
     state.status === 'loading' || state.status === 'idle'
-      ? `Asking ${asked || config.relays.length} relays…`
+      ? `Asking ${asked || config.relays.length} ${plural(asked || config.relays.length, 'relay')}…`
       : state.status === 'error'
         ? state.message
         : resolution!.state === 'active'
-          ? `On ${seen} of ${asked} relays · verified in this browser`
+          ? `On ${seen} of ${asked} ${plural(asked, 'relay')} · verified in this browser`
           : own && resolution!.state === 'withdrawn'
             ? 'You withdrew this link.'
             : CAPTIONS[resolution!.state];
@@ -96,7 +94,7 @@ const Featured = ({ id, own }: { id: string; own: boolean }) => {
         bchKey={binding?.bchPublicKey}
         expiresAt={binding?.expiresAt}
         focus={hover ?? current}
-        overprint={bindingState ? OVERPRINT[bindingState] : undefined}
+        overprint={bindingState ? STAMP_OF[bindingState] : undefined}
         status={settled && bindingState ? <StatePill state={bindingState} /> : <StatePill state="loading" />}
         flipped={flipped && !!binding}
         onFlip={binding ? () => setFlipped((f) => !f) : undefined}
@@ -338,10 +336,144 @@ const LocalExample = () => {
           </button>
         </span>
         <Link href="/lab" className="hero__link">
-          12 attacks <IconArrowRight size={14} />
+          Try to break it <IconArrowRight size={14} />
         </Link>
       </div>
     </>
+  );
+};
+
+type LinkState = BindingState | 'none' | 'checking';
+
+const linkStateOf = (hasKey: boolean, state: LookupState): LinkState => {
+  if (!hasKey) return 'none';
+  if (state.status === 'done') return state.result.resolution.state;
+  return state.status === 'error' ? 'unavailable' : 'checking';
+};
+
+/**
+ * The demo path: make a link, use it, then withdraw it.
+ * Steps tick off from the visitor's own link on the relays, so the next thing to do is always clear.
+ */
+const Loop = ({ link, npub, cashaddr, onSandbox }: { link: LinkState; npub?: string; cashaddr?: string; onSandbox: () => void }) => {
+  // An expired link has to be made again before the apps will take it, so it does not count as made.
+  const made = link === 'active' || link === 'withdrawn';
+  const withdrawn = link === 'withdrawn';
+  const hasApps = config.apps.length > 0;
+  const withdrawHint = hasApps
+    ? 'Switch back to the app. Its next check ends your session.'
+    : 'Refresh the proof tab to see what others can verify.';
+  // Step 2 happens in a separate tab, so it can't be observed here: it counts as done once
+  // the link is withdrawn, and stays open alongside step 3 while the link is active.
+  const states: Record<1 | 2 | 3, 'done' | 'current' | 'todo'> = {
+    1: made ? 'done' : 'current',
+    2: withdrawn ? 'done' : made ? 'current' : 'todo',
+    3: withdrawn ? 'done' : link === 'active' ? 'current' : 'todo',
+  };
+  const step = (n: 1 | 2 | 3) => states[n];
+  const mark = (n: 1 | 2 | 3) =>
+    step(n) === 'done' ? (
+      <span className="loop__n" data-done>
+        <IconCheck size={12} strokeWidth={2.4} />
+        <span className="sr-only">Done</span>
+      </span>
+    ) : (
+      <span className="loop__n">{`0${n}`}</span>
+    );
+
+  return (
+    <section className="loop" aria-labelledby="loop-title">
+      <div className="loop__head">
+        <h2 id="loop-title">Try the whole loop</h2>
+        <p>
+          {hasApps
+            ? 'Make a link, use it to sign in, then withdraw it and see the app stop accepting it.'
+            : 'Make a link, verify it on your public profile, then withdraw it and check what others see.'}
+        </p>
+      </div>
+      <ol className="loop__steps">
+        <li data-state={step(1)}>
+          {mark(1)}
+          <h3>Make a link</h3>
+          {made && cashaddr ? (
+            <p>
+              Published for <span className="mono">{shortCashaddr(cashaddr)}</span>. Anyone can verify it from the relays.
+            </p>
+          ) : link === 'expired' && cashaddr ? (
+            <p>
+              Your link for <span className="mono">{shortCashaddr(cashaddr)}</span> expired. Publish a fresh one to continue.
+            </p>
+          ) : (
+            <p>Sandbox keys sign and publish in one click. Use your own wallets when you want a link that lasts.</p>
+          )}
+          <div className="loop__act">
+            {made && npub ? (
+              <Link href={`/p/${npub}`} className="loop__go">
+                Your profile <IconArrowRight size={14} />
+              </Link>
+            ) : (
+              <>
+                <button type="button" className="c-btn c-btn--sm" onClick={onSandbox} disabled={link === 'checking'}>
+                  <IconZap size={13} /> Sandbox link
+                </button>
+                <Link href="/new" className="loop__go">
+                  With a wallet <IconArrowRight size={14} />
+                </Link>
+              </>
+            )}
+          </div>
+        </li>
+        <li data-state={step(2)}>
+          {mark(2)}
+          <h3>{hasApps ? 'Sign in with your link' : 'Verify your public proof'}</h3>
+          <p>
+            {hasApps
+              ? 'Each example app checks your link on the relays itself.'
+              : 'Your public profile reads the proof from the relays and checks both signatures.'}
+          </p>
+          <div className="loop__act">
+            {config.apps.map((a) => (
+              <a key={a.id} className="loop__go" href={a.url} target="_blank" rel="noreferrer">
+                {a.name} <IconArrowUpRight size={13} />
+              </a>
+            ))}
+            {!hasApps && made && npub && (
+              <a className="loop__go" href={`/p/${npub}`} target="_blank" rel="noreferrer">
+                Open proof in a new tab <IconArrowUpRight size={13} />
+              </a>
+            )}
+          </div>
+        </li>
+        <li data-state={step(3)}>
+          {mark(3)}
+          <h3>Withdraw it</h3>
+          <p>{withdrawn ? 'Link withdrawn.' : 'Withdraw the link from your profile.'} {withdrawHint}</p>
+          <div className="loop__act">
+            {withdrawn ? (
+              <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={onSandbox}>
+                <IconRefresh size={13} /> Start over
+              </button>
+            ) : link === 'active' && npub ? (
+              <Link href={`/p/${npub}`} className="loop__go">
+                Withdraw on your profile <IconArrowRight size={14} />
+              </Link>
+            ) : (
+              <span className="loop__wait">After step 1</span>
+            )}
+          </div>
+        </li>
+      </ol>
+      <Link href="/lab" className="loop__lab">
+        <span className="loop__lab-icon" aria-hidden>
+          <IconBeaker size={16} />
+        </span>
+        <span className="loop__lab-text">
+          <strong>Lab</strong>
+          <span>Swap the address, replay the proof under another npub, mirror a key. Eleven attacks, each stopped by a named check.</span>
+        </span>
+        <IconArrowRight size={15} className="loop__lab-go" />
+      </Link>
+    </section>
   );
 };
 
@@ -351,6 +483,11 @@ export const Home = () => {
   const myNpub = nostr ? npubEncode(nostr.pubkey) : undefined;
   const payableTarget = config.featured ?? myNpub;
   const own = !config.featured && !!myNpub;
+  // One relay query per identity: when the hero card shows your own key, the loop reuses its answer.
+  const target = useLookup(payableTarget);
+  const mine = useLookup(own ? undefined : myNpub);
+  const myState = own ? target.state : mine.state;
+  const myClaim = myState.status === 'done' ? myState.result.resolution.primary : undefined;
 
   const startQuickTest = () => {
     startSandbox();
@@ -361,13 +498,6 @@ export const Home = () => {
     <div className="wrap page">
       <section className="hero">
         <div className="hero__copy">
-          <div className="hero__eyebrow">
-            <span className="hero__dots" aria-hidden>
-              <span className="c-dot" style={{ background: 'var(--dot-nostr)' }} />
-              <span className="c-dot" style={{ background: 'var(--dot-bch)' }} />
-            </span>
-            NIP-39 · Dual-signed BCH identity
-          </div>
           <h1>Link your Bitcoin Cash address to your Nostr key.</h1>
           <p className="lede">
             Both keys sign one statement. It lives on Nostr relays, so any wallet or app can check who an address belongs to without asking us.
@@ -377,81 +507,15 @@ export const Home = () => {
               Create your link
             </Link>
             <button type="button" className="c-btn c-btn--lg c-btn--secondary hero__sandbox-btn" onClick={startQuickTest}>
-              <IconZap size={16} /> Instant sandbox demo
+              <IconZap size={16} /> Sandbox demo
             </button>
           </div>
           <SearchBox />
         </div>
-        <div className="hero__card">{payableTarget ? <Featured key={payableTarget} id={payableTarget} own={own} /> : <LocalExample />}</div>
+        <div className="hero__card">{payableTarget ? <Featured key={payableTarget} state={target.state} own={own} /> : <LocalExample />}</div>
       </section>
 
-      <section className="steps" aria-label="How it works">
-        <div>
-          <span className="n">01</span>
-          <h3>Sign with both keys</h3>
-          <p>Your BCH wallet signs a statement naming your npub. Your Nostr key signs the event that carries it. Neither key leaves its wallet.</p>
-        </div>
-        <div>
-          <span className="n">02</span>
-          <h3>Publish to relays</h3>
-          <p>The proof is a NIP-39 claim in your kind 10011 profile, on relays you choose. Renewing or withdrawing is a new snapshot.</p>
-        </div>
-        <div>
-          <span className="n">03</span>
-          <h3>Verify anywhere</h3>
-          <p>Wallets turn an npub into a payable address. Apps check relays themselves to sign you in. A CLI verifies a proof offline.</p>
-        </div>
-      </section>
-
-      <section className="tiles" aria-label="Use it">
-        {payableTarget ? (
-          <Link href={`/p/${encodeURIComponent(payableTarget)}`} className="tile">
-            <span className="tile__icon">
-              <IconWallet />
-            </span>
-            <h3>Pay a person, not a string</h3>
-            <p>Look up an npub, check the BCH signature in your browser, then pay by QR, from Paytaca over WalletConnect, or from Selene over WizardConnect.</p>
-            <span className="tile__go">
-              {config.featured ? 'Tip 1,000 sats on mainnet' : 'Open your profile'} <IconArrowRight size={14} />
-            </span>
-          </Link>
-        ) : (
-          <button type="button" className="tile" onClick={startQuickTest}>
-            <span className="tile__icon">
-              <IconWallet />
-            </span>
-            <h3>Pay a person, not a string</h3>
-            <p>Make a payable profile with sandbox keys, then pay it by QR, from Paytaca over WalletConnect, or from Selene over WizardConnect.</p>
-            <span className="tile__go">
-              Make a profile in one click <IconArrowRight size={14} />
-            </span>
-          </button>
-        )}
-        <div className="tile">
-          <span className="tile__icon">
-            <IconLock />
-          </span>
-          <h3>Sign in without passwords</h3>
-          <p>Fieldnote unlocks member notes. Stall pays sellers at their verified address. Withdraw the link once and both stop accepting it.</p>
-          <span className="tile__links">
-            {config.apps.map((a) => (
-              <a key={a.id} className="tile__go tile__go--link" href={a.url} target="_blank" rel="noreferrer">
-                Open {a.name} <IconArrowUpRight size={13} />
-              </a>
-            ))}
-          </span>
-        </div>
-        <Link href="/lab" className="tile">
-          <span className="tile__icon">
-            <IconBeaker />
-          </span>
-          <h3>Try to break it</h3>
-          <p>Swap the address, replay the proof under another npub, mirror a key (d / n−d). Each attempt fails a named check.</p>
-          <span className="tile__go">
-            Open the lab <IconArrowRight size={14} />
-          </span>
-        </Link>
-      </section>
+      <Loop link={linkStateOf(!!myNpub, myState)} npub={myNpub} cashaddr={myClaim?.cashaddr} onSandbox={startQuickTest} />
     </div>
   );
 };

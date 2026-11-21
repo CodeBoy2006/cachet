@@ -76,10 +76,10 @@ export const FieldnoteContent = ({ session }: { session: SessionInfo | null }) =
 };
 
 const CLOSED_REASONS: Record<string, string> = {
-  withdrawn: 'seller withdrew this BCH link — checkout disabled',
-  expired: 'seller’s BCH link expired — checkout disabled',
-  unavailable: 'relays unreachable — could not verify seller right now',
-  invalid: 'seller’s BCH proof failed verification — checkout disabled',
+  withdrawn: 'the seller withdrew this BCH link, so checkout is off',
+  expired: 'the seller’s BCH link expired, so checkout is off',
+  unavailable: 'relays did not answer, so the seller could not be checked right now',
+  invalid: 'the seller’s BCH proof does not verify, so checkout is off',
   not_found: 'no verified BCH link found for this seller',
 };
 
@@ -279,7 +279,7 @@ export const StallContent = ({ session }: { session: SessionInfo | null }) => {
                         <div className="stall__watch">
                           {watching === 'live' ? <span className="live" /> : null}
                           {watching === 'live'
-                            ? 'Watching seller address on Fulcrum for instant 0-conf settlement'
+                            ? 'Watching the seller’s address on Fulcrum · 0-conf'
                             : watching === 'connecting'
                               ? 'Connecting to Fulcrum…'
                               : 'Payment watcher offline; QR still works'}

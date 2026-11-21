@@ -1064,6 +1064,18 @@ textarea.c-input {
   .c-check__detail {
     max-width: 130px;
   }
+  /* A failed row needs its reason more than its column: the detail moves under the code. */
+  .c-check[data-status='fail'] {
+    grid-template-columns: 20px minmax(0, 1fr);
+    align-items: start;
+  }
+  .c-check[data-status='fail'] .c-check__detail {
+    grid-column: 2;
+    max-width: none;
+    margin-top: -4px;
+    text-align: left;
+    white-space: normal;
+  }
 }
 
 .c-check[data-status='fail'] .c-check__detail {

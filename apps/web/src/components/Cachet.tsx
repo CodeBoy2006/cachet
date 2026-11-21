@@ -11,10 +11,11 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import { npubEncode, type Check, type CheckId } from '@cachet/core';
+import { npubEncode, type BindingState, type Check, type CheckId } from '@cachet/core';
 import { Avatar, CopyIcon, IconCheck, IconX, formatDate, shortMiddle } from '@cachet/react';
 import { bchPoint, curvePaths, nostrPoint, type CurvePoint } from '../lib/curve.ts';
-import { BECH32, HEX_UPPER, prefersReducedMotion, useScramble } from '../lib/useScramble.ts';
+import { BECH32, HEX_UPPER, useScramble } from '../lib/useScramble.ts';
+import { prefersReducedMotion } from '../lib/motion.ts';
 import './cachet.css';
 
 /** Signing progresses keys → BCH signature → Nostr signature → sealed (verified). */
@@ -34,6 +35,9 @@ export const ZONE_OF: Partial<Record<CheckId, CachetZone>> = {
   bch_signature: 'bch',
   key_separation: 'seal',
 };
+
+/** Word stamped on a sealed card that must not be trusted; it replaces the status pill. */
+export const STAMP_OF: Partial<Record<BindingState, string>> = { invalid: 'VOID', withdrawn: 'WITHDRAWN', expired: 'EXPIRED' };
 
 const STAGES: CachetStage[] = ['empty', 'keys', 'bch', 'nostr', 'sealed'];
 const reached = (stage: CachetStage, s: CachetStage) => STAGES.indexOf(stage) >= STAGES.indexOf(s);
@@ -116,9 +120,10 @@ export interface CachetProps {
   serial?: string;
   expiresAt?: number;
   focus?: CachetZone;
+  /** Stamp shown instead of `status` once sealed (VOID, WITHDRAWN, EXPIRED). */
   overprint?: string;
   status?: ReactNode;
-  /** Flat static presentation with zero 3D rig, glare, sheen, or entrance animations. */
+  /** Static front only: no 3D rig, glare or entrance animation. */
   flat?: boolean;
   flipped?: boolean;
   onFlip?: () => void;
@@ -487,8 +492,8 @@ interface PhysicsState {
 }
 
 /**
- * A machined metal bank-card credential for one dual-signed binding:
- * 4.4px CNC chamfered edge core, spring-damped Z-lift 3D flip, and click-or-drag 3D inspection.
+ * One dual-signed binding as a card. The front carries both keys and the seal; the back carries the
+ * exact signed statement. Click or drag to flip; `flat` renders the front alone with no 3D rig.
  */
 export const Cachet = ({
   stage,
@@ -582,7 +587,7 @@ export const Cachet = ({
     const bankZ = Math.sin(rad * 2) * -1.85;
     const pitchLift = sinA * 5.2;
 
-    // PBR specular studio band sweeps smoothly across front and back for any n × 180° turn
+    // The sheen band crosses each face once per half turn, whatever the number of turns.
     const fAngle = wrap180(s.angle);
     const bAngle = wrap180(s.angle - 180);
     const frontSheen = 50 + (fAngle / 90) * 64;
@@ -633,13 +638,12 @@ export const Cachet = ({
 
       let settledCard = true;
       if (!flat) {
-        // Smooth damped pointer tilt
         const tiltLerp = 1 - Math.exp(-14 * dt);
         s.tiltX += (s.goalTiltX - s.tiltX) * tiltLerp;
         s.tiltY += (s.goalTiltY - s.tiltY) * tiltLerp;
 
         if (!s.dragging) {
-          // Underdamped-near-critical spring for weighty machined titanium feel
+          // Slightly underdamped spring: the card settles with one small overshoot.
           const stiffness = 115;
           const damping = 18.5;
           const force = (s.target - s.angle) * stiffness - s.vel * damping;
@@ -780,7 +784,7 @@ export const Cachet = ({
       const dx = e.clientX - s.startX;
       const dy = e.clientY - s.startY;
       if (!s.moved && Math.hypot(dx, dy) > 6) {
-        // Horizontal gesture captures 3D card scrub
+        // A mostly horizontal drag scrubs the flip; a vertical one is left to page scroll.
         if (Math.abs(dx) >= Math.abs(dy) * 0.8) {
           s.moved = true;
           s.dragging = true;
@@ -977,10 +981,7 @@ export const Cachet = ({
       </div>
 
       <footer className="cachet__foot">
-        <span className="cachet__status">
-          {status}
-          {sealed && overprint && <span className="cachet__stamp">{overprint}</span>}
-        </span>
+        <span className="cachet__status">{sealed && overprint ? <span className="cachet__stamp">{overprint}</span> : status}</span>
         {expiresAt && (
           <span className="cachet__expiry" data-zone="time" title={`Valid until ${formatDate(expiresAt)}`}>
             <span className="cachet__expiry-k">VALID THRU</span>
@@ -1026,12 +1027,11 @@ export const Cachet = ({
       onPointerCancel={(e) => finishPointer(e, true)}
       onPointerLeave={onPointerLeave}
     >
-      {/* Stationary ground contact shadow on the page plane */}
       <div className="cachet__ground-shadow" aria-hidden />
 
       <div className="cachet__tilt">
         <div className="cachet__rotor">
-          {/* Machined CNC metallic edge core slices between Front (+2.2px) and Back (-2.2px) */}
+          {/* Edge slices between the front (+2.2px) and back (−2.2px) faces give the card thickness. */}
           <span className="cachet__edge cachet__edge--a" aria-hidden />
           <span className="cachet__edge cachet__edge--b" aria-hidden />
           <span className="cachet__edge cachet__edge--c" aria-hidden />
@@ -1077,7 +1077,7 @@ export const IconFlip = ({ size = 13 }: { size?: number }) => (
   </svg>
 );
 
-/** Standalone flat back-face card container with zero 3D or lighting effects, paired alongside `<Cachet flat />`. */
+/** The back face on its own, laid flat next to `<Cachet flat />`. */
 export const CachetBackCard = ({
   verdict = 'valid',
   sealed = false,

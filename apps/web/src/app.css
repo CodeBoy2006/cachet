@@ -427,32 +427,6 @@ main {
   animation: c-rise 420ms var(--ease) backwards;
 }
 
-.hero__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 26px;
-  padding: 0 11px 0 9px;
-  margin-bottom: 18px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--ink-2);
-  box-shadow: 0 1px 2px rgb(20 20 18 / 0.03);
-}
-
-.hero__dots {
-  display: inline-flex;
-  align-items: center;
-}
-
-.hero__dots .c-dot + .c-dot {
-  margin-left: -2px;
-  box-shadow: 0 0 0 1.5px var(--surface);
-}
-
 .hero h1 {
   font-size: clamp(34px, 5vw, 54px);
   line-height: 1.04;
@@ -661,163 +635,247 @@ main {
   }
 }
 
-.steps {
+/* The demo loop: three steps whose top rule fills in as the visitor's own link progresses. */
+.loop {
+  margin-top: 72px;
+}
+
+.loop__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 32px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.loop__head h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.loop__head p {
+  margin: 0;
+  max-width: 36em;
+  color: var(--ink-2);
+  font-size: 14.5px;
+  text-wrap: pretty;
+}
+
+.loop__steps {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
   border-top: 1px solid var(--line);
-  margin-top: 64px;
 }
 
-.steps > div {
-  padding: 26px 28px 8px 0;
+.loop__steps > li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 28px 4px 0;
 }
 
-.steps > div + div {
+.loop__steps > li + li {
   padding-left: 28px;
   border-left: 1px solid var(--line);
 }
 
-.steps .n {
+.loop__steps > li::before {
+  content: '';
+  position: absolute;
+  inset: -1px 0 auto;
+  height: 2px;
+  background: transparent;
+  transition: background-color 320ms var(--ease);
+}
+
+.loop__steps > li[data-state='current']::before {
+  background: var(--ink);
+}
+
+.loop__steps > li[data-state='done']::before {
+  background: var(--accent);
+}
+
+.loop__n {
+  display: inline-grid;
+  place-items: center;
+  align-self: flex-start;
+  min-width: 20px;
+  height: 20px;
+  margin-bottom: 12px;
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--ink-3);
-  display: block;
-  margin-bottom: 14px;
 }
 
-.steps h3 {
+.loop__n[data-done] {
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  animation: c-pop 240ms var(--ease) both;
+}
+
+.loop__steps h3 {
+  margin: 0 0 6px;
   font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  margin: 0 0 6px;
 }
 
-.steps p {
+.loop__steps p {
   margin: 0;
   color: var(--ink-2);
   font-size: 14.5px;
   text-wrap: pretty;
 }
 
-@media (max-width: 820px) {
-  .steps {
-    grid-template-columns: 1fr;
-    margin-top: 48px;
-  }
-  .steps > div,
-  .steps > div + div {
-    padding: 22px 0;
-    border-left: 0;
-    border-bottom: 1px solid var(--line);
-  }
+.loop__steps > li[data-state='todo'] h3 {
+  color: var(--ink-2);
 }
 
-.tiles {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin-top: 56px;
+.loop__steps > li[data-state='todo'] p {
+  color: var(--ink-3);
 }
 
-.tile {
+.loop__act {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 22px;
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  align-items: center;
+  gap: 8px 18px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 18px;
+  min-height: 50px;
+}
+
+.loop__act .c-btn svg {
+  color: var(--accent);
+}
+
+.loop__act .c-btn--secondary svg {
+  color: inherit;
+}
+
+.loop__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13.5px;
+  color: var(--ink-2);
   text-decoration: none;
-  text-align: left;
-  font: inherit;
+  white-space: nowrap;
+  transition: color 140ms;
+}
+
+.loop__go svg {
+  transition: translate 180ms var(--ease);
+}
+
+.loop__go:hover {
   color: var(--ink);
-  transition:
-    border-color 160ms,
-    transform 200ms var(--ease),
-    box-shadow 200ms;
-  min-height: 168px;
 }
 
-button.tile {
-  cursor: pointer;
-}
-
-a.tile:hover,
-button.tile:hover {
-  border-color: var(--line-2);
-  box-shadow: var(--shadow);
-  transform: translateY(-2px);
-}
-
-a.tile:hover .tile__go svg,
-button.tile:hover .tile__go svg {
+.loop__go:hover svg {
   translate: 2px 0;
 }
 
-.tile h3 {
-  font-size: 16px;
-  margin: 6px 0 0;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+.loop__go[target='_blank']:hover svg {
+  translate: 2px -2px;
 }
 
-.tile p {
-  margin: 0;
-  color: var(--ink-2);
-  font-size: 14px;
-  flex: 1;
-  text-wrap: pretty;
+.loop__wait {
+  font-size: 13px;
+  color: var(--ink-3);
 }
 
-.tile__icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+.loop__lab {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin-top: 32px;
+  padding: 14px 18px 14px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    border-color 160ms,
+    box-shadow 200ms;
+}
+
+.loop__lab:hover {
+  border-color: var(--line-2);
+  box-shadow: var(--shadow);
+}
+
+.loop__lab-icon {
   display: grid;
   place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   background: var(--sunken);
   color: var(--ink-2);
 }
 
-.tile__links {
+.loop__lab-text {
   display: flex;
-  gap: 18px;
+  align-items: baseline;
+  gap: 4px 12px;
   flex-wrap: wrap;
-}
-
-.tile__go {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink-2);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
 }
 
-.tile__go svg {
-  transition: translate 180ms var(--ease);
-}
-
-.tile__go--link {
-  text-decoration: none;
-  border-radius: 4px;
-  transition: color 140ms;
-}
-
-.tile__go--link:hover {
+.loop__lab-text strong {
+  font-size: 14.5px;
+  font-weight: 600;
   color: var(--ink);
 }
 
-.tile__go--link:hover svg {
-  translate: 2px -2px;
+.loop__lab-go {
+  color: var(--ink-3);
+  transition:
+    translate 180ms var(--ease),
+    color 140ms;
+}
+
+.loop__lab:hover .loop__lab-go {
+  color: var(--ink);
+  translate: 2px 0;
 }
 
 @media (max-width: 820px) {
-  .tiles {
-    grid-template-columns: 1fr;
+  .loop {
+    margin-top: 56px;
   }
-  .tile {
+  .loop__steps {
+    grid-template-columns: 1fr;
+    border-top: 0;
+  }
+  .loop__steps > li,
+  .loop__steps > li + li {
+    padding: 20px 0 18px;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .loop__act {
     min-height: 0;
+    padding-top: 14px;
+  }
+  .loop__lab {
+    margin-top: 20px;
+    align-items: start;
+  }
+  .loop__lab-go {
+    align-self: center;
   }
 }
 
@@ -1447,6 +1505,50 @@ button.tile:hover .tile__go svg {
   margin-bottom: 6px;
 }
 
+.done-checks summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  list-style: none;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.done-checks summary::-webkit-details-marker {
+  display: none;
+}
+
+.done-checks summary .c-section-title {
+  margin: 0;
+}
+
+.done-checks__sum {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--accent-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.done-checks__sum svg {
+  color: var(--ink-3);
+  transition: rotate 200ms var(--ease);
+}
+
+.done-checks summary:hover .done-checks__sum svg {
+  color: var(--ink);
+}
+
+.done-checks[open] .done-checks__sum svg {
+  rotate: 180deg;
+}
+
+.done-checks[open] summary {
+  margin-bottom: 8px;
+}
+
 .done-card__kept {
   margin: 0;
   font-size: 13.5px;
@@ -1537,11 +1639,46 @@ button.tile:hover .tile__go svg {
   align-items: start;
 }
 
+/* One column: someone who came to pay sees the card, then the QR. The signed statement and the
+   checks follow as evidence instead of standing between the payer and the payment. */
 @media (max-width: 900px) {
   .profile__cards,
   .profile__grid {
-    grid-template-columns: 1fr;
+    display: contents;
   }
+  .profile > * {
+    order: 6;
+  }
+  .profile > .owner-bar,
+  .profile > .revoked-banner {
+    order: 0;
+  }
+  .profile__cards > :first-child {
+    order: 1;
+  }
+  .profile > .c-note {
+    order: 2;
+  }
+  .profile__grid > :first-child {
+    order: 3;
+  }
+  .profile__cards > :last-child {
+    order: 4;
+  }
+  .profile__grid > :last-child {
+    order: 5;
+  }
+}
+
+/* Stands in for the statement card when nothing was published, at the same height as the front. */
+.profile__nolink {
+  align-content: center;
+  padding-block: 32px;
+}
+
+.profile__nolink .empty__relays {
+  width: 100%;
+  max-width: 420px;
 }
 
 .profile__fine {
@@ -2659,9 +2796,7 @@ button.tile:hover .tile__go svg {
   background: var(--surface-2);
   border: 1px solid var(--line);
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .verdict h2 {

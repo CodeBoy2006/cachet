@@ -91,7 +91,7 @@ export const BchConnect = () => {
             <strong>Sandbox key</strong>
             <small>A real mainnet key kept in this browser. Back it up before receiving funds.</small>
           </span>
-          <span className="option__meta">Instant</span>
+          <span className="option__meta">This browser</span>
         </button>
       </div>
       {error && <Note tone="danger">{error}</Note>}

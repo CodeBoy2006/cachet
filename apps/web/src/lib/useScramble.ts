@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { prefersReducedMotion } from './motion.ts';
 
 export const BECH32 = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
 export const HEX = '0123456789abcdef';
 export const HEX_UPPER = '0123456789ABCDEF';
 export const BASE64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-
-export const prefersReducedMotion = () =>
-  typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const pick = (charset: string) => charset[(Math.random() * charset.length) | 0]!;
 

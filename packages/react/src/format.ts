@@ -9,6 +9,9 @@ export const shortNpub = (pubkeyOrNpub: string) =>
 export const shortCashaddr = (address: string, head = 7, tail = 6) =>
   shortMiddle(address.includes(':') ? address.split(':')[1]! : address, head, tail);
 
+/** `noun` after `n`, plural unless n is 1: plural(3, 'relay') → 'relays'. */
+export const plural = (n: number, noun: string, many = `${noun}s`) => (n === 1 ? noun : many);
+
 export const relayHost = (url: string) => url.replace(/^wss?:\/\//, '').replace(/\/$/, '');
 
 const dateFmt = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' });

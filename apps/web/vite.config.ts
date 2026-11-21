@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   resolve: { conditions: ['@cachet/source'] },
-  build: { target: 'es2022', sourcemap: true, chunkSizeWarningLimit: 1500 },
+  build: { target: 'es2022', sourcemap: !process.env.VERCEL, chunkSizeWarningLimit: 1500 },
   server: { host: '127.0.0.1' },
   preview: { host: '127.0.0.1' },
 });

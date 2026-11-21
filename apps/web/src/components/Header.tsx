@@ -132,7 +132,7 @@ export const Header = () => {
         <nav className="nav" aria-label="Main">
           <NavLink href="/new">Create</NavLink>
           <NavLink href="/lab">Lab</NavLink>
-          <span className="nav__sep hide-sm" aria-hidden />
+          {config.apps.length > 0 && <span className="nav__sep hide-sm" aria-hidden />}
           {config.apps.map((app) => (
             <a key={app.id} className="nav__ext hide-sm" href={app.url} target="_blank" rel="noreferrer" title={app.blurb}>
               {app.name} <IconArrowUpRight size={11} />

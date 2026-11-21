@@ -4,6 +4,7 @@ import { CopyButton, IconArrowUpRight, IconCheck, IconChevronRight, Note, Qr, Se
 import { config } from '../config.ts';
 import { isSandboxAddress, useSession } from '../lib/session.tsx';
 import { hasSavedWalletConnectSession, hasSavedWizardSession } from '../lib/storage.ts';
+import { prefersReducedMotion } from '../lib/motion.ts';
 import { KeysDialog } from './KeysDialog.tsx';
 import type { WalletBrand } from '../lib/wallets.ts';
 import { WalletCard, WalletMark } from './WalletPayment.tsx';
@@ -49,7 +50,7 @@ const useCountUpSats = (target?: bigint) => {
   const [shown, setShown] = useState<bigint>(target ?? 0n);
   useEffect(() => {
     if (target === undefined) return;
-    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+    if (prefersReducedMotion()) {
       setShown(target);
       return;
     }
@@ -252,7 +253,7 @@ export const PayPanel = ({ cashaddr, payee, initialAmount }: { cashaddr: string;
               {watching === 'live' ? <span className="live" /> : watching === 'connecting' ? <Spinner /> : null}
               <span>
                 {watching === 'live'
-                  ? `Watching via ${server} · instant 0-conf`
+                  ? `Listening for payment via ${server}`
                   : watching === 'connecting'
                     ? 'Connecting to Fulcrum…'
                     : 'Payment watcher offline. The QR still works.'}

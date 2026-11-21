@@ -27,6 +27,9 @@ import type { Brand } from '../shared/brands.ts';
 /** Long enough to approve in another tab, short enough that a stolen nonce goes stale. */
 export const CHALLENGE_TTL = 180;
 const SESSION_TTL = 12 * 3600;
+/** Each browser sees only its own decisions; these bound the memory the log can use. */
+const LOG_PER_VISITOR = 40;
+const LOG_VISITORS = 500;
 
 const NOTES = [
   {
@@ -103,7 +106,9 @@ export const createApp = (opts: { brand: Brand; origin: string; resolve: Resolve
   const challenges = new Map<string, Challenge>();
   const used = new Map<string, number>();
   const sessions = new Map<string, Session & { expires: number }>();
-  const log: LogEntry[] = [];
+  const vidCookie = `rp_${opts.brand.id}_vid`;
+  /** Log entries per visitor cookie, oldest visitor first, so a shared demo never shows one person's sign-ins to another. */
+  const logs = new Map<string, LogEntry[]>();
 
   const parseSellerKey = (raw: string | undefined): string | null => {
     if (!raw) return null;
@@ -119,16 +124,32 @@ export const createApp = (opts: { brand: Brand; origin: string; resolve: Resolve
     return isLowerHex(v, 32) ? v : null;
   };
 
-  const note = (tone: LogEntry['tone'], text: string, code?: string) => {
-    log.unshift({ t: now(), tone, text, ...(code ? { code } : {}) });
-    log.length = Math.min(log.length, 40);
+  const cookieOpts = { httpOnly: true, sameSite: 'Lax' as const, secure, path: '/' };
+
+  /** A random id for this browser's log. It authorizes nothing; it only keeps visitors' logs apart. */
+  const visitorOf = (c: Context) => {
+    let v = getCookie(c, vidCookie);
+    if (!v || !isLowerHex(v, 16)) {
+      v = randomHex(16);
+      setCookie(c, vidCookie, v, { ...cookieOpts, maxAge: 30 * 86400 });
+    }
+    return v;
+  };
+
+  const note = (c: Context, tone: LogEntry['tone'], text: string, code?: string) => {
+    const who = visitorOf(c);
+    const entries = logs.get(who) ?? [];
+    logs.delete(who);
+    logs.set(who, entries);
+    entries.unshift({ t: now(), tone, text, ...(code ? { code } : {}) });
+    entries.length = Math.min(entries.length, LOG_PER_VISITOR);
+    while (logs.size > LOG_VISITORS) logs.delete(logs.keys().next().value!);
   };
   const short = (pk: string) => `${npubEncode(pk).slice(0, 12)}…`;
   const deny = (c: Context, status: 400 | 401 | 403, code: AuthCode, detail?: string) => {
-    note('reject', `Rejected: ${AUTH_CODES[code]}`, code);
+    note(c, 'reject', `Rejected: ${AUTH_CODES[code]}`, code);
     return c.json({ ok: false, code, message: detail ?? AUTH_CODES[code] }, status);
   };
-  const cookieOpts = { httpOnly: true, sameSite: 'Lax' as const, secure, path: '/' };
 
   const preSession = (c: Context) => {
     let pre = getCookie(c, preCookie);
@@ -151,7 +172,7 @@ export const createApp = (opts: { brand: Brand; origin: string; resolve: Resolve
 
   app.get('/api/health', (c) => c.json({ ok: true, name: opts.brand.name, origin: opts.origin }));
 
-  app.get('/api/log', (c) => c.json(log.slice(0, 20)));
+  app.get('/api/log', (c) => c.json((logs.get(visitorOf(c)) ?? []).slice(0, 20)));
 
   /**
    * Two shapes:
@@ -169,16 +190,16 @@ export const createApp = (opts: { brand: Brand; origin: string; resolve: Resolve
     const pre = preSession(c);
     let binding: ResolvedBinding | undefined;
     if (pubkey) {
-      note('info', `Looking up ${short(pubkey)} on relays`);
+      note(c, 'info', `Looking up ${short(pubkey)} on relays`);
       binding = await opts.resolve(pubkey);
       const answered = binding.relays.filter((r) => r.status === 'ok').length;
       if (binding.state !== 'active' || !binding.bindingId) {
-        note('reject', `No active BCH link for ${short(pubkey)} (${STATE_LABELS[binding.state].toLowerCase()}, ${answered}/${binding.relays.length} relays)`, 'binding_inactive');
+        note(c, 'reject', `No active BCH link for ${short(pubkey)} (${STATE_LABELS[binding.state].toLowerCase()}, ${answered}/${binding.relays.length} relays)`, 'binding_inactive');
         return c.json({ ok: false, code: 'binding_inactive', state: binding.state, message: `${AUTH_CODES.binding_inactive} (${STATE_LABELS[binding.state]})`, relays: binding.relays }, 403);
       }
-      note('info', `Challenge issued to ${short(pubkey)}; link active on ${answered}/${binding.relays.length} relays`);
+      note(c, 'info', `Challenge issued to ${short(pubkey)}; link active on ${answered}/${binding.relays.length} relays`);
     } else {
-      note('info', 'Challenge issued for a sign-in redirect');
+      note(c, 'info', 'Challenge issued for a sign-in redirect');
     }
     const ch: Challenge = { id: randomHex(16), nonce: randomHex(32), pre, ...(pubkey ? { pubkey } : {}), ...(binding ? { binding } : {}), expiresAt: now() + CHALLENGE_TTL };
     challenges.set(ch.id, ch);
@@ -223,10 +244,10 @@ export const createApp = (opts: { brand: Brand; origin: string; resolve: Resolve
     used.set(id, ch.expiresAt + 600);
 
     const pubkey = auth.event.pubkey;
-    note('info', `Signature valid for ${short(pubkey)}; looking up its BCH link`);
+    note(c, 'info', `Signature valid for ${short(pubkey)}; looking up its BCH link`);
     const b = await opts.resolve(pubkey);
     if (b.state !== 'active' || !b.bindingId || (b.expiresAt ?? 0) <= now() || (ch.binding?.cashaddr && b.cashaddr !== ch.binding.cashaddr)) {
-      note('reject', `No active BCH link for ${short(pubkey)} (${STATE_LABELS[b.state].toLowerCase()})`, 'binding_inactive');
+      note(c, 'reject', `No active BCH link for ${short(pubkey)} (${STATE_LABELS[b.state].toLowerCase()})`, 'binding_inactive');
       return c.json({ ok: false, code: 'binding_inactive', state: b.state, message: `${AUTH_CODES.binding_inactive} (${STATE_LABELS[b.state]})` }, 403);
     }
 
@@ -248,7 +269,7 @@ export const createApp = (opts: { brand: Brand; origin: string; resolve: Resolve
     sessions.set(sid, session);
     setCookie(c, sidCookie, sid, { ...cookieOpts, maxAge: SESSION_TTL });
     deleteCookie(c, preCookie, cookieOpts);
-    note('ok', `Signed in ${short(pubkey)} → ${b.cashaddr?.split(':')[1]?.slice(0, 10)}…`);
+    note(c, 'ok', `Signed in ${short(pubkey)} → ${b.cashaddr?.split(':')[1]?.slice(0, 10)}…`);
     const { expires: _e, ...pub } = session;
     return c.json({ ok: true, session: pub });
   });
@@ -329,17 +350,17 @@ export const createApp = (opts: { brand: Brand; origin: string; resolve: Resolve
     const b = await opts.resolve(cur.s.pubkey);
     if (!sessions.has(cur.sid)) return c.json({ ok: false }, 401);
     if (b.state === 'unavailable') {
-      note('info', `Could not re-check ${short(cur.s.pubkey)}: relays unavailable`);
+      note(c, 'info', `Could not re-check ${short(cur.s.pubkey)}: relays unavailable`);
       return c.json({ ok: false, revoked: false, state: b.state, message: 'Relays did not answer; could not re-check right now.' }, 503);
     }
     if (b.state !== 'active' || !b.bindingId || (b.expiresAt ?? 0) <= now() || b.cashaddr !== cur.s.cashaddr) {
       sessions.delete(cur.sid);
       deleteCookie(c, sidCookie, cookieOpts);
-      note('reject', `Session ended for ${short(cur.s.pubkey)}: link ${STATE_LABELS[b.state].toLowerCase()}`, 'binding_inactive');
+      note(c, 'reject', `Session ended for ${short(cur.s.pubkey)}: link ${STATE_LABELS[b.state].toLowerCase()}`, 'binding_inactive');
       return c.json({ ok: false, revoked: true, state: b.state, message: `Your BCH link is ${STATE_LABELS[b.state].toLowerCase()}. Signed out.` });
     }
     Object.assign(cur.s, { checkedAt: now(), relays: b.relays, bindingId: b.bindingId, snapshotId: b.snapshotId, bindingExpiresAt: b.expiresAt });
-    note('info', `Re-checked ${short(cur.s.pubkey)}: still active`);
+    note(c, 'info', `Re-checked ${short(cur.s.pubkey)}: still active`);
     const { expires: _e, ...pub } = cur.s;
     return c.json({ ok: true, session: pub });
   });

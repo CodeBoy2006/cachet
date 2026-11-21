@@ -13,11 +13,11 @@ Built for **BCH BLAZE 2026** (Paytaca decentralized identity bounty, mainnet tra
 ## Try it
 
 1. Open the site. The card on the right is a real binding made and verified in your tab.
-2. **Quick sandbox test** on the home page (or **Create** with your own wallet) → *Sign* → *Publish*. You get a profile page that anyone can verify.
+2. **Sandbox demo** on the home page signs and publishes in one click (or **Create** with your own wallet → *Sign* → *Publish*). You get a profile page that anyone can verify. The *Try the whole loop* steps under the hero tick off as you go.
 3. On the profile, **Pay**: default `1,000 sats`, scan the QR with any BCH wallet, or connect **Paytaca** over WalletConnect or **Selene** over WizardConnect. Incoming payments and supporter receipts update live via Fulcrum.
 4. Open **Fieldnote** and **Stall** (two separate apps with their own origins). *Sign in with Cachet* to unlock member articles on Fieldnote and open verified BCH seller checkout on Stall; share your `?seller=npub…` storefront URL so any buyer can verify it live from relays.
 5. Back on your profile, **Withdraw**. Stall's public `?seller=` storefront closes on refresh immediately, and pressing *Re-check* in Fieldnote or Stall ends the active session.
-6. **Lab**: twelve attacks (stolen address, replayed proof, mirrored key, cached-verification bypass, unverified 30078…) and the exact check each one fails.
+6. **Lab**: one honest binding and eleven attacks (stolen address, replayed proof, mirrored key, cached-verification bypass, unverified 30078…), each with the exact check it fails.
 
 ## Run locally
 
@@ -42,7 +42,7 @@ npm run dev
 Cachet: http://localhost:5173 · Fieldnote: http://localhost:5174 · Stall: http://localhost:5175
 
 ```bash
-npm test                         # 139 tests: vectors, verifier, resolver, relays + legacy 30078, RP login/gating/gateway, payments
+npm test                         # verifier, relays, RP login, payments, lab, and deployment config
 npm run typecheck
 npm run verify -- fixtures/valid.json          # offline verifier
 npm run verify -- --npub npub1…                # resolve from relays
@@ -87,6 +87,10 @@ Verified here: everything in `npm test`, and the full create → sign in to two 
 Not yet verified: real-wallet pairing and WalletConnect payment (Paytaca, Cashonize, Zapit, Electron Cash), WizardConnect payment from Selene, publishing to public relays. Results go in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 
 ## Deploy
+
+**Vercel:** Import the GitHub repository with the project root set to `.`. The root `vercel.json` installs from the workspace lockfile, builds Cachet, and makes shared profile links work on direct visits. Use Node 22 or newer. Set `VITE_WC_PROJECT_ID` if you want WalletConnect.
+
+Fieldnote and Stall keep login challenges and sessions in memory. Run them on a persistent Node host, then set `VITE_RP_A_URL` and `VITE_RP_B_URL` on Vercel and redeploy to expose their links. Without those URLs, the hosted demo uses the public profile to demonstrate verification and withdrawal.
 
 Set frontend origin variables (`VITE_CACHET_URL`, `VITE_RP_A_URL`, `VITE_RP_B_URL`) at build time so cross-origin sign-in links point to your live domains:
 

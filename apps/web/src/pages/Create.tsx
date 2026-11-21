@@ -29,6 +29,7 @@ import {
   RelayList,
   Segmented,
   Spinner,
+  plural,
   relayHost,
   shortCashaddr,
   shortNpub,
@@ -40,6 +41,7 @@ import { useSession } from '../lib/session.tsx';
 import { browserCache, clearPendingSign, readPendingSign } from '../lib/storage.ts';
 import { publishBinding } from '../lib/publish.ts';
 import { usePageTitle } from '../lib/usePageTitle.ts';
+import { prefersReducedMotion, wait } from '../lib/motion.ts';
 import { NostrConnect } from '../components/NostrConnect.tsx';
 import { BchConnect } from '../components/BchConnect.tsx';
 import { ManualSign } from '../components/ManualSign.tsx';
@@ -53,11 +55,6 @@ const TTL_OPTIONS = [
   { value: 90 * DAY, label: '90 days' },
   { value: 365 * DAY, label: '1 year' },
 ];
-
-const prefersReducedMotion = () =>
-  typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 type StepState = 'done' | 'current' | 'todo';
 
@@ -283,7 +280,7 @@ export const Create = () => {
     return () => clearTimeout(t);
   }, [expressMode, nostr, bch, statement, message, effective, busy, published, publish]);
 
-  const runInstantSandbox = () => {
+  const runSandbox = () => {
     expressRan.current = false;
     startSandbox();
     setExpressMode(true);
@@ -361,13 +358,13 @@ export const Create = () => {
           <h1>{published ? 'Your link is live' : 'New link'}</h1>
           <p>
             {published
-              ? `Sealed and accepted by ${accepted} of ${relays.length} ${relays.length === 1 ? 'relay' : 'relays'}. Any wallet or app can verify it now.`
+              ? `Sealed and accepted by ${accepted} of ${relays.length} ${plural(relays.length, 'relay')}. Any wallet or app can verify it now.`
               : 'Connect a Nostr key and a BCH wallet, then sign once with each.'}
           </p>
         </div>
         {!published && !nostr && !bch && (
-          <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={runInstantSandbox}>
-            <IconZap size={14} /> Instant sandbox
+          <button type="button" className="c-btn c-btn--secondary c-btn--sm" onClick={runSandbox}>
+            <IconZap size={14} /> Use sandbox keys
           </button>
         )}
       </div>
@@ -404,20 +401,22 @@ export const Create = () => {
                       <IconDownload size={14} /> Proof JSON
                     </button>
                   </div>
-                  <div className="done-apps">
-                    {config.apps.map((app) => (
-                      <a key={app.id} className="done-app" href={app.url} target="_blank" rel="noreferrer">
-                        <span className="done-app__icon" data-app={app.id}>
-                          <IconLock size={15} />
-                        </span>
-                        <span className="done-app__body">
-                          <strong>Sign in to {app.name}</strong>
-                          <small>{app.id === 'a' ? 'Unlock member notes' : 'Verified BCH checkout'}</small>
-                        </span>
-                        <IconArrowUpRight size={15} className="done-app__arrow" />
-                      </a>
-                    ))}
-                  </div>
+                  {config.apps.length > 0 && (
+                    <div className="done-apps">
+                      {config.apps.map((app) => (
+                        <a key={app.id} className="done-app" href={app.url} target="_blank" rel="noreferrer">
+                          <span className="done-app__icon" data-app={app.id}>
+                            <IconLock size={15} />
+                          </span>
+                          <span className="done-app__body">
+                            <strong>Sign in to {app.name}</strong>
+                            <small>{app.id === 'a' ? 'Unlock member notes' : 'Verified BCH checkout'}</small>
+                          </span>
+                          <IconArrowUpRight size={15} className="done-app__arrow" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -425,10 +424,16 @@ export const Create = () => {
                 <h3 className="c-section-title">Relay receipts</h3>
                 <RelayList rows={publishRows} />
               </div>
-              <div>
-                <h3 className="c-section-title">Verified locally before broadcast</h3>
-                <CheckList checks={published.check.checks} />
-              </div>
+              <details className="done-checks">
+                <summary>
+                  <span className="c-section-title">Verified in this browser before publishing</span>
+                  <span className="done-checks__sum">
+                    {published.check.checks.filter((c) => c.status === 'pass').length} of {published.check.checks.length} checks
+                    <IconChevron size={14} />
+                  </span>
+                </summary>
+                <CheckList checks={published.check.checks} stagger={20} />
+              </details>
               {published.kept.length > 0 && (
                 <p className="muted done-card__kept">Kept in the same snapshot: {published.kept.join(', ')}</p>
               )}
@@ -479,7 +484,7 @@ export const Create = () => {
                 <div className="create-params" data-open={customizeOpen || undefined}>
                   <div className="create-params__bar">
                     <span className="create-params__summary">
-                      Valid <strong>{ttlLabel}</strong> · <strong>{relays.length}</strong> {relays.length === 1 ? 'relay' : 'relays'}
+                      Valid <strong>{ttlLabel}</strong> · <strong>{relays.length}</strong> {plural(relays.length, 'relay')}
                       {isCashTokens ? ' · CashTokens' : ''}
                     </span>
                     <button

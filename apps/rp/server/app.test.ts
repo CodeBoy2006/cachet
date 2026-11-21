@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { finalizeEvent } from 'nostr-tools/pure';
-import { buildAuthTemplate, encodeAuthHeader, resolveSnapshots, type NostrEvent } from '@cachet/core';
+import { buildAuthTemplate, encodeAuthHeader, npubEncode, resolveSnapshots, type NostrEvent } from '@cachet/core';
 import { makeBinding, makeIdentity } from '../../../packages/core/test/helpers.ts';
 import { BRANDS } from '../shared/brands.ts';
 import { createApp, type ResolvedBinding } from './app.ts';
@@ -119,15 +119,29 @@ describe('relying party login', () => {
   it('ends the session when a re-check finds the link withdrawn', async () => {
     const { b, app, setResolved } = setup();
     const ch = await challenge(app, b.id.nostrPubkey);
+    const vid = cookieOf(ch.res, 'rp_a_vid');
     const body = JSON.stringify({ challenge_id: ch.json.challenge_id, nonce: ch.json.nonce, binding_id: ch.json.binding.binding_id });
-    const res = await verify(app, ch.cookie, body, signedVerify(b.id.nostrSecret, body));
+    const res = await verify(app, `${ch.cookie}; ${vid}`, body, signedVerify(b.id.nostrSecret, body));
     const sid = cookieOf(res, 'rp_a_sid');
     setResolved({ state: 'withdrawn', relays: [] });
-    const re = (await (await app.request('/api/session/recheck', { method: 'POST', headers: { cookie: sid } })).json()) as Record<string, any>;
+    const re = (await (await app.request('/api/session/recheck', { method: 'POST', headers: { cookie: `${sid}; ${vid}` } })).json()) as Record<string, any>;
     expect(re.revoked).toBe(true);
     expect((await app.request('/api/session', { headers: { cookie: sid } })).status).toBe(401);
-    const log = (await (await app.request('/api/log')).json()) as { code?: string }[];
+    const log = (await (await app.request('/api/log', { headers: { cookie: vid } })).json()) as { code?: string; text: string }[];
     expect(log[0]?.code).toBe('binding_inactive');
+    expect(log.map((e) => e.text)).toContain(`Signature valid for ${npubEncode(b.id.nostrPubkey).slice(0, 12)}…; looking up its BCH link`);
+  });
+
+  it('shows each browser only its own log entries', async () => {
+    const { b, app } = setup();
+    const ch = await challenge(app, b.id.nostrPubkey);
+    const vid = cookieOf(ch.res, 'rp_a_vid');
+    expect(vid).toMatch(/^rp_a_vid=[0-9a-f]{32}$/);
+    const mine = (await (await app.request('/api/log', { headers: { cookie: vid } })).json()) as unknown[];
+    expect(mine.length).toBeGreaterThan(0);
+    const other = await app.request('/api/log');
+    expect(await other.json()).toEqual([]);
+    expect(cookieOf(other, 'rp_a_vid')).not.toBe(vid);
   });
 
   it('keeps an active session when relays are temporarily unreachable during re-check', async () => {
