@@ -9,8 +9,8 @@ export const Footer = () => (
         <Logo size={16} /> <span className="mono">bch-nostr-bind/v1</span>
       </span>
       <Link href="/lab">Lab</Link>
-      {config.banner.repo && (
-        <a href={config.banner.repo} target="_blank" rel="noreferrer">
+      {config.repoUrl && (
+        <a href={config.repoUrl} target="_blank" rel="noreferrer">
           Source
         </a>
       )}

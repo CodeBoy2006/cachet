@@ -2,18 +2,7 @@
 
 **Pay a person, not a string.** Link a Bitcoin Cash address to a Nostr key: both keys sign one statement, it lives on Nostr relays, and any wallet or app can verify it without asking a server.
 
-Built for **BCH BLAZE 2026** (Mainnet Track & Paytaca Decentralized Identity Bounty). All code written Nov 14–22, 2026; no prior codebase.
-
-| | |
-|---|---|
-| Live demo | [cachet-three.vercel.app](https://cachet-three.vercel.app) |
-| EMBER2026 address | `bitcoincash:zzq4hd7sk4x32sxnusd7ch82d5c35fnwcg3ytwteug` |
-
-
-
-https://github.com/user-attachments/assets/d92f23e2-682e-49c9-9a56-cbce287b3c39
-
-
+[Open the live demo](https://cachet-three.vercel.app).
 
 ![Cachet’s engraved seal: two interlocking rings with an emerald foil center](docs/assets/readme-hero.png)
 
@@ -124,7 +113,7 @@ VITE_SIBLING_URL=https://cachet-stall.vercel.app VITE_CACHET_URL=https://cachet-
 npm run build:vercel -w @cachet/rp -- /absolute/path/to/linked-project/.vercel/output
 ```
 
-In the linked deployment directory, run `vercel deploy --prebuilt --prod`. Verify both `/api/health` endpoints before setting `VITE_RP_A_URL` and `VITE_RP_B_URL` and rebuilding Cachet. Set `VITE_REPO_URL` on Cachet to show the Source link in the top banner.
+In the linked deployment directory, run `vercel deploy --prebuilt --prod`. Verify both `/api/health` endpoints before setting `VITE_RP_A_URL` and `VITE_RP_B_URL` and rebuilding Cachet.
 
 **Persistent Node host:** The standalone demo and gateway still keep their app state in memory.
 

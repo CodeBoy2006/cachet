@@ -2,7 +2,6 @@ import { Suspense, lazy, useEffect } from 'react';
 import { Route, Switch, useLocation } from 'wouter';
 import { Spinner } from '@cachet/react';
 import { SessionProvider } from './lib/session.tsx';
-import { Banner } from './components/Banner.tsx';
 import { Header } from './components/Header.tsx';
 import { Footer } from './components/Footer.tsx';
 import { Home } from './pages/Home.tsx';
@@ -50,7 +49,6 @@ export const App = () => (
       </Route>
       <Route>
         <ScrollTop />
-        <Banner />
         <Header />
         <main>
           <Suspense fallback={<PageLoader />}>

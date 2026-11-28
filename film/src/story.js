@@ -741,12 +741,11 @@ export function createStory({ engine, data, images }) {
   // ======================================================================
   // Act VI — lockup
   // ======================================================================
-  function drawLockup(L, isRelief, t) {
+  function drawLockup(L, t) {
     if (t < ACT.lockup - 0.1) return;
     const x = 372;
     caption(L, 'cachet', x, 50, t, ACT.lockup + 0.05, null, { font: 'sans', weight: 620, size: 156, align: 'left', track: -0.03, depth: 0.7, dur: 0.75 });
     caption(L, 'Both keys sign. Anyone verifies.', x + 6, 128, t, ACT.lockup + 0.7, null, { font: 'italic', size: 40, align: 'left', color: C.ink2, depth: 0.25 });
-    caption(L, 'BCH BLAZE 2026', 290, 400, t, ACT.lockup + 1.35, null, { font: 'mono', size: 15, track: 0.36, color: C.graphite, depth: 0.15, dur: 0.6 });
   }
 
   // ---------------------------------------------------------------------------
@@ -898,7 +897,7 @@ export function createStory({ engine, data, images }) {
         ], 'pubkey_mismatch', 4);
         drawMirror(layer, isRelief, t);
         drawTable(layer, isRelief, t);
-        drawLockup(layer, isRelief, t);
+        drawLockup(layer, t);
         layer.reset();
       }
       engine.press.finish();

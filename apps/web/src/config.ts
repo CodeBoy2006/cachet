@@ -19,10 +19,6 @@ export const config = {
     { id: 'a', name: 'Fieldnote', url: clean(env.VITE_RP_A_URL) ?? (local ? 'http://localhost:5174' : undefined), blurb: 'Members-only notes' },
     { id: 'b', name: 'Stall', url: clean(env.VITE_RP_B_URL) ?? (local ? 'http://localhost:5175' : undefined), blurb: 'Seller dashboard' },
   ].flatMap(({ url, ...app }) => (url ? [{ ...app, url }] : [])),
-  banner: {
-    slides: clean(env.VITE_SLIDES_URL),
-    repo: clean(env.VITE_REPO_URL),
-    ember: clean(env.VITE_EMBER_ADDRESS) ?? 'bitcoincash:zzq4hd7sk4x32sxnusd7ch82d5c35fnwcg3ytwteug',
-  },
+  repoUrl: clean(env.VITE_REPO_URL),
   explorerTx: (txid: string) => `https://blockchair.com/bitcoin-cash/transaction/${txid}`,
 };
